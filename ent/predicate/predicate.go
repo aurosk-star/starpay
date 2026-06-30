@@ -8,3 +8,15 @@ import (
 
 // App is the predicate function for app builders.
 type App func(*sql.Selector)
+
+// CasbinRule is the predicate function for casbinrule builders.
+type CasbinRule func(*sql.Selector)
+
+// RefreshToken is the predicate function for refreshtoken builders.
+type RefreshToken func(*sql.Selector)
+
+// Role is the predicate function for role builders.
+type Role func(*sql.Selector)
+
+// User is the predicate function for user builders.
+type User func(*sql.Selector)

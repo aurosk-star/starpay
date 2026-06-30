@@ -4,9 +4,30 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	"payment-gateway/ent"
+	userhandler "payment-gateway/internal/domain/users/handler"
+	userrouter "payment-gateway/internal/domain/users/router"
+	usersvc "payment-gateway/internal/domain/users/service"
+	"payment-gateway/internal/platform/config"
+	"payment-gateway/internal/platform/rbac"
 )
 
-func NewRouter() http.Handler {
+func NewRouter(client *ent.Client, cfg config.Config) http.Handler {
+	router := NewBaseRouter()
+
+	enforcer, err := rbac.NewEnforcer()
+	if err != nil {
+		panic(err)
+	}
+	userService := usersvc.New(client, cfg.Auth)
+	userHandler := userhandler.New(userService, cfg.Auth)
+	userrouter.Register(router.Group("/v1/admin"), userHandler, userService, enforcer)
+
+	return router
+}
+
+func NewBaseRouter() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()

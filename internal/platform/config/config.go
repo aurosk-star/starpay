@@ -1,12 +1,17 @@
 package config
 
-import "os"
+import (
+	"os"
+	"strconv"
+	"time"
+)
 
 type Config struct {
 	App      AppConfig
 	HTTP     HTTPConfig
 	Database DatabaseConfig
 	Redis    RedisConfig
+	Auth     AuthConfig
 }
 
 type AppConfig struct {
@@ -28,6 +33,15 @@ type RedisConfig struct {
 	DB       int
 }
 
+type AuthConfig struct {
+	JWTSecret             string
+	AccessTokenTTL        time.Duration
+	RefreshTokenTTL       time.Duration
+	RefreshCookieName     string
+	RefreshCookieSecure   bool
+	RefreshCookieSameSite string
+}
+
 func Load() (Config, error) {
 	return Config{
 		App: AppConfig{
@@ -45,6 +59,14 @@ func Load() (Config, error) {
 			Password: env("REDIS_PASSWORD", ""),
 			DB:       0,
 		},
+		Auth: AuthConfig{
+			JWTSecret:             env("JWT_SECRET", "local-development-secret-change-me"),
+			AccessTokenTTL:        durationEnv("ACCESS_TOKEN_TTL", 12*time.Hour),
+			RefreshTokenTTL:       durationEnv("REFRESH_TOKEN_TTL", 7*24*time.Hour),
+			RefreshCookieName:     env("REFRESH_COOKIE_NAME", "pg_refresh_token"),
+			RefreshCookieSecure:   boolEnv("REFRESH_COOKIE_SECURE", false),
+			RefreshCookieSameSite: env("REFRESH_COOKIE_SAME_SITE", "lax"),
+		},
 	}, nil
 }
 
@@ -54,4 +76,28 @@ func env(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func durationEnv(key string, fallback time.Duration) time.Duration {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func boolEnv(key string, fallback bool) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }
