@@ -1,4 +1,4 @@
-.PHONY: dev test tidy ent-up db-up db-down
+.PHONY: dev test tidy ent-up db-up db-down web-dev web-build web-typecheck
 
 dev:
 	go run ./cmd/server
@@ -17,3 +17,12 @@ db-up:
 
 db-down:
 	docker compose down
+
+web-dev:
+	cd web && bun run dev
+
+web-build:
+	cd web && bun run build
+
+web-typecheck:
+	cd web && bun run typecheck
