@@ -12,8 +12,8 @@ coverage.out
 *.out
 
 # Local binaries
-server
-payment-gateway
+/server
+/payment-gateway
 
 # IDE/editor files
 .idea/
