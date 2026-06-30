@@ -1,8 +1,11 @@
 package config
 
 import (
+	"fmt"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -24,7 +27,8 @@ type HTTPConfig struct {
 }
 
 type DatabaseConfig struct {
-	URL string
+	Driver string
+	DSN    string
 }
 
 type RedisConfig struct {
@@ -34,12 +38,13 @@ type RedisConfig struct {
 }
 
 type AuthConfig struct {
-	JWTSecret             string
-	AccessTokenTTL        time.Duration
-	RefreshTokenTTL       time.Duration
-	RefreshCookieName     string
-	RefreshCookieSecure   bool
-	RefreshCookieSameSite string
+	JWTSecret              string
+	AccessTokenTTL         time.Duration
+	RefreshTokenTTL        time.Duration
+	RefreshCookieName      string
+	RefreshCookieSecure    bool
+	RefreshCookieSameSite  string
+	AppSecretEncryptionKey string
 }
 
 func Load() (Config, error) {
@@ -51,23 +56,53 @@ func Load() (Config, error) {
 		HTTP: HTTPConfig{
 			Addr: env("HTTP_ADDR", ":8080"),
 		},
-		Database: DatabaseConfig{
-			URL: env("DATABASE_URL", "postgres://payment:payment@localhost:5432/payment_gateway?sslmode=disable"),
-		},
+		Database: loadDatabaseConfig(),
 		Redis: RedisConfig{
 			Addr:     env("REDIS_ADDR", "localhost:6379"),
 			Password: env("REDIS_PASSWORD", ""),
 			DB:       0,
 		},
 		Auth: AuthConfig{
-			JWTSecret:             env("JWT_SECRET", "local-development-secret-change-me"),
-			AccessTokenTTL:        durationEnv("ACCESS_TOKEN_TTL", 12*time.Hour),
-			RefreshTokenTTL:       durationEnv("REFRESH_TOKEN_TTL", 7*24*time.Hour),
-			RefreshCookieName:     env("REFRESH_COOKIE_NAME", "pg_refresh_token"),
-			RefreshCookieSecure:   boolEnv("REFRESH_COOKIE_SECURE", false),
-			RefreshCookieSameSite: env("REFRESH_COOKIE_SAME_SITE", "lax"),
+			JWTSecret:              env("JWT_SECRET", "local-development-secret-change-me"),
+			AccessTokenTTL:         durationEnv("ACCESS_TOKEN_TTL", 12*time.Hour),
+			RefreshTokenTTL:        durationEnv("REFRESH_TOKEN_TTL", 7*24*time.Hour),
+			RefreshCookieName:      env("REFRESH_COOKIE_NAME", "pg_refresh_token"),
+			RefreshCookieSecure:    boolEnv("REFRESH_COOKIE_SECURE", false),
+			RefreshCookieSameSite:  env("REFRESH_COOKIE_SAME_SITE", "lax"),
+			AppSecretEncryptionKey: env("APP_SECRET_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef"),
 		},
 	}, nil
+}
+
+func loadDatabaseConfig() DatabaseConfig {
+	driver := strings.ToLower(env("DB_DRIVER", "postgres"))
+	dsn := env("DATABASE_URL", "")
+	if dsn == "" {
+		dsn = buildDatabaseDSN(driver)
+	}
+	return DatabaseConfig{Driver: driver, DSN: dsn}
+}
+
+func buildDatabaseDSN(driver string) string {
+	switch driver {
+	case "mysql":
+		return fmt.Sprintf(
+			"%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4&loc=Local",
+			env("DB_USER", "payment"),
+			env("DB_PASSWORD", "payment"),
+			env("DB_HOST", "localhost"),
+			env("DB_PORT", "3306"),
+			env("DB_NAME", "payment_gateway"),
+		)
+	default:
+		user := url.QueryEscape(env("DB_USER", "payment"))
+		password := url.QueryEscape(env("DB_PASSWORD", "payment"))
+		host := env("DB_HOST", "localhost")
+		port := env("DB_PORT", "5432")
+		name := env("DB_NAME", "payment_gateway")
+		sslMode := env("DB_SSLMODE", "disable")
+		return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s", user, password, host, port, name, sslMode)
+	}
 }
 
 func env(key, fallback string) string {

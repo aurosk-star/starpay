@@ -4,6 +4,8 @@ package ent
 
 import (
 	"payment-gateway/ent/app"
+	"payment-gateway/ent/channelaccount"
+	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
 	"payment-gateway/ent/schema"
@@ -18,9 +20,55 @@ func init() {
 	appFields := schema.App{}.Fields()
 	_ = appFields
 	// appDescStatus is the schema descriptor for status field.
-	appDescStatus := appFields[4].Descriptor()
+	appDescStatus := appFields[6].Descriptor()
 	// app.DefaultStatus holds the default value on creation for the status field.
 	app.DefaultStatus = appDescStatus.Default.(string)
+	// appDescCreatedAt is the schema descriptor for created_at field.
+	appDescCreatedAt := appFields[7].Descriptor()
+	// app.DefaultCreatedAt holds the default value on creation for the created_at field.
+	app.DefaultCreatedAt = appDescCreatedAt.Default.(func() time.Time)
+	// appDescUpdatedAt is the schema descriptor for updated_at field.
+	appDescUpdatedAt := appFields[8].Descriptor()
+	// app.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	app.DefaultUpdatedAt = appDescUpdatedAt.Default.(func() time.Time)
+	// app.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	app.UpdateDefaultUpdatedAt = appDescUpdatedAt.UpdateDefault.(func() time.Time)
+	channelaccountFields := schema.ChannelAccount{}.Fields()
+	_ = channelaccountFields
+	// channelaccountDescEnabled is the schema descriptor for enabled field.
+	channelaccountDescEnabled := channelaccountFields[2].Descriptor()
+	// channelaccount.DefaultEnabled holds the default value on creation for the enabled field.
+	channelaccount.DefaultEnabled = channelaccountDescEnabled.Default.(bool)
+	// channelaccountDescEnv is the schema descriptor for env field.
+	channelaccountDescEnv := channelaccountFields[3].Descriptor()
+	// channelaccount.DefaultEnv holds the default value on creation for the env field.
+	channelaccount.DefaultEnv = channelaccountDescEnv.Default.(string)
+	// channelaccountDescCreatedAt is the schema descriptor for created_at field.
+	channelaccountDescCreatedAt := channelaccountFields[5].Descriptor()
+	// channelaccount.DefaultCreatedAt holds the default value on creation for the created_at field.
+	channelaccount.DefaultCreatedAt = channelaccountDescCreatedAt.Default.(func() time.Time)
+	// channelaccountDescUpdatedAt is the schema descriptor for updated_at field.
+	channelaccountDescUpdatedAt := channelaccountFields[6].Descriptor()
+	// channelaccount.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	channelaccount.DefaultUpdatedAt = channelaccountDescUpdatedAt.Default.(func() time.Time)
+	// channelaccount.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	channelaccount.UpdateDefaultUpdatedAt = channelaccountDescUpdatedAt.UpdateDefault.(func() time.Time)
+	paymentorderFields := schema.PaymentOrder{}.Fields()
+	_ = paymentorderFields
+	// paymentorderDescStatus is the schema descriptor for status field.
+	paymentorderDescStatus := paymentorderFields[13].Descriptor()
+	// paymentorder.DefaultStatus holds the default value on creation for the status field.
+	paymentorder.DefaultStatus = paymentorderDescStatus.Default.(string)
+	// paymentorderDescCreatedAt is the schema descriptor for created_at field.
+	paymentorderDescCreatedAt := paymentorderFields[18].Descriptor()
+	// paymentorder.DefaultCreatedAt holds the default value on creation for the created_at field.
+	paymentorder.DefaultCreatedAt = paymentorderDescCreatedAt.Default.(func() time.Time)
+	// paymentorderDescUpdatedAt is the schema descriptor for updated_at field.
+	paymentorderDescUpdatedAt := paymentorderFields[19].Descriptor()
+	// paymentorder.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	paymentorder.DefaultUpdatedAt = paymentorderDescUpdatedAt.Default.(func() time.Time)
+	// paymentorder.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	paymentorder.UpdateDefaultUpdatedAt = paymentorderDescUpdatedAt.UpdateDefault.(func() time.Time)
 	refreshtokenFields := schema.RefreshToken{}.Fields()
 	_ = refreshtokenFields
 	// refreshtokenDescCreatedAt is the schema descriptor for created_at field.

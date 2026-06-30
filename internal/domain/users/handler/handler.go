@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -31,6 +32,15 @@ type setupRequest struct {
 type loginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+type manageUserRequest struct {
+	Username    string `json:"username" binding:"required"`
+	Email       string `json:"email" binding:"required,email"`
+	Password    string `json:"password"`
+	DisplayName string `json:"display_name"`
+	Status      string `json:"status"`
+	RoleIDs     []int  `json:"role_ids"`
 }
 
 func (h Handler) Setup(ctx *gin.Context) {
@@ -99,7 +109,7 @@ func (h Handler) Logout(ctx *gin.Context) {
 		return
 	}
 	h.clearRefreshCookie(ctx)
-	ctx.Status(http.StatusNoContent)
+	httpx.JSONNoContent(ctx)
 }
 
 func (h Handler) Me(ctx *gin.Context) {
@@ -113,7 +123,7 @@ func (h Handler) Me(ctx *gin.Context) {
 		httpx.JSONError(ctx, http.StatusNotFound, "user_not_found", "user not found")
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"user": serializeUser(user)})
+	httpx.JSONOK(ctx, http.StatusOK, gin.H{"user": serializeUser(user)})
 }
 
 func (h Handler) ListUsers(ctx *gin.Context) {
@@ -126,7 +136,71 @@ func (h Handler) ListUsers(ctx *gin.Context) {
 	for _, user := range users {
 		items = append(items, serializeUser(user))
 	}
-	ctx.JSON(http.StatusOK, gin.H{"items": items})
+	httpx.JSONOK(ctx, http.StatusOK, gin.H{"items": items})
+}
+
+func (h Handler) CreateUser(ctx *gin.Context) {
+	var req manageUserRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		httpx.JSONError(ctx, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	if req.Password == "" {
+		httpx.JSONError(ctx, http.StatusBadRequest, "password_required", "password is required")
+		return
+	}
+	user, err := h.service.CreateUser(ctx.Request.Context(), usersvc.ManageUserInput{
+		Username:    req.Username,
+		Email:       req.Email,
+		Password:    req.Password,
+		DisplayName: req.DisplayName,
+		Status:      req.Status,
+		RoleIDs:     req.RoleIDs,
+	})
+	if err != nil {
+		httpx.JSONError(ctx, http.StatusInternalServerError, "create_user_failed", err.Error())
+		return
+	}
+	httpx.JSONOK(ctx, http.StatusCreated, gin.H{"user": serializeUser(user)})
+}
+
+func (h Handler) UpdateUser(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		httpx.JSONError(ctx, http.StatusBadRequest, "invalid_user_id", "invalid user id")
+		return
+	}
+	var req manageUserRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		httpx.JSONError(ctx, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	user, err := h.service.UpdateUser(ctx.Request.Context(), id, usersvc.ManageUserInput{
+		Username:    req.Username,
+		Email:       req.Email,
+		Password:    req.Password,
+		DisplayName: req.DisplayName,
+		Status:      req.Status,
+		RoleIDs:     req.RoleIDs,
+	})
+	if err != nil {
+		httpx.JSONError(ctx, http.StatusInternalServerError, "update_user_failed", err.Error())
+		return
+	}
+	httpx.JSONOK(ctx, http.StatusOK, gin.H{"user": serializeUser(user)})
+}
+
+func (h Handler) DeleteUser(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		httpx.JSONError(ctx, http.StatusBadRequest, "invalid_user_id", "invalid user id")
+		return
+	}
+	if err := h.service.DeleteUser(ctx.Request.Context(), id); err != nil {
+		httpx.JSONError(ctx, http.StatusInternalServerError, "delete_user_failed", err.Error())
+		return
+	}
+	httpx.JSONNoContent(ctx)
 }
 
 func (h Handler) ListRoles(ctx *gin.Context) {
@@ -145,12 +219,12 @@ func (h Handler) ListRoles(ctx *gin.Context) {
 			"status":      role.Status,
 		})
 	}
-	ctx.JSON(http.StatusOK, gin.H{"items": items})
+	httpx.JSONOK(ctx, http.StatusOK, gin.H{"items": items})
 }
 
 func (h Handler) writeTokenResponse(ctx *gin.Context, pair *usersvc.TokenPair) {
 	h.setRefreshCookie(ctx, pair.RefreshToken, pair.RefreshTokenExpiresAt)
-	ctx.JSON(http.StatusOK, gin.H{
+	httpx.JSONOK(ctx, http.StatusOK, gin.H{
 		"access_token": pair.AccessToken,
 		"expires_at":   pair.AccessTokenExpiresAt.Format(time.RFC3339),
 		"user":         serializeUser(pair.User),
@@ -188,4 +262,12 @@ func serializeUser(user *ent.User) gin.H {
 		"status":       user.Status,
 		"roles":        roles,
 	}
+}
+
+func parseID(ctx *gin.Context) (int, error) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil || id <= 0 {
+		return 0, err
+	}
+	return id, nil
 }

@@ -21,5 +21,8 @@ func Register(group *gin.RouterGroup, handler userhandler.Handler, service users
 	protected.Use(httpx.AdminAuthMiddleware(service, enforcer))
 	protected.GET("/auth/me", handler.Me)
 	protected.GET("/users", handler.ListUsers)
+	protected.POST("/users", handler.CreateUser)
+	protected.PUT("/users/:id", handler.UpdateUser)
+	protected.DELETE("/users/:id", handler.DeleteUser)
 	protected.GET("/roles", handler.ListRoles)
 }

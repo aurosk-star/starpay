@@ -13,6 +13,8 @@ import (
 
 	"payment-gateway/ent/app"
 	"payment-gateway/ent/casbinrule"
+	"payment-gateway/ent/channelaccount"
+	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
 	"payment-gateway/ent/user"
@@ -32,6 +34,10 @@ type Client struct {
 	App *AppClient
 	// CasbinRule is the client for interacting with the CasbinRule builders.
 	CasbinRule *CasbinRuleClient
+	// ChannelAccount is the client for interacting with the ChannelAccount builders.
+	ChannelAccount *ChannelAccountClient
+	// PaymentOrder is the client for interacting with the PaymentOrder builders.
+	PaymentOrder *PaymentOrderClient
 	// RefreshToken is the client for interacting with the RefreshToken builders.
 	RefreshToken *RefreshTokenClient
 	// Role is the client for interacting with the Role builders.
@@ -51,6 +57,8 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.App = NewAppClient(c.config)
 	c.CasbinRule = NewCasbinRuleClient(c.config)
+	c.ChannelAccount = NewChannelAccountClient(c.config)
+	c.PaymentOrder = NewPaymentOrderClient(c.config)
 	c.RefreshToken = NewRefreshTokenClient(c.config)
 	c.Role = NewRoleClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -144,13 +152,15 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:          ctx,
-		config:       cfg,
-		App:          NewAppClient(cfg),
-		CasbinRule:   NewCasbinRuleClient(cfg),
-		RefreshToken: NewRefreshTokenClient(cfg),
-		Role:         NewRoleClient(cfg),
-		User:         NewUserClient(cfg),
+		ctx:            ctx,
+		config:         cfg,
+		App:            NewAppClient(cfg),
+		CasbinRule:     NewCasbinRuleClient(cfg),
+		ChannelAccount: NewChannelAccountClient(cfg),
+		PaymentOrder:   NewPaymentOrderClient(cfg),
+		RefreshToken:   NewRefreshTokenClient(cfg),
+		Role:           NewRoleClient(cfg),
+		User:           NewUserClient(cfg),
 	}, nil
 }
 
@@ -168,13 +178,15 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:          ctx,
-		config:       cfg,
-		App:          NewAppClient(cfg),
-		CasbinRule:   NewCasbinRuleClient(cfg),
-		RefreshToken: NewRefreshTokenClient(cfg),
-		Role:         NewRoleClient(cfg),
-		User:         NewUserClient(cfg),
+		ctx:            ctx,
+		config:         cfg,
+		App:            NewAppClient(cfg),
+		CasbinRule:     NewCasbinRuleClient(cfg),
+		ChannelAccount: NewChannelAccountClient(cfg),
+		PaymentOrder:   NewPaymentOrderClient(cfg),
+		RefreshToken:   NewRefreshTokenClient(cfg),
+		Role:           NewRoleClient(cfg),
+		User:           NewUserClient(cfg),
 	}, nil
 }
 
@@ -203,21 +215,23 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.App.Use(hooks...)
-	c.CasbinRule.Use(hooks...)
-	c.RefreshToken.Use(hooks...)
-	c.Role.Use(hooks...)
-	c.User.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.App, c.CasbinRule, c.ChannelAccount, c.PaymentOrder, c.RefreshToken, c.Role,
+		c.User,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.App.Intercept(interceptors...)
-	c.CasbinRule.Intercept(interceptors...)
-	c.RefreshToken.Intercept(interceptors...)
-	c.Role.Intercept(interceptors...)
-	c.User.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.App, c.CasbinRule, c.ChannelAccount, c.PaymentOrder, c.RefreshToken, c.Role,
+		c.User,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -227,6 +241,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.App.mutate(ctx, m)
 	case *CasbinRuleMutation:
 		return c.CasbinRule.mutate(ctx, m)
+	case *ChannelAccountMutation:
+		return c.ChannelAccount.mutate(ctx, m)
+	case *PaymentOrderMutation:
+		return c.PaymentOrder.mutate(ctx, m)
 	case *RefreshTokenMutation:
 		return c.RefreshToken.mutate(ctx, m)
 	case *RoleMutation:
@@ -501,6 +519,272 @@ func (c *CasbinRuleClient) mutate(ctx context.Context, m *CasbinRuleMutation) (V
 		return (&CasbinRuleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown CasbinRule mutation op: %q", m.Op())
+	}
+}
+
+// ChannelAccountClient is a client for the ChannelAccount schema.
+type ChannelAccountClient struct {
+	config
+}
+
+// NewChannelAccountClient returns a client for the ChannelAccount from the given config.
+func NewChannelAccountClient(c config) *ChannelAccountClient {
+	return &ChannelAccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `channelaccount.Hooks(f(g(h())))`.
+func (c *ChannelAccountClient) Use(hooks ...Hook) {
+	c.hooks.ChannelAccount = append(c.hooks.ChannelAccount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `channelaccount.Intercept(f(g(h())))`.
+func (c *ChannelAccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChannelAccount = append(c.inters.ChannelAccount, interceptors...)
+}
+
+// Create returns a builder for creating a ChannelAccount entity.
+func (c *ChannelAccountClient) Create() *ChannelAccountCreate {
+	mutation := newChannelAccountMutation(c.config, OpCreate)
+	return &ChannelAccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChannelAccount entities.
+func (c *ChannelAccountClient) CreateBulk(builders ...*ChannelAccountCreate) *ChannelAccountCreateBulk {
+	return &ChannelAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChannelAccountClient) MapCreateBulk(slice any, setFunc func(*ChannelAccountCreate, int)) *ChannelAccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChannelAccountCreateBulk{err: fmt.Errorf("calling to ChannelAccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChannelAccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChannelAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChannelAccount.
+func (c *ChannelAccountClient) Update() *ChannelAccountUpdate {
+	mutation := newChannelAccountMutation(c.config, OpUpdate)
+	return &ChannelAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChannelAccountClient) UpdateOne(_m *ChannelAccount) *ChannelAccountUpdateOne {
+	mutation := newChannelAccountMutation(c.config, OpUpdateOne, withChannelAccount(_m))
+	return &ChannelAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChannelAccountClient) UpdateOneID(id int) *ChannelAccountUpdateOne {
+	mutation := newChannelAccountMutation(c.config, OpUpdateOne, withChannelAccountID(id))
+	return &ChannelAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChannelAccount.
+func (c *ChannelAccountClient) Delete() *ChannelAccountDelete {
+	mutation := newChannelAccountMutation(c.config, OpDelete)
+	return &ChannelAccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChannelAccountClient) DeleteOne(_m *ChannelAccount) *ChannelAccountDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChannelAccountClient) DeleteOneID(id int) *ChannelAccountDeleteOne {
+	builder := c.Delete().Where(channelaccount.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChannelAccountDeleteOne{builder}
+}
+
+// Query returns a query builder for ChannelAccount.
+func (c *ChannelAccountClient) Query() *ChannelAccountQuery {
+	return &ChannelAccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChannelAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChannelAccount entity by its id.
+func (c *ChannelAccountClient) Get(ctx context.Context, id int) (*ChannelAccount, error) {
+	return c.Query().Where(channelaccount.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChannelAccountClient) GetX(ctx context.Context, id int) *ChannelAccount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ChannelAccountClient) Hooks() []Hook {
+	return c.hooks.ChannelAccount
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChannelAccountClient) Interceptors() []Interceptor {
+	return c.inters.ChannelAccount
+}
+
+func (c *ChannelAccountClient) mutate(ctx context.Context, m *ChannelAccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChannelAccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChannelAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChannelAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChannelAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ChannelAccount mutation op: %q", m.Op())
+	}
+}
+
+// PaymentOrderClient is a client for the PaymentOrder schema.
+type PaymentOrderClient struct {
+	config
+}
+
+// NewPaymentOrderClient returns a client for the PaymentOrder from the given config.
+func NewPaymentOrderClient(c config) *PaymentOrderClient {
+	return &PaymentOrderClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `paymentorder.Hooks(f(g(h())))`.
+func (c *PaymentOrderClient) Use(hooks ...Hook) {
+	c.hooks.PaymentOrder = append(c.hooks.PaymentOrder, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `paymentorder.Intercept(f(g(h())))`.
+func (c *PaymentOrderClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PaymentOrder = append(c.inters.PaymentOrder, interceptors...)
+}
+
+// Create returns a builder for creating a PaymentOrder entity.
+func (c *PaymentOrderClient) Create() *PaymentOrderCreate {
+	mutation := newPaymentOrderMutation(c.config, OpCreate)
+	return &PaymentOrderCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PaymentOrder entities.
+func (c *PaymentOrderClient) CreateBulk(builders ...*PaymentOrderCreate) *PaymentOrderCreateBulk {
+	return &PaymentOrderCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PaymentOrderClient) MapCreateBulk(slice any, setFunc func(*PaymentOrderCreate, int)) *PaymentOrderCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PaymentOrderCreateBulk{err: fmt.Errorf("calling to PaymentOrderClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PaymentOrderCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PaymentOrderCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PaymentOrder.
+func (c *PaymentOrderClient) Update() *PaymentOrderUpdate {
+	mutation := newPaymentOrderMutation(c.config, OpUpdate)
+	return &PaymentOrderUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PaymentOrderClient) UpdateOne(_m *PaymentOrder) *PaymentOrderUpdateOne {
+	mutation := newPaymentOrderMutation(c.config, OpUpdateOne, withPaymentOrder(_m))
+	return &PaymentOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PaymentOrderClient) UpdateOneID(id int) *PaymentOrderUpdateOne {
+	mutation := newPaymentOrderMutation(c.config, OpUpdateOne, withPaymentOrderID(id))
+	return &PaymentOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PaymentOrder.
+func (c *PaymentOrderClient) Delete() *PaymentOrderDelete {
+	mutation := newPaymentOrderMutation(c.config, OpDelete)
+	return &PaymentOrderDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PaymentOrderClient) DeleteOne(_m *PaymentOrder) *PaymentOrderDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PaymentOrderClient) DeleteOneID(id int) *PaymentOrderDeleteOne {
+	builder := c.Delete().Where(paymentorder.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PaymentOrderDeleteOne{builder}
+}
+
+// Query returns a query builder for PaymentOrder.
+func (c *PaymentOrderClient) Query() *PaymentOrderQuery {
+	return &PaymentOrderQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePaymentOrder},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PaymentOrder entity by its id.
+func (c *PaymentOrderClient) Get(ctx context.Context, id int) (*PaymentOrder, error) {
+	return c.Query().Where(paymentorder.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PaymentOrderClient) GetX(ctx context.Context, id int) *PaymentOrder {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PaymentOrderClient) Hooks() []Hook {
+	return c.hooks.PaymentOrder
+}
+
+// Interceptors returns the client interceptors.
+func (c *PaymentOrderClient) Interceptors() []Interceptor {
+	return c.inters.PaymentOrder
+}
+
+func (c *PaymentOrderClient) mutate(ctx context.Context, m *PaymentOrderMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PaymentOrderCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PaymentOrderUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PaymentOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PaymentOrderDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PaymentOrder mutation op: %q", m.Op())
 	}
 }
 
@@ -970,9 +1254,11 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		App, CasbinRule, RefreshToken, Role, User []ent.Hook
+		App, CasbinRule, ChannelAccount, PaymentOrder, RefreshToken, Role,
+		User []ent.Hook
 	}
 	inters struct {
-		App, CasbinRule, RefreshToken, Role, User []ent.Interceptor
+		App, CasbinRule, ChannelAccount, PaymentOrder, RefreshToken, Role,
+		User []ent.Interceptor
 	}
 )

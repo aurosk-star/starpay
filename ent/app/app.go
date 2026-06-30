@@ -3,6 +3,8 @@
 package app
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 )
 
@@ -17,10 +19,18 @@ const (
 	FieldName = "name"
 	// FieldAppSecretHash holds the string denoting the app_secret_hash field in the database.
 	FieldAppSecretHash = "app_secret_hash"
+	// FieldAppSecretCiphertext holds the string denoting the app_secret_ciphertext field in the database.
+	FieldAppSecretCiphertext = "app_secret_ciphertext"
 	// FieldNotifyURL holds the string denoting the notify_url field in the database.
 	FieldNotifyURL = "notify_url"
+	// FieldAllowedIps holds the string denoting the allowed_ips field in the database.
+	FieldAllowedIps = "allowed_ips"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "created_at"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
 	// Table holds the table name of the app in the database.
 	Table = "apps"
 )
@@ -31,8 +41,12 @@ var Columns = []string{
 	FieldAppID,
 	FieldName,
 	FieldAppSecretHash,
+	FieldAppSecretCiphertext,
 	FieldNotifyURL,
+	FieldAllowedIps,
 	FieldStatus,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -48,6 +62,12 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
 )
 
 // OrderOption defines the ordering options for the App queries.
@@ -73,6 +93,11 @@ func ByAppSecretHash(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAppSecretHash, opts...).ToFunc()
 }
 
+// ByAppSecretCiphertext orders the results by the app_secret_ciphertext field.
+func ByAppSecretCiphertext(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAppSecretCiphertext, opts...).ToFunc()
+}
+
 // ByNotifyURL orders the results by the notify_url field.
 func ByNotifyURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNotifyURL, opts...).ToFunc()
@@ -81,4 +106,14 @@ func ByNotifyURL(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }

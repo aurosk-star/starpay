@@ -4,6 +4,7 @@ package app
 
 import (
 	"payment-gateway/ent/predicate"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 )
@@ -68,6 +69,11 @@ func AppSecretHash(v string) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldAppSecretHash, v))
 }
 
+// AppSecretCiphertext applies equality check predicate on the "app_secret_ciphertext" field. It's identical to AppSecretCiphertextEQ.
+func AppSecretCiphertext(v string) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldAppSecretCiphertext, v))
+}
+
 // NotifyURL applies equality check predicate on the "notify_url" field. It's identical to NotifyURLEQ.
 func NotifyURL(v string) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldNotifyURL, v))
@@ -76,6 +82,16 @@ func NotifyURL(v string) predicate.App {
 // Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
 func Status(v string) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldStatus, v))
+}
+
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v time.Time) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
 // AppIDEQ applies the EQ predicate on the "app_id" field.
@@ -273,6 +289,81 @@ func AppSecretHashContainsFold(v string) predicate.App {
 	return predicate.App(sql.FieldContainsFold(FieldAppSecretHash, v))
 }
 
+// AppSecretCiphertextEQ applies the EQ predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextEQ(v string) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldAppSecretCiphertext, v))
+}
+
+// AppSecretCiphertextNEQ applies the NEQ predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextNEQ(v string) predicate.App {
+	return predicate.App(sql.FieldNEQ(FieldAppSecretCiphertext, v))
+}
+
+// AppSecretCiphertextIn applies the In predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextIn(vs ...string) predicate.App {
+	return predicate.App(sql.FieldIn(FieldAppSecretCiphertext, vs...))
+}
+
+// AppSecretCiphertextNotIn applies the NotIn predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextNotIn(vs ...string) predicate.App {
+	return predicate.App(sql.FieldNotIn(FieldAppSecretCiphertext, vs...))
+}
+
+// AppSecretCiphertextGT applies the GT predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextGT(v string) predicate.App {
+	return predicate.App(sql.FieldGT(FieldAppSecretCiphertext, v))
+}
+
+// AppSecretCiphertextGTE applies the GTE predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextGTE(v string) predicate.App {
+	return predicate.App(sql.FieldGTE(FieldAppSecretCiphertext, v))
+}
+
+// AppSecretCiphertextLT applies the LT predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextLT(v string) predicate.App {
+	return predicate.App(sql.FieldLT(FieldAppSecretCiphertext, v))
+}
+
+// AppSecretCiphertextLTE applies the LTE predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextLTE(v string) predicate.App {
+	return predicate.App(sql.FieldLTE(FieldAppSecretCiphertext, v))
+}
+
+// AppSecretCiphertextContains applies the Contains predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextContains(v string) predicate.App {
+	return predicate.App(sql.FieldContains(FieldAppSecretCiphertext, v))
+}
+
+// AppSecretCiphertextHasPrefix applies the HasPrefix predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextHasPrefix(v string) predicate.App {
+	return predicate.App(sql.FieldHasPrefix(FieldAppSecretCiphertext, v))
+}
+
+// AppSecretCiphertextHasSuffix applies the HasSuffix predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextHasSuffix(v string) predicate.App {
+	return predicate.App(sql.FieldHasSuffix(FieldAppSecretCiphertext, v))
+}
+
+// AppSecretCiphertextIsNil applies the IsNil predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextIsNil() predicate.App {
+	return predicate.App(sql.FieldIsNull(FieldAppSecretCiphertext))
+}
+
+// AppSecretCiphertextNotNil applies the NotNil predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextNotNil() predicate.App {
+	return predicate.App(sql.FieldNotNull(FieldAppSecretCiphertext))
+}
+
+// AppSecretCiphertextEqualFold applies the EqualFold predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextEqualFold(v string) predicate.App {
+	return predicate.App(sql.FieldEqualFold(FieldAppSecretCiphertext, v))
+}
+
+// AppSecretCiphertextContainsFold applies the ContainsFold predicate on the "app_secret_ciphertext" field.
+func AppSecretCiphertextContainsFold(v string) predicate.App {
+	return predicate.App(sql.FieldContainsFold(FieldAppSecretCiphertext, v))
+}
+
 // NotifyURLEQ applies the EQ predicate on the "notify_url" field.
 func NotifyURLEQ(v string) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldNotifyURL, v))
@@ -348,6 +439,16 @@ func NotifyURLContainsFold(v string) predicate.App {
 	return predicate.App(sql.FieldContainsFold(FieldNotifyURL, v))
 }
 
+// AllowedIpsIsNil applies the IsNil predicate on the "allowed_ips" field.
+func AllowedIpsIsNil() predicate.App {
+	return predicate.App(sql.FieldIsNull(FieldAllowedIps))
+}
+
+// AllowedIpsNotNil applies the NotNil predicate on the "allowed_ips" field.
+func AllowedIpsNotNil() predicate.App {
+	return predicate.App(sql.FieldNotNull(FieldAllowedIps))
+}
+
 // StatusEQ applies the EQ predicate on the "status" field.
 func StatusEQ(v string) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldStatus, v))
@@ -411,6 +512,86 @@ func StatusEqualFold(v string) predicate.App {
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
 func StatusContainsFold(v string) predicate.App {
 	return predicate.App(sql.FieldContainsFold(FieldStatus, v))
+}
+
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v time.Time) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v time.Time) predicate.App {
+	return predicate.App(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...time.Time) predicate.App {
+	return predicate.App(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...time.Time) predicate.App {
+	return predicate.App(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v time.Time) predicate.App {
+	return predicate.App(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v time.Time) predicate.App {
+	return predicate.App(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v time.Time) predicate.App {
+	return predicate.App(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v time.Time) predicate.App {
+	return predicate.App(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.App {
+	return predicate.App(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.App {
+	return predicate.App(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.App {
+	return predicate.App(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.App {
+	return predicate.App(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.App {
+	return predicate.App(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.App {
+	return predicate.App(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.App {
+	return predicate.App(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
 // And groups predicates with the AND operator between them.

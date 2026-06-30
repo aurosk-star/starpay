@@ -1,0 +1,199 @@
+package repository
+
+import (
+	"context"
+	"time"
+
+	"payment-gateway/ent"
+	"payment-gateway/ent/paymentorder"
+)
+
+type Repository struct {
+	client *ent.Client
+}
+
+func New(client *ent.Client) Repository {
+	return Repository{client: client}
+}
+
+type CreateOrderInput struct {
+	GatewayOrderNo     string
+	AppID              string
+	MerchantOrderNo    string
+	BusinessType       string
+	Subject            string
+	Description        string
+	Amount             int64
+	Currency           string
+	SettlementAmount   int64
+	SettlementCurrency string
+	Channel            string
+	PayMethod          string
+	Status             string
+	ExpiresAt          *time.Time
+	Metadata           map[string]any
+}
+
+type UpdateOrderInput struct {
+	BusinessType string
+	Subject      string
+	Description  string
+	Channel      string
+	PayMethod    string
+	Metadata     map[string]any
+}
+
+type ListOrdersInput struct {
+	AppID           string
+	Status          string
+	Channel         string
+	Currency        string
+	MerchantOrderNo string
+	Page            int
+	PageSize        int
+}
+
+func (r Repository) Create(ctx context.Context, input CreateOrderInput) (*ent.PaymentOrder, error) {
+	create := r.client.PaymentOrder.Create().
+		SetGatewayOrderNo(input.GatewayOrderNo).
+		SetAppID(input.AppID).
+		SetMerchantOrderNo(input.MerchantOrderNo).
+		SetSubject(input.Subject).
+		SetAmount(input.Amount).
+		SetCurrency(input.Currency).
+		SetStatus(input.Status).
+		SetMetadata(input.Metadata)
+	if input.BusinessType != "" {
+		create.SetBusinessType(input.BusinessType)
+	}
+	if input.Description != "" {
+		create.SetDescription(input.Description)
+	}
+	if input.SettlementAmount > 0 {
+		create.SetSettlementAmount(input.SettlementAmount)
+	}
+	if input.SettlementCurrency != "" {
+		create.SetSettlementCurrency(input.SettlementCurrency)
+	}
+	if input.Channel != "" {
+		create.SetChannel(input.Channel)
+	}
+	if input.PayMethod != "" {
+		create.SetPayMethod(input.PayMethod)
+	}
+	if input.ExpiresAt != nil {
+		create.SetExpiresAt(*input.ExpiresAt)
+	}
+	return create.Save(ctx)
+}
+
+func (r Repository) FindByID(ctx context.Context, id int) (*ent.PaymentOrder, error) {
+	return r.client.PaymentOrder.Get(ctx, id)
+}
+
+func (r Repository) FindByGatewayOrderNo(ctx context.Context, gatewayOrderNo string) (*ent.PaymentOrder, error) {
+	return r.client.PaymentOrder.Query().Where(paymentorder.GatewayOrderNo(gatewayOrderNo)).Only(ctx)
+}
+
+func (r Repository) FindByMerchantOrderNo(ctx context.Context, appID string, merchantOrderNo string) (*ent.PaymentOrder, error) {
+	return r.client.PaymentOrder.Query().
+		Where(paymentorder.AppID(appID), paymentorder.MerchantOrderNo(merchantOrderNo)).
+		Only(ctx)
+}
+
+func (r Repository) List(ctx context.Context, input ListOrdersInput) ([]*ent.PaymentOrder, int, error) {
+	query := r.client.PaymentOrder.Query()
+	if input.AppID != "" {
+		query.Where(paymentorder.AppID(input.AppID))
+	}
+	if input.Status != "" {
+		query.Where(paymentorder.Status(input.Status))
+	}
+	if input.Channel != "" {
+		query.Where(paymentorder.Channel(input.Channel))
+	}
+	if input.Currency != "" {
+		query.Where(paymentorder.Currency(input.Currency))
+	}
+	if input.MerchantOrderNo != "" {
+		query.Where(paymentorder.MerchantOrderNoContains(input.MerchantOrderNo))
+	}
+	total, err := query.Clone().Count(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	page := input.Page
+	if page < 1 {
+		page = 1
+	}
+	pageSize := input.PageSize
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+	items, err := query.
+		Order(ent.Desc(paymentorder.FieldCreatedAt)).
+		Offset((page - 1) * pageSize).
+		Limit(pageSize).
+		All(ctx)
+	return items, total, err
+}
+
+func (r Repository) Update(ctx context.Context, id int, input UpdateOrderInput) (*ent.PaymentOrder, error) {
+	update := r.client.PaymentOrder.UpdateOneID(id).
+		SetSubject(input.Subject).
+		SetMetadata(input.Metadata)
+	if input.BusinessType != "" {
+		update.SetBusinessType(input.BusinessType)
+	} else {
+		update.ClearBusinessType()
+	}
+	if input.Description != "" {
+		update.SetDescription(input.Description)
+	} else {
+		update.ClearDescription()
+	}
+	if input.Channel != "" {
+		update.SetChannel(input.Channel)
+	} else {
+		update.ClearChannel()
+	}
+	if input.PayMethod != "" {
+		update.SetPayMethod(input.PayMethod)
+	} else {
+		update.ClearPayMethod()
+	}
+	if _, err := update.Save(ctx); err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
+}
+
+func (r Repository) SetStatus(ctx context.Context, id int, status string, now time.Time) (*ent.PaymentOrder, error) {
+	update := r.client.PaymentOrder.UpdateOneID(id).SetStatus(status)
+	switch status {
+	case "paid":
+		update.SetPaidAt(now)
+	case "closed":
+		update.SetClosedAt(now)
+	}
+	if _, err := update.Save(ctx); err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
+}
+
+func (r Repository) MarkPaid(ctx context.Context, id int, channelTradeNo string, now time.Time) (*ent.PaymentOrder, error) {
+	update := r.client.PaymentOrder.UpdateOneID(id).
+		SetStatus("paid").
+		SetPaidAt(now)
+	if channelTradeNo != "" {
+		update.SetChannelTradeNo(channelTradeNo)
+	}
+	if _, err := update.Save(ctx); err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
+}

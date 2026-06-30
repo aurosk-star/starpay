@@ -26,7 +26,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	db, err := database.Open(ctx, cfg.Database.URL)
+	db, err := database.Open(ctx, cfg.Database.Driver, cfg.Database.DSN)
 	if err != nil {
 		slog.Error("connect database", "error", err)
 		os.Exit(1)
@@ -38,7 +38,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              cfg.HTTP.Addr,
-		Handler:           httpserver.NewRouter(db, cfg),
+		Handler:           httpserver.NewRouter(db, redisClient, cfg),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

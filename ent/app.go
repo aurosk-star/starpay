@@ -3,9 +3,11 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"payment-gateway/ent/app"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -22,10 +24,18 @@ type App struct {
 	Name string `json:"name,omitempty"`
 	// AppSecretHash holds the value of the "app_secret_hash" field.
 	AppSecretHash string `json:"app_secret_hash,omitempty"`
+	// AppSecretCiphertext holds the value of the "app_secret_ciphertext" field.
+	AppSecretCiphertext string `json:"app_secret_ciphertext,omitempty"`
 	// NotifyURL holds the value of the "notify_url" field.
 	NotifyURL string `json:"notify_url,omitempty"`
+	// AllowedIps holds the value of the "allowed_ips" field.
+	AllowedIps []string `json:"allowed_ips,omitempty"`
 	// Status holds the value of the "status" field.
-	Status       string `json:"status,omitempty"`
+	Status string `json:"status,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt    time.Time `json:"updated_at,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -34,10 +44,14 @@ func (*App) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case app.FieldAllowedIps:
+			values[i] = new([]byte)
 		case app.FieldID:
 			values[i] = new(sql.NullInt64)
-		case app.FieldAppID, app.FieldName, app.FieldAppSecretHash, app.FieldNotifyURL, app.FieldStatus:
+		case app.FieldAppID, app.FieldName, app.FieldAppSecretHash, app.FieldAppSecretCiphertext, app.FieldNotifyURL, app.FieldStatus:
 			values[i] = new(sql.NullString)
+		case app.FieldCreatedAt, app.FieldUpdatedAt:
+			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -77,17 +91,43 @@ func (_m *App) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.AppSecretHash = value.String
 			}
+		case app.FieldAppSecretCiphertext:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field app_secret_ciphertext", values[i])
+			} else if value.Valid {
+				_m.AppSecretCiphertext = value.String
+			}
 		case app.FieldNotifyURL:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field notify_url", values[i])
 			} else if value.Valid {
 				_m.NotifyURL = value.String
 			}
+		case app.FieldAllowedIps:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field allowed_ips", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.AllowedIps); err != nil {
+					return fmt.Errorf("unmarshal field allowed_ips: %w", err)
+				}
+			}
 		case app.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = value.String
+			}
+		case app.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Time
+			}
+		case app.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -134,11 +174,23 @@ func (_m *App) String() string {
 	builder.WriteString("app_secret_hash=")
 	builder.WriteString(_m.AppSecretHash)
 	builder.WriteString(", ")
+	builder.WriteString("app_secret_ciphertext=")
+	builder.WriteString(_m.AppSecretCiphertext)
+	builder.WriteString(", ")
 	builder.WriteString("notify_url=")
 	builder.WriteString(_m.NotifyURL)
 	builder.WriteString(", ")
+	builder.WriteString("allowed_ips=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AllowedIps))
+	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

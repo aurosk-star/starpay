@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"payment-gateway/ent/app"
 	"payment-gateway/ent/predicate"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 )
 
@@ -69,6 +71,26 @@ func (_u *AppUpdate) SetNillableAppSecretHash(v *string) *AppUpdate {
 	return _u
 }
 
+// SetAppSecretCiphertext sets the "app_secret_ciphertext" field.
+func (_u *AppUpdate) SetAppSecretCiphertext(v string) *AppUpdate {
+	_u.mutation.SetAppSecretCiphertext(v)
+	return _u
+}
+
+// SetNillableAppSecretCiphertext sets the "app_secret_ciphertext" field if the given value is not nil.
+func (_u *AppUpdate) SetNillableAppSecretCiphertext(v *string) *AppUpdate {
+	if v != nil {
+		_u.SetAppSecretCiphertext(*v)
+	}
+	return _u
+}
+
+// ClearAppSecretCiphertext clears the value of the "app_secret_ciphertext" field.
+func (_u *AppUpdate) ClearAppSecretCiphertext() *AppUpdate {
+	_u.mutation.ClearAppSecretCiphertext()
+	return _u
+}
+
 // SetNotifyURL sets the "notify_url" field.
 func (_u *AppUpdate) SetNotifyURL(v string) *AppUpdate {
 	_u.mutation.SetNotifyURL(v)
@@ -89,6 +111,24 @@ func (_u *AppUpdate) ClearNotifyURL() *AppUpdate {
 	return _u
 }
 
+// SetAllowedIps sets the "allowed_ips" field.
+func (_u *AppUpdate) SetAllowedIps(v []string) *AppUpdate {
+	_u.mutation.SetAllowedIps(v)
+	return _u
+}
+
+// AppendAllowedIps appends value to the "allowed_ips" field.
+func (_u *AppUpdate) AppendAllowedIps(v []string) *AppUpdate {
+	_u.mutation.AppendAllowedIps(v)
+	return _u
+}
+
+// ClearAllowedIps clears the value of the "allowed_ips" field.
+func (_u *AppUpdate) ClearAllowedIps() *AppUpdate {
+	_u.mutation.ClearAllowedIps()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *AppUpdate) SetStatus(v string) *AppUpdate {
 	_u.mutation.SetStatus(v)
@@ -103,6 +143,12 @@ func (_u *AppUpdate) SetNillableStatus(v *string) *AppUpdate {
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *AppUpdate) SetUpdatedAt(v time.Time) *AppUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // Mutation returns the AppMutation object of the builder.
 func (_u *AppUpdate) Mutation() *AppMutation {
 	return _u.mutation
@@ -110,6 +156,7 @@ func (_u *AppUpdate) Mutation() *AppMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *AppUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -135,6 +182,14 @@ func (_u *AppUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_u *AppUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := app.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
+	}
+}
+
 func (_u *AppUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	_spec := sqlgraph.NewUpdateSpec(app.Table, app.Columns, sqlgraph.NewFieldSpec(app.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
@@ -153,14 +208,34 @@ func (_u *AppUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AppSecretHash(); ok {
 		_spec.SetField(app.FieldAppSecretHash, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.AppSecretCiphertext(); ok {
+		_spec.SetField(app.FieldAppSecretCiphertext, field.TypeString, value)
+	}
+	if _u.mutation.AppSecretCiphertextCleared() {
+		_spec.ClearField(app.FieldAppSecretCiphertext, field.TypeString)
+	}
 	if value, ok := _u.mutation.NotifyURL(); ok {
 		_spec.SetField(app.FieldNotifyURL, field.TypeString, value)
 	}
 	if _u.mutation.NotifyURLCleared() {
 		_spec.ClearField(app.FieldNotifyURL, field.TypeString)
 	}
+	if value, ok := _u.mutation.AllowedIps(); ok {
+		_spec.SetField(app.FieldAllowedIps, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedAllowedIps(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, app.FieldAllowedIps, value)
+		})
+	}
+	if _u.mutation.AllowedIpsCleared() {
+		_spec.ClearField(app.FieldAllowedIps, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(app.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(app.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -224,6 +299,26 @@ func (_u *AppUpdateOne) SetNillableAppSecretHash(v *string) *AppUpdateOne {
 	return _u
 }
 
+// SetAppSecretCiphertext sets the "app_secret_ciphertext" field.
+func (_u *AppUpdateOne) SetAppSecretCiphertext(v string) *AppUpdateOne {
+	_u.mutation.SetAppSecretCiphertext(v)
+	return _u
+}
+
+// SetNillableAppSecretCiphertext sets the "app_secret_ciphertext" field if the given value is not nil.
+func (_u *AppUpdateOne) SetNillableAppSecretCiphertext(v *string) *AppUpdateOne {
+	if v != nil {
+		_u.SetAppSecretCiphertext(*v)
+	}
+	return _u
+}
+
+// ClearAppSecretCiphertext clears the value of the "app_secret_ciphertext" field.
+func (_u *AppUpdateOne) ClearAppSecretCiphertext() *AppUpdateOne {
+	_u.mutation.ClearAppSecretCiphertext()
+	return _u
+}
+
 // SetNotifyURL sets the "notify_url" field.
 func (_u *AppUpdateOne) SetNotifyURL(v string) *AppUpdateOne {
 	_u.mutation.SetNotifyURL(v)
@@ -244,6 +339,24 @@ func (_u *AppUpdateOne) ClearNotifyURL() *AppUpdateOne {
 	return _u
 }
 
+// SetAllowedIps sets the "allowed_ips" field.
+func (_u *AppUpdateOne) SetAllowedIps(v []string) *AppUpdateOne {
+	_u.mutation.SetAllowedIps(v)
+	return _u
+}
+
+// AppendAllowedIps appends value to the "allowed_ips" field.
+func (_u *AppUpdateOne) AppendAllowedIps(v []string) *AppUpdateOne {
+	_u.mutation.AppendAllowedIps(v)
+	return _u
+}
+
+// ClearAllowedIps clears the value of the "allowed_ips" field.
+func (_u *AppUpdateOne) ClearAllowedIps() *AppUpdateOne {
+	_u.mutation.ClearAllowedIps()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *AppUpdateOne) SetStatus(v string) *AppUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -255,6 +368,12 @@ func (_u *AppUpdateOne) SetNillableStatus(v *string) *AppUpdateOne {
 	if v != nil {
 		_u.SetStatus(*v)
 	}
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *AppUpdateOne) SetUpdatedAt(v time.Time) *AppUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
 	return _u
 }
 
@@ -278,6 +397,7 @@ func (_u *AppUpdateOne) Select(field string, fields ...string) *AppUpdateOne {
 
 // Save executes the query and returns the updated App entity.
 func (_u *AppUpdateOne) Save(ctx context.Context) (*App, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -300,6 +420,14 @@ func (_u *AppUpdateOne) Exec(ctx context.Context) error {
 func (_u *AppUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *AppUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := app.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -338,14 +466,34 @@ func (_u *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 	if value, ok := _u.mutation.AppSecretHash(); ok {
 		_spec.SetField(app.FieldAppSecretHash, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.AppSecretCiphertext(); ok {
+		_spec.SetField(app.FieldAppSecretCiphertext, field.TypeString, value)
+	}
+	if _u.mutation.AppSecretCiphertextCleared() {
+		_spec.ClearField(app.FieldAppSecretCiphertext, field.TypeString)
+	}
 	if value, ok := _u.mutation.NotifyURL(); ok {
 		_spec.SetField(app.FieldNotifyURL, field.TypeString, value)
 	}
 	if _u.mutation.NotifyURLCleared() {
 		_spec.ClearField(app.FieldNotifyURL, field.TypeString)
 	}
+	if value, ok := _u.mutation.AllowedIps(); ok {
+		_spec.SetField(app.FieldAllowedIps, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedAllowedIps(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, app.FieldAllowedIps, value)
+		})
+	}
+	if _u.mutation.AllowedIpsCleared() {
+		_spec.ClearField(app.FieldAllowedIps, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(app.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(app.FieldUpdatedAt, field.TypeTime, value)
 	}
 	_node = &App{config: _u.config}
 	_spec.Assign = _node.assignValues

@@ -16,7 +16,7 @@ func TestHealthzReturnsOK(t *testing.T) {
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusOK)
 	}
-	if recorder.Body.String() != `{"status":"ok"}` {
+	if recorder.Body.String() != `{"code":"ok","data":{"status":"ok"},"error":null,"message":"ok"}` {
 		t.Fatalf("body = %q, want health JSON", recorder.Body.String())
 	}
 }

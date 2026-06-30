@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"payment-gateway/ent/app"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -37,6 +38,20 @@ func (_c *AppCreate) SetAppSecretHash(v string) *AppCreate {
 	return _c
 }
 
+// SetAppSecretCiphertext sets the "app_secret_ciphertext" field.
+func (_c *AppCreate) SetAppSecretCiphertext(v string) *AppCreate {
+	_c.mutation.SetAppSecretCiphertext(v)
+	return _c
+}
+
+// SetNillableAppSecretCiphertext sets the "app_secret_ciphertext" field if the given value is not nil.
+func (_c *AppCreate) SetNillableAppSecretCiphertext(v *string) *AppCreate {
+	if v != nil {
+		_c.SetAppSecretCiphertext(*v)
+	}
+	return _c
+}
+
 // SetNotifyURL sets the "notify_url" field.
 func (_c *AppCreate) SetNotifyURL(v string) *AppCreate {
 	_c.mutation.SetNotifyURL(v)
@@ -51,6 +66,12 @@ func (_c *AppCreate) SetNillableNotifyURL(v *string) *AppCreate {
 	return _c
 }
 
+// SetAllowedIps sets the "allowed_ips" field.
+func (_c *AppCreate) SetAllowedIps(v []string) *AppCreate {
+	_c.mutation.SetAllowedIps(v)
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *AppCreate) SetStatus(v string) *AppCreate {
 	_c.mutation.SetStatus(v)
@@ -61,6 +82,34 @@ func (_c *AppCreate) SetStatus(v string) *AppCreate {
 func (_c *AppCreate) SetNillableStatus(v *string) *AppCreate {
 	if v != nil {
 		_c.SetStatus(*v)
+	}
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *AppCreate) SetCreatedAt(v time.Time) *AppCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *AppCreate) SetNillableCreatedAt(v *time.Time) *AppCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *AppCreate) SetUpdatedAt(v time.Time) *AppCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *AppCreate) SetNillableUpdatedAt(v *time.Time) *AppCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
 	return _c
 }
@@ -104,6 +153,14 @@ func (_c *AppCreate) defaults() {
 		v := app.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := app.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := app.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -119,6 +176,12 @@ func (_c *AppCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "App.status"`)}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "App.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "App.updated_at"`)}
 	}
 	return nil
 }
@@ -158,13 +221,29 @@ func (_c *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		_spec.SetField(app.FieldAppSecretHash, field.TypeString, value)
 		_node.AppSecretHash = value
 	}
+	if value, ok := _c.mutation.AppSecretCiphertext(); ok {
+		_spec.SetField(app.FieldAppSecretCiphertext, field.TypeString, value)
+		_node.AppSecretCiphertext = value
+	}
 	if value, ok := _c.mutation.NotifyURL(); ok {
 		_spec.SetField(app.FieldNotifyURL, field.TypeString, value)
 		_node.NotifyURL = value
 	}
+	if value, ok := _c.mutation.AllowedIps(); ok {
+		_spec.SetField(app.FieldAllowedIps, field.TypeJSON, value)
+		_node.AllowedIps = value
+	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(app.FieldStatus, field.TypeString, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(app.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(app.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
 	}
 	return _node, _spec
 }

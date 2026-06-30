@@ -14,8 +14,12 @@ var (
 		{Name: "app_id", Type: field.TypeString, Unique: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "app_secret_hash", Type: field.TypeString},
+		{Name: "app_secret_ciphertext", Type: field.TypeString, Nullable: true},
 		{Name: "notify_url", Type: field.TypeString, Nullable: true},
+		{Name: "allowed_ips", Type: field.TypeJSON, Nullable: true},
 		{Name: "status", Type: field.TypeString, Default: "enabled"},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 	}
 	// AppsTable holds the schema information for the "apps" table.
 	AppsTable = &schema.Table{
@@ -44,6 +48,90 @@ var (
 				Name:    "casbinrule_ptype_v0_v1_v2",
 				Unique:  true,
 				Columns: []*schema.Column{CasbinRulesColumns[1], CasbinRulesColumns[2], CasbinRulesColumns[3], CasbinRulesColumns[4]},
+			},
+		},
+	}
+	// ChannelAccountsColumns holds the columns for the "channel_accounts" table.
+	ChannelAccountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "channel", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "enabled", Type: field.TypeBool, Default: true},
+		{Name: "env", Type: field.TypeString, Default: "sandbox"},
+		{Name: "config", Type: field.TypeJSON, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// ChannelAccountsTable holds the schema information for the "channel_accounts" table.
+	ChannelAccountsTable = &schema.Table{
+		Name:       "channel_accounts",
+		Columns:    ChannelAccountsColumns,
+		PrimaryKey: []*schema.Column{ChannelAccountsColumns[0]},
+	}
+	// PaymentOrdersColumns holds the columns for the "payment_orders" table.
+	PaymentOrdersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "gateway_order_no", Type: field.TypeString, Unique: true},
+		{Name: "app_id", Type: field.TypeString},
+		{Name: "merchant_order_no", Type: field.TypeString},
+		{Name: "business_type", Type: field.TypeString, Nullable: true},
+		{Name: "subject", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "amount", Type: field.TypeInt64},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "settlement_amount", Type: field.TypeInt64, Nullable: true},
+		{Name: "settlement_currency", Type: field.TypeString, Nullable: true},
+		{Name: "channel", Type: field.TypeString, Nullable: true},
+		{Name: "pay_method", Type: field.TypeString, Nullable: true},
+		{Name: "channel_trade_no", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeString, Default: "pending"},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
+		{Name: "paid_at", Type: field.TypeTime, Nullable: true},
+		{Name: "closed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PaymentOrdersTable holds the schema information for the "payment_orders" table.
+	PaymentOrdersTable = &schema.Table{
+		Name:       "payment_orders",
+		Columns:    PaymentOrdersColumns,
+		PrimaryKey: []*schema.Column{PaymentOrdersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "paymentorder_app_id_merchant_order_no",
+				Unique:  true,
+				Columns: []*schema.Column{PaymentOrdersColumns[2], PaymentOrdersColumns[3]},
+			},
+			{
+				Name:    "paymentorder_gateway_order_no",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentOrdersColumns[1]},
+			},
+			{
+				Name:    "paymentorder_app_id",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentOrdersColumns[2]},
+			},
+			{
+				Name:    "paymentorder_status",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentOrdersColumns[14]},
+			},
+			{
+				Name:    "paymentorder_channel",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentOrdersColumns[11]},
+			},
+			{
+				Name:    "paymentorder_currency",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentOrdersColumns[8]},
+			},
+			{
+				Name:    "paymentorder_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentOrdersColumns[19]},
 			},
 		},
 	}
@@ -136,6 +224,8 @@ var (
 	Tables = []*schema.Table{
 		AppsTable,
 		CasbinRulesTable,
+		ChannelAccountsTable,
+		PaymentOrdersTable,
 		RefreshTokensTable,
 		RolesTable,
 		UsersTable,

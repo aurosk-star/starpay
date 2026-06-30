@@ -17,6 +17,7 @@ var (
 	ErrSetupAlreadyDone  = errors.New("setup already completed")
 	ErrInvalidCredential = errors.New("invalid username or password")
 	ErrInvalidRefresh    = errors.New("invalid refresh token")
+	ErrPasswordRequired  = errors.New("password is required")
 )
 
 type Service struct {
@@ -51,6 +52,15 @@ type LoginInput struct {
 	Password  string
 	UserAgent string
 	IPAddress string
+}
+
+type ManageUserInput struct {
+	Username    string
+	Email       string
+	Password    string
+	DisplayName string
+	Status      string
+	RoleIDs     []int
 }
 
 type TokenPair struct {
@@ -165,16 +175,86 @@ func (s Service) FindByID(ctx context.Context, id int) (*ent.User, error) {
 	return s.users.FindByID(ctx, id)
 }
 
+func (s Service) CreateUser(ctx context.Context, input ManageUserInput) (*ent.User, error) {
+	if input.Password == "" {
+		return nil, ErrPasswordRequired
+	}
+	if _, err := s.roles.EnsureDefaults(ctx); err != nil {
+		return nil, err
+	}
+	passwordHash, err := platformauth.HashPassword(input.Password)
+	if err != nil {
+		return nil, err
+	}
+	status := normalizeStatus(input.Status)
+	created, err := s.users.Create(ctx, userrepo.CreateUserInput{
+		Username:     input.Username,
+		Email:        input.Email,
+		DisplayName:  input.DisplayName,
+		PasswordHash: passwordHash,
+		RoleIDs:      input.RoleIDs,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if status != "enabled" {
+		return s.users.Update(ctx, created.ID, userrepo.UpdateUserInput{
+			Username:    input.Username,
+			Email:       input.Email,
+			DisplayName: input.DisplayName,
+			Status:      status,
+			RoleIDs:     input.RoleIDs,
+		})
+	}
+	return s.users.FindByID(ctx, created.ID)
+}
+
+func (s Service) UpdateUser(ctx context.Context, id int, input ManageUserInput) (*ent.User, error) {
+	if _, err := s.roles.EnsureDefaults(ctx); err != nil {
+		return nil, err
+	}
+	passwordHash := ""
+	if input.Password != "" {
+		var err error
+		passwordHash, err = platformauth.HashPassword(input.Password)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return s.users.Update(ctx, id, userrepo.UpdateUserInput{
+		Username:     input.Username,
+		Email:        input.Email,
+		DisplayName:  input.DisplayName,
+		Status:       normalizeStatus(input.Status),
+		PasswordHash: passwordHash,
+		RoleIDs:      input.RoleIDs,
+	})
+}
+
+func (s Service) DeleteUser(ctx context.Context, id int) error {
+	return s.users.Disable(ctx, id)
+}
+
 func (s Service) ListUsers(ctx context.Context) ([]*ent.User, error) {
 	return s.users.List(ctx)
 }
 
 func (s Service) ListRoles(ctx context.Context) ([]*ent.Role, error) {
+	if _, err := s.roles.EnsureDefaults(ctx); err != nil {
+		return nil, err
+	}
 	return s.roles.List(ctx)
 }
 
 func (s Service) ParseAccessToken(value string) (*platformauth.Claims, error) {
 	return s.tokens.ParseAccessToken(value)
+}
+
+func normalizeStatus(status string) string {
+	if status == "disabled" {
+		return "disabled"
+	}
+	return "enabled"
 }
 
 func (s Service) issueTokens(ctx context.Context, user *ent.User, userAgent string, ipAddress string) (*TokenPair, error) {

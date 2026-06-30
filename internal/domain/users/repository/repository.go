@@ -58,6 +58,32 @@ func (r Repository) Create(ctx context.Context, input CreateUserInput) (*ent.Use
 	return create.Save(ctx)
 }
 
+func (r Repository) Update(ctx context.Context, id int, input UpdateUserInput) (*ent.User, error) {
+	update := r.client.User.UpdateOneID(id).
+		SetUsername(input.Username).
+		SetEmail(input.Email).
+		SetStatus(input.Status)
+	if input.DisplayName != "" {
+		update.SetDisplayName(input.DisplayName)
+	} else {
+		update.ClearDisplayName()
+	}
+	if input.PasswordHash != "" {
+		update.SetPasswordHash(input.PasswordHash)
+	}
+	if len(input.RoleIDs) > 0 {
+		update.ClearRoles().AddRoleIDs(input.RoleIDs...)
+	}
+	if _, err := update.Save(ctx); err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
+}
+
+func (r Repository) Disable(ctx context.Context, id int) error {
+	return r.client.User.UpdateOneID(id).SetStatus("disabled").Exec(ctx)
+}
+
 func (r Repository) SetRoles(ctx context.Context, userID int, roleIDs []int) error {
 	_, err := r.client.User.UpdateOneID(userID).ClearRoles().AddRoleIDs(roleIDs...).Save(ctx)
 	return err
@@ -67,6 +93,15 @@ type CreateUserInput struct {
 	Username     string
 	Email        string
 	DisplayName  string
+	PasswordHash string
+	RoleIDs      []int
+}
+
+type UpdateUserInput struct {
+	Username     string
+	Email        string
+	DisplayName  string
+	Status       string
 	PasswordHash string
 	RoleIDs      []int
 }

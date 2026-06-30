@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"payment-gateway/ent/app"
 	"payment-gateway/ent/casbinrule"
+	"payment-gateway/ent/channelaccount"
+	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
 	"payment-gateway/ent/user"
@@ -77,11 +79,13 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			app.Table:          app.ValidColumn,
-			casbinrule.Table:   casbinrule.ValidColumn,
-			refreshtoken.Table: refreshtoken.ValidColumn,
-			role.Table:         role.ValidColumn,
-			user.Table:         user.ValidColumn,
+			app.Table:            app.ValidColumn,
+			casbinrule.Table:     casbinrule.ValidColumn,
+			channelaccount.Table: channelaccount.ValidColumn,
+			paymentorder.Table:   paymentorder.ValidColumn,
+			refreshtoken.Table:   refreshtoken.ValidColumn,
+			role.Table:           role.ValidColumn,
+			user.Table:           user.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)
