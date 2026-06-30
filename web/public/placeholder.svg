@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" role="img" aria-label="Payment gateway cover">
+  <rect width="1200" height="1200" fill="#111113"/>
+  <path d="M0 900C230 780 360 840 530 710C720 564 890 584 1200 420V1200H0Z" fill="#2f3337"/>
+  <path d="M0 740C180 650 390 700 575 560C762 419 927 440 1200 310V1200H0Z" fill="#1f2327"/>
+  <g fill="none" stroke="#f4f4f5" stroke-opacity=".12">
+    <path d="M180 298H590C666 298 728 360 728 436V454C728 530 790 592 866 592H1024"/>
+    <path d="M138 456H448C524 456 586 518 586 594V620C586 696 648 758 724 758H1056"/>
+    <path d="M226 650H414C490 650 552 712 552 788V804C552 880 614 942 690 942H970"/>
+  </g>
+  <g fill="#f4f4f5">
+    <circle cx="180" cy="298" r="10" opacity=".72"/>
+    <circle cx="728" cy="454" r="10" opacity=".5"/>
+    <circle cx="1024" cy="592" r="10" opacity=".72"/>
+    <circle cx="138" cy="456" r="10" opacity=".44"/>
+    <circle cx="586" cy="620" r="10" opacity=".62"/>
+    <circle cx="1056" cy="758" r="10" opacity=".48"/>
+    <circle cx="226" cy="650" r="10" opacity=".64"/>
+    <circle cx="552" cy="804" r="10" opacity=".42"/>
+    <circle cx="970" cy="942" r="10" opacity=".58"/>
+  </g>
+  <rect x="152" y="132" width="372" height="112" rx="18" fill="#f4f4f5" fill-opacity=".08" stroke="#f4f4f5" stroke-opacity=".14"/>
+  <rect x="184" y="164" width="172" height="14" rx="7" fill="#f4f4f5" fill-opacity=".62"/>
+  <rect x="184" y="200" width="276" height="12" rx="6" fill="#f4f4f5" fill-opacity=".28"/>
+  <rect x="710" y="174" width="316" height="164" rx="22" fill="#f4f4f5" fill-opacity=".07" stroke="#f4f4f5" stroke-opacity=".14"/>
+  <rect x="748" y="216" width="106" height="14" rx="7" fill="#f4f4f5" fill-opacity=".62"/>
+  <rect x="748" y="254" width="228" height="12" rx="6" fill="#f4f4f5" fill-opacity=".26"/>
+  <rect x="748" y="286" width="166" height="12" rx="6" fill="#f4f4f5" fill-opacity=".2"/>
+</svg>

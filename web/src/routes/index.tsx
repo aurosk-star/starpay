@@ -14,6 +14,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { createDataTable, type DataTableColumn } from "@/components/data-table";
 import {
   Card,
   CardContent,
@@ -21,14 +22,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 import { rootRoute } from "./root";
 
@@ -124,6 +117,8 @@ const recentOrders = [
   },
 ];
 
+const RecentOrdersTable = createDataTable<(typeof recentOrders)[number]>();
+
 const webhookDeliveries = [
   {
     event: "payment.succeeded",
@@ -147,6 +142,38 @@ const webhookDeliveries = [
 
 function HomePage() {
   const { t } = useTranslation();
+  const recentOrderColumns = [
+    {
+      accessorKey: "order",
+      header: t("home.labels.order"),
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.original.order}</span>
+      ),
+    },
+    { accessorKey: "app", header: t("home.labels.app") },
+    { accessorKey: "channel", header: t("home.labels.channel") },
+    {
+      accessorKey: "amount",
+      header: t("home.labels.amount"),
+      cell: ({ row }) => (
+        <span className="font-mono">{row.original.amount}</span>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: t("home.labels.status"),
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+    {
+      accessorKey: "time",
+      header: () => <div className="text-right">{t("home.labels.time")}</div>,
+      cell: ({ row }) => (
+        <div className="text-right font-mono text-xs text-muted-foreground">
+          {row.original.time}
+        </div>
+      ),
+    },
+  ] satisfies DataTableColumn<(typeof recentOrders)[number]>[];
 
   return (
     <div className="flex flex-col gap-5">
@@ -223,34 +250,36 @@ function HomePage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {channels.map((channel) => (
-              <div key={channel.name} className="rounded-md border p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="size-4 text-muted-foreground" />
-                      <p className="text-sm font-medium">{channel.name}</p>
+              <Card key={channel.name}>
+                <CardContent className="py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="size-4 text-muted-foreground" />
+                        <p className="text-sm font-medium">{channel.name}</p>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {channel.method}
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {channel.method}
-                    </p>
+                    <StatusBadge status={channel.status} />
                   </div>
-                  <StatusBadge status={channel.status} />
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      {t("home.labels.latency")}
-                    </p>
-                    <p className="mt-1 font-mono">{channel.latency}</p>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {t("home.labels.latency")}
+                      </p>
+                      <p className="mt-1 font-mono">{channel.latency}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {t("home.labels.success")}
+                      </p>
+                      <p className="mt-1 font-mono">{channel.success}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      {t("home.labels.success")}
-                    </p>
-                    <p className="mt-1 font-mono">{channel.success}</p>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </CardContent>
         </Card>
@@ -270,38 +299,10 @@ function HomePage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("home.labels.order")}</TableHead>
-                  <TableHead>{t("home.labels.app")}</TableHead>
-                  <TableHead>{t("home.labels.channel")}</TableHead>
-                  <TableHead>{t("home.labels.amount")}</TableHead>
-                  <TableHead>{t("home.labels.status")}</TableHead>
-                  <TableHead className="text-right">
-                    {t("home.labels.time")}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentOrders.map((order) => (
-                  <TableRow key={order.order}>
-                    <TableCell className="font-mono text-xs">
-                      {order.order}
-                    </TableCell>
-                    <TableCell>{order.app}</TableCell>
-                    <TableCell>{order.channel}</TableCell>
-                    <TableCell className="font-mono">{order.amount}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={order.status} />
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                      {order.time}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <RecentOrdersTable
+              columns={recentOrderColumns}
+              data={recentOrders}
+            />
           </CardContent>
         </Card>
       </section>
@@ -314,21 +315,23 @@ function HomePage() {
           </CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-3">
             {webhookDeliveries.map((delivery) => (
-              <div
+              <Card
                 key={`${delivery.event}-${delivery.target}`}
-                className="border p-4"
+                className="rounded-md shadow-none"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">{delivery.event}</p>
-                  <StatusBadge status={delivery.state} />
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {delivery.app}
-                </p>
-                <p className="mt-3 truncate font-mono text-xs">
-                  {delivery.target}
-                </p>
-              </div>
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium">{delivery.event}</p>
+                    <StatusBadge status={delivery.state} />
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {delivery.app}
+                  </p>
+                  <p className="mt-3 truncate font-mono text-xs">
+                    {delivery.target}
+                  </p>
+                </CardContent>
+              </Card>
             ))}
           </CardContent>
         </Card>
@@ -386,21 +389,25 @@ function QueueItem({
   tone?: "warning";
 }) {
   return (
-    <div className="flex gap-3 rounded-md border p-3">
-      <div
-        className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md ${
-          tone === "warning"
-            ? "bg-destructive/10 text-destructive"
-            : "bg-secondary text-muted-foreground"
-        }`}
-      >
-        <Icon className="size-4" />
-      </div>
-      <div>
-        <p className="text-sm font-medium">{title}</p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">{detail}</p>
-      </div>
-    </div>
+    <Card className="rounded-md shadow-none">
+      <CardContent className="flex gap-3 py-3">
+        <div
+          className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md ${
+            tone === "warning"
+              ? "bg-destructive/10 text-destructive"
+              : "bg-secondary text-muted-foreground"
+          }`}
+        >
+          <Icon className="size-4" />
+        </div>
+        <div>
+          <p className="text-sm font-medium">{title}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {detail}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
