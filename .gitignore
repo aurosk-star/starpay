@@ -1,0 +1,28 @@
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Go build/test artifacts
+bin/
+tmp/
+coverage.out
+*.test
+*.prof
+*.out
+
+# Local binaries
+server
+payment-gateway
+
+# IDE/editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Docker/local runtime data
+docker-data/
