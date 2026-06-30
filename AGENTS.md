@@ -4,16 +4,9 @@
 
 This repository currently contains `PAYMENT_GATEWAY_PRD.md` and does not yet include application source code, tests, or build configuration. Treat the PRD as the source of truth for gateway scope, business rules, and planned capabilities.
 
-When implementation begins, keep the service organized by bounded responsibilities:
+Keep business code organized by domain under `internal/domain/`. Each domain owns its own `handler/`, `router/`, `service/`, `repository/`, and `test/` packages. Current domains are `apps`, `orders`, `channels`, `routing`, `webhooks`, `refunds`, and `subscriptions`.
 
-- `src/` for application code.
-- `src/auth/` for app authentication and request signing.
-- `src/orders/` for unified payment order logic.
-- `src/channels/` for Alipay, WeChat Pay, Stripe, and future provider adapters.
-- `src/webhooks/` for event delivery and retry handling.
-- `src/refunds/` for refund creation and query flows.
-- `tests/` for unit and integration tests mirroring `src/`.
-- `docs/` for design notes beyond the PRD.
+Shared infrastructure belongs under `internal/platform/`: `config`, `database`, `cache`, `http`, and future cross-cutting packages such as `logger`. Ent schemas live under `ent/schema/`, generated Ent code lives under `ent/`, and the service entrypoint is `cmd/server/main.go`.
 
 ## Build, Test, and Development Commands
 

@@ -3,7 +3,7 @@ package cache
 import (
 	"github.com/redis/go-redis/v9"
 
-	"payment-gateway/internal/config"
+	"payment-gateway/internal/platform/config"
 )
 
 func New(cfg config.RedisConfig) *redis.Client {

@@ -10,6 +10,14 @@ Internal payment gateway service for unified payment orders, channel routing, ca
 - Redis for cache, locks, and async coordination
 - Docker Compose for local dependencies
 
+## Project Layout
+
+- `cmd/server/`: service entrypoint
+- `internal/domain/`: payment gateway business domains, each with `handler/`, `router/`, `service/`, `repository/`, and `test/`
+- `internal/platform/`: shared infrastructure packages
+- `ent/schema/`: Ent schema definitions
+- `ent/`: generated Ent code
+
 ## Local Development
 
 ```bash

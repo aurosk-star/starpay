@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"payment-gateway/internal/cache"
-	"payment-gateway/internal/config"
-	"payment-gateway/internal/database"
-	httpserver "payment-gateway/internal/http"
+	"payment-gateway/internal/platform/cache"
+	"payment-gateway/internal/platform/config"
+	"payment-gateway/internal/platform/database"
+	httpserver "payment-gateway/internal/platform/http"
 )
 
 func main() {
