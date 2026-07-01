@@ -44,6 +44,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar,
   SidebarContent,
@@ -100,7 +101,11 @@ function ShellLayout() {
         { label: t("nav.apps"), icon: Boxes, to: "/apps" },
         { label: t("nav.channels"), icon: CreditCard, to: "/channels" },
         { label: t("nav.routing"), icon: GitBranch, disabled: true },
-        { label: t("nav.gatewayConfig"), icon: Settings2, to: "/config/gateway" },
+        {
+          label: t("nav.gatewayConfig"),
+          icon: Settings2,
+          to: "/config/gateway",
+        },
         { label: t("nav.users"), icon: Users, to: "/users" },
       ],
     },
@@ -128,7 +133,7 @@ function ShellLayout() {
         user={currentUser}
         onLogout={handleLogout}
       />
-      <SidebarInset>
+      <SidebarInset className="min-h-0">
         <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-4 border-b bg-background/95 px-4 backdrop-blur transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <SidebarTrigger className="-ml-1" />
@@ -170,9 +175,11 @@ function ShellLayout() {
             </Button>
           </div>
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6">
-          <Outlet />
-        </div>
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="min-w-0 max-w-full px-3 py-4 sm:px-4 sm:py-5 md:px-6">
+            <Outlet />
+          </div>
+        </ScrollArea>
       </SidebarInset>
     </SidebarProvider>
   );

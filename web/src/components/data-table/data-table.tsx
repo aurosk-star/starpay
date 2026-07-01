@@ -5,8 +5,17 @@ import {
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
+import type * as React from "react";
 
-import { Button } from "@/components/ui/button";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
@@ -16,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
@@ -45,19 +55,31 @@ export function DataTable<TData, TValue>({
       },
     },
   });
+  const currentPage = table.getState().pagination.pageIndex + 1;
+  const pageCount = table.getPageCount();
+  const canPreviousPage = table.getCanPreviousPage();
+  const canNextPage = table.getCanNextPage();
+  const paginationItems = getPaginationItems(currentPage, pageCount);
+
+  function goToPreviousPage(event: React.MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    if (canPreviousPage) table.previousPage();
+  }
+
+  function goToNextPage(event: React.MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    if (canNextPage) table.nextPage();
+  }
 
   return (
-    <div className="flex flex-col gap-3">
-      <ScrollArea className="h-[min(72vh,44rem)] rounded-md border">
+    <div className="flex min-w-0 max-w-full flex-col gap-3">
+      <ScrollArea className="h-[min(72vh,44rem)] max-w-full rounded-md border">
         <Table containerClassName="overflow-visible">
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-20 bg-background">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className="sticky top-0 z-10 bg-background px-4"
-                  >
+                  <TableHead key={header.id} className="bg-background px-4">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -106,27 +128,92 @@ export function DataTable<TData, TValue>({
         </Table>
       </ScrollArea>
       {data.length > pageSize ? (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            上一页
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            下一页
-          </Button>
-        </div>
+        <Pagination className="w-full justify-start overflow-x-auto pb-1 sm:justify-end">
+          <PaginationContent className="min-w-max">
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                aria-disabled={!canPreviousPage}
+                tabIndex={canPreviousPage ? undefined : -1}
+                className={cn(
+                  !canPreviousPage && "pointer-events-none opacity-50",
+                )}
+                onClick={goToPreviousPage}
+              >
+                上一页
+              </PaginationPrevious>
+            </PaginationItem>
+            {paginationItems.map((item, index) =>
+              item === "ellipsis" ? (
+                <PaginationItem key={`ellipsis-${index}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={item}>
+                  <PaginationLink
+                    href="#"
+                    isActive={item === currentPage}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      table.setPageIndex(item - 1);
+                    }}
+                  >
+                    {item}
+                  </PaginationLink>
+                </PaginationItem>
+              ),
+            )}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                aria-disabled={!canNextPage}
+                tabIndex={canNextPage ? undefined : -1}
+                className={cn(!canNextPage && "pointer-events-none opacity-50")}
+                onClick={goToNextPage}
+              >
+                下一页
+              </PaginationNext>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       ) : null}
     </div>
   );
 }
 
 export type DataTableColumn<TData, TValue = unknown> = ColumnDef<TData, TValue>;
+
+function getPaginationItems(
+  currentPage: number,
+  pageCount: number,
+): Array<number | "ellipsis"> {
+  if (pageCount <= 7) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, "ellipsis", pageCount];
+  }
+
+  if (currentPage >= pageCount - 3) {
+    return [
+      1,
+      "ellipsis",
+      pageCount - 4,
+      pageCount - 3,
+      pageCount - 2,
+      pageCount - 1,
+      pageCount,
+    ];
+  }
+
+  return [
+    1,
+    "ellipsis",
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    "ellipsis",
+    pageCount,
+  ];
+}

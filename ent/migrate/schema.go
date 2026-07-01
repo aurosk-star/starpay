@@ -141,6 +141,11 @@ var (
 				Columns: []*schema.Column{PaymentOrdersColumns[16]},
 			},
 			{
+				Name:    "paymentorder_status_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentOrdersColumns[16], PaymentOrdersColumns[17]},
+			},
+			{
 				Name:    "paymentorder_channel",
 				Unique:  false,
 				Columns: []*schema.Column{PaymentOrdersColumns[11]},

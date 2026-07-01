@@ -12,6 +12,10 @@ import (
 
 const orderExpirationWorkerGroup = "order-expiration-workers"
 
+func OrderExpirationWorkerGroup() string {
+	return orderExpirationWorkerGroup
+}
+
 type Worker struct {
 	service  Service
 	redis    *redis.Client

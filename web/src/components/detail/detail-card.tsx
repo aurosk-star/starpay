@@ -25,18 +25,18 @@ export function DetailCard({
           <CardDescription className="break-all">{description}</CardDescription>
         ) : null}
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent className="min-w-0">{children}</CardContent>
     </Card>
   );
 }
 
 export function DetailTable({ rows }: { rows: Array<[string, string]> }) {
   return (
-    <Table>
+    <Table className="min-w-[560px]">
       <TableBody>
         {rows.map(([label, value]) => (
           <TableRow key={label}>
-            <TableCell className="w-44 text-muted-foreground">
+            <TableCell className="w-32 text-muted-foreground sm:w-44">
               {label}
             </TableCell>
             <TableCell className="whitespace-normal break-all font-mono text-xs">
@@ -59,13 +59,13 @@ export function ReadOnlyBlock({
   monospace?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-1.5">
       <div className="text-sm font-medium text-muted-foreground">{label}</div>
       <div
         className={
           monospace
-            ? "rounded-md border bg-muted px-3 py-2 font-mono text-xs break-all"
-            : "rounded-md border bg-muted px-3 py-2 text-sm break-words"
+            ? "min-w-0 rounded-md border bg-muted px-3 py-2 font-mono text-xs break-all"
+            : "min-w-0 rounded-md border bg-muted px-3 py-2 text-sm break-words"
         }
       >
         {value}
@@ -76,7 +76,7 @@ export function ReadOnlyBlock({
 
 export function DetailSkeleton() {
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
       <Card>
         <CardHeader>
           <Skeleton className="h-5 w-36" />

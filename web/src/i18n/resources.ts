@@ -21,6 +21,7 @@ export const resources = {
         refresh: "刷新",
         search: "搜索",
         reset: "重置",
+        all: "全部",
         loading: "加载中...",
       },
       nav: {
@@ -83,12 +84,22 @@ export const resources = {
           succeeded: "已成功",
           failed: "已失败",
         },
+        eventTypes: {
+          withDescription: "{{eventType}}（{{description}}）",
+          "payment.succeeded": "支付成功",
+          "payment.failed": "支付失败",
+          "order.expired": "订单超时关闭",
+          "refund.succeeded": "退款成功",
+          "refund.failed": "退款失败",
+        },
         table: {
           deliveryNo: "投递号",
           eventType: "事件类型",
           app: "应用",
           orderNo: "网关订单号",
+          targetUrl: "目标地址",
           status: "状态",
+          attemptCount: "重试次数",
           attempts: "重试次数",
           lastStatus: "最近状态码",
           nextAttempt: "下次重试",
@@ -303,11 +314,13 @@ export const resources = {
             "微信支付平台公钥，用于回调验签或平台证书模式。",
           alipay_public_key: "用于验证支付宝返回结果和异步通知签名。",
           server_url: "支付宝网关地址；沙箱环境请填写沙箱网关。",
-          product_code: "支付宝产品码；页面支付通常由 SDK 使用 FAST_INSTANT_TRADE_PAY。",
+          product_code:
+            "支付宝产品码；页面支付通常由 SDK 使用 FAST_INSTANT_TRADE_PAY。",
           mode: "微信通道模式：native/h5/jsapi/app。",
           enable_page_pay: "桌面浏览器进入收银台时使用电脑网站支付。",
           enable_wap_pay: "手机浏览器进入收银台时优先使用手机网站支付。",
-          enable_qr_pay: "手机网站支付不可用时可自动降级为二维码支付，桌面端也可兜底使用。",
+          enable_qr_pay:
+            "手机网站支付不可用时可自动降级为二维码支付，桌面端也可兜底使用。",
           client_id: "PayPal 应用 Client ID，用于获取访问令牌。",
           client_secret: "PayPal 应用 Secret；编辑时留空会保留原值。",
           webhook_id: "PayPal Webhook ID，用于验证 Webhook 事件。",
@@ -417,6 +430,7 @@ export const resources = {
       checkout: {
         gateway: "支付网关收银台",
         title: "确认并支付订单",
+        paidTitle: "订单已支付",
         secure: "安全支付",
         orderSummary: "订单信息",
         amount: "支付金额",
@@ -437,6 +451,9 @@ export const resources = {
         noMethodsDescription:
           "当前订单没有已启用的支付通道，请联系商户或稍后再试。",
         payNow: "立即支付",
+        paidButton: "已支付",
+        paidMethodTitle: "支付已完成",
+        paidDescription: "该订单已完成支付，无需重复操作。",
         paying: "正在发起支付...",
         loadFailed: "加载收银台失败。",
         payFailed: "发起支付失败。",
@@ -526,8 +543,6 @@ export const resources = {
       },
       home: {
         gatewayOverview: "网关总览",
-        headline: "支付链路运行正常，有一个通道需要关注。",
-        headlineNoChannels: "尚未启用支付通道，请先完成通道配置。",
         openOrders: "查看订单",
         loadFailed: "加载总览数据失败。",
         testPayment: {
@@ -545,6 +560,7 @@ export const resources = {
         channelHealth: "通道健康",
         liveOrders: "实时订单",
         recentPaymentOrders: "最近支付订单",
+        openOrderDetail: "查看订单详情",
         webhookCenter: "Webhook 中心",
         deliveryQueue: "投递队列",
         compensation: "补偿任务",
@@ -567,6 +583,32 @@ export const resources = {
           pendingOrdersDetail: "{{count}} 笔订单等待支付",
           webhookBacklog: "Webhook 积压",
           webhookBacklogDetail: "{{failed}} 次失败，{{pending}} 次待投递",
+        },
+        overviewCharts: {
+          amountRadar: "支付金额网状图",
+          amountRadarDescription: "按币种统计已支付金额。",
+          paymentAmount: "支付金额",
+          paymentState: "支付状态分布",
+          paymentStateDescription: "按通道对比已支付和未支付订单。",
+          unpaid: "未支付",
+          unassigned: "未分配",
+          operations: "运营分布",
+          operationsDescription: "通道状态和 Webhook 投递状态。",
+          enabledChannels: "启用通道",
+          disabledChannels: "停用通道",
+          count: "数量",
+        },
+        monitor: {
+          description: "基础服务监控",
+          database: "数据库监控",
+          redis: "Redis 监控",
+          workers: "Worker 队列监控",
+          workersDetail:
+            "{{streams}} 个队列，长度 {{length}}，待确认 {{pending}}。",
+          system: "运行系统监控",
+          systemDetail: "{{goroutines}} 个 Goroutine，内存 {{memory}}。",
+          okWithLatency: "连接正常，延迟 {{latency}}。",
+          degraded: "服务状态异常。",
         },
         queue: {
           channelAccounts: "已启用 {{enabled}} / {{total}} 个支付通道",
@@ -611,6 +653,7 @@ export const resources = {
         refresh: "Refresh",
         search: "Search",
         reset: "Reset",
+        all: "All",
         loading: "Loading...",
       },
       nav: {
@@ -632,7 +675,8 @@ export const resources = {
       },
       webhooks: {
         title: "Webhook Center",
-        description: "Review business app deliveries, failure reasons, and retries.",
+        description:
+          "Review business app deliveries, failure reasons, and retries.",
         loadFailed: "Failed to load webhook data.",
         retryFailed: "Failed to retry webhook delivery.",
         filters: "Filters",
@@ -646,7 +690,8 @@ export const resources = {
           requestTitle: "Request preview",
           raw: "Raw data",
           note: "Note",
-          requestNote: "This panel shows key fields for integration testing. Full raw data is preserved on the right.",
+          requestNote:
+            "This panel shows key fields for integration testing. Full raw data is preserved on the right.",
           deliveryNo: "Delivery no.",
           status: "Status",
           eventType: "Event type",
@@ -673,12 +718,22 @@ export const resources = {
           succeeded: "Succeeded",
           failed: "Failed",
         },
+        eventTypes: {
+          withDescription: "{{eventType}} ({{description}})",
+          "payment.succeeded": "Payment succeeded",
+          "payment.failed": "Payment failed",
+          "order.expired": "Order expired",
+          "refund.succeeded": "Refund succeeded",
+          "refund.failed": "Refund failed",
+        },
         table: {
           deliveryNo: "Delivery no.",
           eventType: "Event type",
           app: "App",
           orderNo: "Gateway order no.",
+          targetUrl: "Target URL",
           status: "Status",
+          attemptCount: "Attempts",
           attempts: "Attempts",
           lastStatus: "Last status",
           nextAttempt: "Next attempt",
@@ -686,9 +741,11 @@ export const resources = {
       },
       orders: {
         title: "Payment orders",
-        description: "Review payment orders by app, channel, currency, status, and merchant order number.",
+        description:
+          "Review payment orders by app, channel, currency, status, and merchant order number.",
         filters: "Filters",
-        filtersDescription: "Filter before viewing details. Only pending or failed orders can be closed.",
+        filtersDescription:
+          "Filter before viewing details. Only pending or failed orders can be closed.",
         search: "Search",
         reset: "Reset",
         all: "All",
@@ -892,9 +949,12 @@ export const resources = {
           product_code:
             "Alipay product code. The SDK usually uses FAST_INSTANT_TRADE_PAY for page pay.",
           mode: "WeChat channel mode: native/h5/jsapi/app.",
-          enable_page_pay: "Use Alipay page pay when checkout is opened from a desktop browser.",
-          enable_wap_pay: "Prefer Alipay WAP pay when checkout is opened from a mobile browser.",
-          enable_qr_pay: "Allow QR fallback when mobile WAP pay is unavailable, and as desktop fallback.",
+          enable_page_pay:
+            "Use Alipay page pay when checkout is opened from a desktop browser.",
+          enable_wap_pay:
+            "Prefer Alipay WAP pay when checkout is opened from a mobile browser.",
+          enable_qr_pay:
+            "Allow QR fallback when mobile WAP pay is unavailable, and as desktop fallback.",
           client_id: "PayPal app Client ID.",
           client_secret: "PayPal app Secret.",
           webhook_id: "PayPal Webhook ID for event verification.",
@@ -939,6 +999,7 @@ export const resources = {
       checkout: {
         gateway: "Payment Gateway Checkout",
         title: "Confirm and pay",
+        paidTitle: "Order paid",
         secure: "Secure payment",
         orderSummary: "Order summary",
         amount: "Amount",
@@ -960,6 +1021,10 @@ export const resources = {
         noMethodsDescription:
           "This order has no enabled payment channels. Contact the merchant or try again later.",
         payNow: "Pay now",
+        paidButton: "Paid",
+        paidMethodTitle: "Payment completed",
+        paidDescription:
+          "This order has been paid and does not require another payment.",
         paying: "Starting payment...",
         loadFailed: "Failed to load checkout.",
         payFailed: "Failed to start payment.",
@@ -1039,13 +1104,12 @@ export const resources = {
             "The selected payment channel does not support this currency.",
           invalidAmount: "Enter an amount greater than 0.",
           invalidMetadata: "Metadata must be a JSON object.",
-          missingPayUrl: "The create order response did not include a checkout URL.",
+          missingPayUrl:
+            "The create order response did not include a checkout URL.",
         },
       },
       home: {
         gatewayOverview: "Gateway overview",
-        headline: "Payment links are operating from current gateway data.",
-        headlineNoChannels: "No payment channel is enabled. Configure a channel first.",
         openOrders: "View orders",
         loadFailed: "Failed to load overview data.",
         testPayment: {
@@ -1063,6 +1127,7 @@ export const resources = {
         channelHealth: "Channel health",
         liveOrders: "Live orders",
         recentPaymentOrders: "Recent payment orders",
+        openOrderDetail: "View order detail",
         webhookCenter: "Webhook center",
         deliveryQueue: "Delivery queue",
         compensation: "Compensation",
@@ -1080,15 +1145,43 @@ export const resources = {
           paidVolume: "Paid volume",
           paidVolumeDetail: "{{count}} paid orders",
           authorizationRate: "Authorization rate",
-          authorizationRateDetail: "Calculated from the current {{count}} fetched orders",
+          authorizationRateDetail:
+            "Calculated from the current {{count}} fetched orders",
           pendingOrders: "Pending orders",
           pendingOrdersDetail: "{{count}} orders are waiting for payment",
           webhookBacklog: "Webhook backlog",
           webhookBacklogDetail: "{{failed}} failed, {{pending}} pending",
         },
+        overviewCharts: {
+          amountRadar: "Payment amount radar",
+          amountRadarDescription: "Paid volume grouped by currency.",
+          paymentAmount: "Payment amount",
+          paymentState: "Payment state distribution",
+          paymentStateDescription: "Paid and unpaid orders grouped by channel.",
+          unpaid: "Unpaid",
+          unassigned: "Unassigned",
+          operations: "Operations distribution",
+          operationsDescription: "Channel states and webhook delivery states.",
+          enabledChannels: "Enabled channels",
+          disabledChannels: "Disabled channels",
+          count: "Count",
+        },
+        monitor: {
+          description: "Infrastructure monitoring",
+          database: "Database monitor",
+          redis: "Redis monitor",
+          workers: "Worker queue monitor",
+          workersDetail:
+            "{{streams}} streams, length {{length}}, pending {{pending}}.",
+          system: "Runtime system monitor",
+          systemDetail: "{{goroutines}} goroutines, {{memory}} memory.",
+          okWithLatency: "Connected, {{latency}} latency.",
+          degraded: "Service is degraded.",
+        },
         queue: {
           channelAccounts: "{{enabled}} / {{total}} payment channels enabled",
-          channelAccountsDetail: "Data comes from payment channel configuration.",
+          channelAccountsDetail:
+            "Data comes from payment channel configuration.",
           pendingOrders: "{{count}} pending orders",
           pendingOrdersDetail: "Data comes from the order list.",
           webhookDeliveries: "{{failed}} failed, {{pending}} pending",

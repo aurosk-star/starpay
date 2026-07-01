@@ -77,11 +77,11 @@ export function OrdersPage() {
         accessorKey: "gateway_order_no",
         header: t("orders.table.order"),
         cell: ({ row }) => (
-          <div className="flex flex-col">
-            <span className="font-mono text-xs font-medium">
+          <div className="flex max-w-56 flex-col">
+            <span className="truncate font-mono text-xs font-medium">
               {row.original.gateway_order_no}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="truncate text-xs text-muted-foreground">
               {row.original.subject}
             </span>
           </div>
@@ -91,14 +91,16 @@ export function OrdersPage() {
         accessorKey: "app_id",
         header: t("orders.table.app"),
         cell: ({ row }) => (
-          <span className="font-mono text-xs">{row.original.app_id}</span>
+          <span className="block max-w-40 truncate font-mono text-xs">
+            {row.original.app_id}
+          </span>
         ),
       },
       {
         accessorKey: "merchant_order_no",
         header: t("orders.table.merchantOrder"),
         cell: ({ row }) => (
-          <span className="font-mono text-xs">
+          <span className="block max-w-48 truncate font-mono text-xs">
             {row.original.merchant_order_no}
           </span>
         ),
@@ -130,7 +132,7 @@ export function OrdersPage() {
         accessorKey: "channel_trade_no",
         header: t("orders.table.channelTradeNo"),
         cell: ({ row }) => (
-          <span className="font-mono text-xs">
+          <span className="block max-w-48 truncate font-mono text-xs">
             {row.original.channel_trade_no || "-"}
           </span>
         ),
@@ -225,9 +227,9 @@ export function OrdersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
+    <div className="flex min-w-0 max-w-full flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight">
             {t("orders.title")}
           </h1>
@@ -235,7 +237,11 @@ export function OrdersPage() {
             {t("orders.description")}
           </p>
         </div>
-        <Button variant="outline" onClick={() => load()}>
+        <Button
+          className="w-full md:w-auto"
+          variant="outline"
+          onClick={() => load()}
+        >
           <RefreshCw />
           {t("common.refresh")}
         </Button>
@@ -248,17 +254,17 @@ export function OrdersPage() {
         </Alert>
       ) : null}
 
-      <Card>
+      <Card className="min-w-0 max-w-full">
         <CardHeader>
           <CardTitle>{t("orders.filters")}</CardTitle>
           <CardDescription>{t("orders.filtersDescription")}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="min-w-0">
           <form
-            className="flex flex-col gap-4 lg:flex-row lg:items-end"
+            className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-end"
             onSubmit={applyFilters}
           >
-            <FieldGroup className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <FieldGroup className="grid min-w-0 flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[repeat(5,minmax(0,1fr))]">
               <Field>
                 <FieldLabel htmlFor="orders-app-id">
                   {t("orders.fields.appId")}
@@ -371,12 +377,17 @@ export function OrdersPage() {
                 />
               </Field>
             </FieldGroup>
-            <div className="flex gap-2">
-              <Button type="submit">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button type="submit" className="w-full sm:w-auto">
                 <Search />
                 {t("orders.search")}
               </Button>
-              <Button type="button" variant="outline" onClick={resetFilters}>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={resetFilters}
+              >
                 {t("orders.reset")}
               </Button>
             </div>
@@ -384,14 +395,14 @@ export function OrdersPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="min-w-0 max-w-full">
         <CardHeader>
           <CardTitle>{t("orders.title")}</CardTitle>
           <CardDescription>
             {t("orders.total", { count: total })}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="min-w-0">
           <OrdersDataTable
             columns={columns}
             data={orders}

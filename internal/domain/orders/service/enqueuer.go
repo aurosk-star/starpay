@@ -11,6 +11,10 @@ import (
 
 const orderExpirationStreamName = "order:expirations"
 
+func OrderExpirationStreamName() string {
+	return orderExpirationStreamName
+}
+
 type ExpirationEnqueuer interface {
 	EnqueueOrderExpiration(ctx context.Context, orderID int) error
 }

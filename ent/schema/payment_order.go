@@ -45,6 +45,7 @@ func (PaymentOrder) Indexes() []ent.Index {
 		index.Fields("gateway_order_no"),
 		index.Fields("app_id"),
 		index.Fields("status"),
+		index.Fields("status", "expires_at"),
 		index.Fields("channel"),
 		index.Fields("currency"),
 		index.Fields("created_at"),

@@ -11,6 +11,10 @@ import (
 
 const webhookStreamName = "webhook:deliveries"
 
+func WebhookStreamName() string {
+	return webhookStreamName
+}
+
 type Enqueuer interface {
 	EnqueueWebhookDelivery(ctx context.Context, deliveryID int) error
 }

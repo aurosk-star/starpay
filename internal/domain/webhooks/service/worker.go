@@ -15,6 +15,10 @@ import (
 
 const webhookWorkerGroup = "webhook-delivery-workers"
 
+func WebhookWorkerGroup() string {
+	return webhookWorkerGroup
+}
+
 type Worker struct {
 	service  Service
 	redis    *redis.Client

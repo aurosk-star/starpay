@@ -19,6 +19,9 @@ import (
 	confighandler "payment-gateway/internal/domain/configs/handler"
 	configrouter "payment-gateway/internal/domain/configs/router"
 	configsvc "payment-gateway/internal/domain/configs/service"
+	monitorhandler "payment-gateway/internal/domain/monitoring/handler"
+	monitorrouter "payment-gateway/internal/domain/monitoring/router"
+	monitorsvc "payment-gateway/internal/domain/monitoring/service"
 	orderhandler "payment-gateway/internal/domain/orders/handler"
 	orderrouter "payment-gateway/internal/domain/orders/router"
 	ordersvc "payment-gateway/internal/domain/orders/service"
@@ -48,6 +51,15 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 	userService := usersvc.New(client, cfg.Auth)
 	userHandler := userhandler.New(userService, cfg.Auth)
 	userrouter.Register(router.Group("/v1/admin"), userHandler, userService, enforcer)
+	monitorService := monitorsvc.New(
+		monitorsvc.WithEntClient(client),
+		monitorsvc.WithRedis(redisClient),
+		monitorsvc.WithStreams([]monitorsvc.StreamTarget{
+			{Name: "orders", Stream: ordersvc.OrderExpirationStreamName(), Group: ordersvc.OrderExpirationWorkerGroup()},
+			{Name: "webhooks", Stream: webhooksvc.WebhookStreamName(), Group: webhooksvc.WebhookWorkerGroup()},
+		}),
+	)
+	monitorrouter.Register(router.Group("/v1/admin"), monitorhandler.New(monitorService), userService, enforcer)
 	appService := appsvc.New(client, appsvc.WithSecretEncryptionKey(cfg.Auth.AppSecretEncryptionKey))
 	appHandler := apphandler.New(appService)
 	approuter.Register(router.Group("/v1/admin"), appHandler, userService, enforcer)

@@ -6,6 +6,7 @@ import { ArrowLeft, RotateCcw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DetailCard,
   DetailSkeleton,
@@ -17,6 +18,7 @@ import { APIError } from "@/lib/api";
 import { formatDateTime } from "@/lib/date";
 
 import { getWebhookDelivery, retryWebhookDelivery } from "./api";
+import { formatWebhookEventType } from "./event-types";
 import type { WebhookDelivery } from "./types";
 import { webhookStatusVariant } from "./utils";
 
@@ -34,7 +36,10 @@ export function WebhookDetailPage() {
       delivery
         ? [
             [t("webhooks.detail.deliveryNo"), delivery.delivery_no],
-            [t("webhooks.detail.eventType"), delivery.event_type],
+            [
+              t("webhooks.detail.eventType"),
+              formatWebhookEventType(delivery.event_type, t),
+            ],
             [t("webhooks.detail.app"), delivery.app_id],
             [t("webhooks.detail.orderNo"), delivery.gateway_order_no],
             [t("webhooks.detail.targetUrl"), delivery.target_url],
@@ -112,15 +117,15 @@ export function WebhookDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-start gap-3">
+    <div className="flex min-w-0 max-w-full flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
           <Button variant="outline" size="icon" asChild>
             <Link to="/webhooks" aria-label={t("common.back")}>
               <ArrowLeft />
             </Link>
           </Button>
-          <div className="flex flex-col gap-1">
+          <div className="min-w-0 flex flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold tracking-tight">
                 {t("webhooks.detailTitle")}
@@ -137,6 +142,7 @@ export function WebhookDetailPage() {
           </div>
         </div>
         <Button
+          className="w-full md:w-auto"
           variant="outline"
           onClick={retry}
           disabled={!delivery || delivery.status === "succeeded" || retrying}
@@ -156,8 +162,8 @@ export function WebhookDetailPage() {
       {loading ? (
         <DetailSkeleton />
       ) : delivery ? (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="flex flex-col gap-4">
+        <div className="grid min-w-0 max-w-full gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="flex min-w-0 flex-col gap-4">
             <DetailCard
               title={t("webhooks.detail.overview")}
               description={delivery.delivery_no}
@@ -173,7 +179,7 @@ export function WebhookDetailPage() {
             </DetailCard>
 
             <DetailCard title={t("webhooks.detail.failure")}>
-              <div className="flex flex-col gap-3">
+              <div className="flex min-w-0 flex-col gap-3">
                 <ReadOnlyBlock
                   label={t("webhooks.detail.lastError")}
                   value={delivery.last_error || "-"}
@@ -187,9 +193,9 @@ export function WebhookDetailPage() {
             </DetailCard>
           </div>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
             <DetailCard title={t("webhooks.detail.requestTitle")}>
-              <div className="flex flex-col gap-3">
+              <div className="flex min-w-0 flex-col gap-3">
                 <ReadOnlyBlock
                   label={t("webhooks.detail.deliveryNo")}
                   value={delivery.delivery_no}
@@ -197,7 +203,7 @@ export function WebhookDetailPage() {
                 />
                 <ReadOnlyBlock
                   label={t("webhooks.detail.eventType")}
-                  value={delivery.event_type}
+                  value={formatWebhookEventType(delivery.event_type, t)}
                 />
                 <ReadOnlyBlock
                   label={t("webhooks.detail.targetUrl")}
@@ -208,9 +214,11 @@ export function WebhookDetailPage() {
             </DetailCard>
 
             <DetailCard title={t("webhooks.detail.raw")}>
-              <pre className="max-h-[56vh] overflow-auto rounded-md border bg-muted px-3 py-2 text-xs leading-6">
-                {JSON.stringify(delivery, null, 2)}
-              </pre>
+              <ScrollArea className="max-h-[56vh] rounded-md border bg-muted">
+                <pre className="min-w-max px-3 py-2 text-xs leading-6">
+                  {JSON.stringify(delivery, null, 2)}
+                </pre>
+              </ScrollArea>
             </DetailCard>
           </div>
         </div>

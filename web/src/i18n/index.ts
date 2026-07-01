@@ -10,13 +10,13 @@ void i18n
   .init({
     resources,
     fallbackLng: "zh-CN",
-    lng: "zh-CN",
     supportedLngs: ["zh-CN", "en"],
     interpolation: {
       escapeValue: false,
     },
     detection: {
-      order: ["localStorage", "navigator"],
+      order: ["querystring", "localStorage", "navigator"],
+      lookupQuerystring: "lang",
       caches: ["localStorage"],
     },
   });

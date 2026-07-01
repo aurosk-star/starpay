@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { DetailCard, DetailSkeleton, DetailTable } from "@/components/detail";
 import { useAuthStore } from "@/features/auth/store";
 import { APIError } from "@/lib/api";
@@ -119,15 +120,15 @@ export function OrderDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-start gap-3">
+    <div className="flex min-w-0 max-w-full flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
           <Button variant="outline" size="icon" asChild>
             <Link to="/orders" aria-label={t("common.back")}>
               <ArrowLeft />
             </Link>
           </Button>
-          <div className="flex flex-col gap-1">
+          <div className="min-w-0 flex flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold tracking-tight">
                 {t("orders.detailTitle")}
@@ -138,12 +139,13 @@ export function OrderDetailPage() {
                 </Badge>
               ) : null}
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="break-all text-sm text-muted-foreground">
               {order?.gateway_order_no ?? t("orders.detailDescription")}
             </p>
           </div>
         </div>
         <Button
+          className="w-full md:w-auto"
           variant="outline"
           disabled={!order || !canCloseOrder(order)}
           onClick={() => setCloseConfirmOpen(true)}
@@ -163,8 +165,8 @@ export function OrderDetailPage() {
       {loading ? (
         <DetailSkeleton />
       ) : order ? (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="flex flex-col gap-4">
+        <div className="grid min-w-0 max-w-full gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="flex min-w-0 flex-col gap-4">
             <DetailCard
               title={t("orders.detail.basic")}
               description={order.gateway_order_no}
@@ -179,16 +181,20 @@ export function OrderDetailPage() {
             </DetailCard>
           </div>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
             <DetailCard title={t("orders.fields.metadata")}>
-              <pre className="max-h-[56vh] overflow-auto rounded-md border bg-muted px-3 py-2 text-xs leading-6">
-                {JSON.stringify(order.metadata ?? {}, null, 2)}
-              </pre>
+              <ScrollArea className="max-h-[56vh] rounded-md border bg-muted">
+                <pre className="min-w-max px-3 py-2 text-xs leading-6">
+                  {JSON.stringify(order.metadata ?? {}, null, 2)}
+                </pre>
+              </ScrollArea>
             </DetailCard>
             <DetailCard title={t("orders.detail.raw")}>
-              <pre className="max-h-[56vh] overflow-auto rounded-md border bg-muted px-3 py-2 text-xs leading-6">
-                {JSON.stringify(order, null, 2)}
-              </pre>
+              <ScrollArea className="max-h-[56vh] rounded-md border bg-muted">
+                <pre className="min-w-max px-3 py-2 text-xs leading-6">
+                  {JSON.stringify(order, null, 2)}
+                </pre>
+              </ScrollArea>
             </DetailCard>
           </div>
         </div>

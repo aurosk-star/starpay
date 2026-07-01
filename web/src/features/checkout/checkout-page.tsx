@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, ArrowUpRight, CheckCircle2, CreditCard } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowUpRight,
+  CheckCircle2,
+  CreditCard,
+} from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -29,21 +34,28 @@ import type {
   CheckoutPaymentMethod,
   CheckoutPaymentResult,
 } from "./types";
+import { useCheckoutLanguage } from "./use-checkout-language";
 
 type CheckoutPageProps = {
   gatewayOrderNo: string;
 };
 
 export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
+  useCheckoutLanguage();
   const { t } = useTranslation();
   const checkoutToken = useMemo(() => {
     if (typeof window === "undefined") return "";
-    return new URLSearchParams(window.location.search).get("token")?.trim() ?? "";
+    return (
+      new URLSearchParams(window.location.search).get("token")?.trim() ?? ""
+    );
   }, []);
-  const [orderData, setOrderData] = useState<CheckoutOrderResponse | null>(null);
+  const [orderData, setOrderData] = useState<CheckoutOrderResponse | null>(
+    null,
+  );
   const [methods, setMethods] = useState<CheckoutPaymentMethod[]>([]);
   const [methodsLocked, setMethodsLocked] = useState(false);
-  const [lockedMethod, setLockedMethod] = useState<CheckoutPaymentMethod | null>(null);
+  const [lockedMethod, setLockedMethod] =
+    useState<CheckoutPaymentMethod | null>(null);
   const [selected, setSelected] = useState<string>("");
   const [payment, setPayment] = useState<CheckoutPaymentResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -140,9 +152,10 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
   }
 
   const order = orderData.order;
+  const isPaid = order.status === "paid";
 
   return (
-    <CheckoutShell>
+    <CheckoutShell title={isPaid ? t("checkout.paidTitle") : undefined}>
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[1fr_360px]">
         <Card>
           <CardHeader>
@@ -151,17 +164,28 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
             <div>
-              <p className="text-sm text-muted-foreground">{t("checkout.amount")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("checkout.amount")}
+              </p>
               <p className="mt-2 font-mono text-4xl font-semibold">
                 {formatMinorAmount(order.amount, order.currency)}
               </p>
             </div>
             <Separator />
             <div className="grid gap-3 text-sm md:grid-cols-2">
-              <Info label={t("checkout.gatewayOrderNo")} value={order.gateway_order_no} />
-              <Info label={t("checkout.merchantOrderNo")} value={order.merchant_order_no} />
+              <Info
+                label={t("checkout.gatewayOrderNo")}
+                value={order.gateway_order_no}
+              />
+              <Info
+                label={t("checkout.merchantOrderNo")}
+                value={order.merchant_order_no}
+              />
               <Info label={t("checkout.currency")} value={order.currency} />
-              <Info label={t("checkout.status")} value={t(`checkout.statuses.${order.status}`)} />
+              <Info
+                label={t("checkout.status")}
+                value={t(`checkout.statuses.${order.status}`)}
+              />
             </div>
           </CardContent>
         </Card>
@@ -170,12 +194,18 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <CreditCard />
-              {methodsLocked ? t("checkout.paymentMethod") : t("checkout.selectMethod")}
+              {isPaid
+                ? t("checkout.paidMethodTitle")
+                : methodsLocked
+                  ? t("checkout.paymentMethod")
+                  : t("checkout.selectMethod")}
             </CardTitle>
             <CardDescription>
-              {methodsLocked
-                ? t("checkout.lockedMethodDescription")
-                : t("checkout.selectMethodHint")}
+              {isPaid
+                ? t("checkout.paidDescription")
+                : methodsLocked
+                  ? t("checkout.lockedMethodDescription")
+                  : t("checkout.selectMethodHint")}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
@@ -188,7 +218,9 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{t("checkout.lockedMethod")}</Badge>
+                  <Badge variant="secondary">
+                    {t("checkout.lockedMethod")}
+                  </Badge>
                   <Badge variant="outline">{selectedMethod.channel}</Badge>
                 </div>
               </div>
@@ -197,7 +229,9 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
                 <Button
                   key={`${method.channel}:${method.pay_method}`}
                   type="button"
-                  variant={selected === method.pay_method ? "default" : "outline"}
+                  variant={
+                    selected === method.pay_method ? "default" : "outline"
+                  }
                   className="justify-between"
                   disabled={!method.enabled || paying}
                   onClick={() => setSelected(method.pay_method)}
@@ -210,7 +244,9 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
               <Alert>
                 <AlertCircle />
                 <AlertTitle>{t("checkout.noMethodsTitle")}</AlertTitle>
-                <AlertDescription>{t("checkout.noMethodsDescription")}</AlertDescription>
+                <AlertDescription>
+                  {t("checkout.noMethodsDescription")}
+                </AlertDescription>
               </Alert>
             )}
             {methodsLocked && lockedMethod && !lockedMethod.enabled ? (
@@ -239,7 +275,9 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
                       ? t("checkout.paymentQrHint")
                       : t("checkout.paymentRedirecting")}
                   </span>
-                  {payment.qr_code ? <QrPreview value={payment.qr_code} /> : null}
+                  {payment.qr_code ? (
+                    <QrPreview value={payment.qr_code} />
+                  ) : null}
                 </AlertDescription>
               </Alert>
             ) : null}
@@ -247,11 +285,15 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
           <CardFooter>
             <Button
               className="w-full"
-              disabled={!selectedMethod || paying}
+              disabled={isPaid || !selectedMethod || paying}
               onClick={handlePay}
             >
-              {paying ? t("checkout.paying") : t("checkout.payNow")}
-              <ArrowUpRight />
+              {isPaid
+                ? t("checkout.paidButton")
+                : paying
+                  ? t("checkout.paying")
+                  : t("checkout.payNow")}
+              {isPaid ? <CheckCircle2 /> : <ArrowUpRight />}
             </Button>
           </CardFooter>
         </Card>
@@ -272,15 +314,25 @@ function QrPreview({ value }: { value: string }) {
   );
 }
 
-export function CheckoutShell({ children }: { children: React.ReactNode }) {
+export function CheckoutShell({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title?: string;
+}) {
   const { t } = useTranslation();
   return (
     <main className="min-h-[100dvh] bg-background px-4 py-6 text-foreground md:px-6">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <header className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">{t("checkout.gateway")}</p>
-            <h1 className="text-xl font-semibold">{t("checkout.title")}</h1>
+            <p className="text-sm text-muted-foreground">
+              {t("checkout.gateway")}
+            </p>
+            <h1 className="text-xl font-semibold">
+              {title ?? t("checkout.title")}
+            </h1>
           </div>
           <Badge variant="secondary">{t("checkout.secure")}</Badge>
         </header>
@@ -324,7 +376,12 @@ function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
       <p className="text-muted-foreground">{label}</p>
-      <p className={cn("mt-1 truncate font-medium", value.startsWith("pay_") ? "font-mono text-xs" : "")}>
+      <p
+        className={cn(
+          "mt-1 truncate font-medium",
+          value.startsWith("pay_") ? "font-mono text-xs" : "",
+        )}
+      >
         {value}
       </p>
     </div>

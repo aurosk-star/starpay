@@ -1,3 +1,3 @@
-module codeup.aliyun.com/h-star/pay-gateway.git/sdk/go
+module github.com/zmoyi/starpay-go
 
 go 1.22

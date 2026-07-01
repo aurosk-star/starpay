@@ -1,0 +1,19 @@
+# Go
+bin/
+*.test
+*.out
+coverage.out
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store

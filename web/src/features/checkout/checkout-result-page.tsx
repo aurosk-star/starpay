@@ -17,6 +17,7 @@ import { formatMinorAmount } from "@/lib/money";
 import { getCheckoutOrder } from "./api";
 import { CheckoutShell } from "./checkout-page";
 import type { CheckoutOrderResponse } from "./types";
+import { useCheckoutLanguage } from "./use-checkout-language";
 
 type CheckoutResultPageProps = {
   gatewayOrderNo: string;
@@ -24,13 +25,20 @@ type CheckoutResultPageProps = {
 
 const REDIRECT_SECONDS = 5;
 
-export function CheckoutResultPage({ gatewayOrderNo }: CheckoutResultPageProps) {
+export function CheckoutResultPage({
+  gatewayOrderNo,
+}: CheckoutResultPageProps) {
+  useCheckoutLanguage();
   const { t } = useTranslation();
   const checkoutToken = useMemo(() => {
     if (typeof window === "undefined") return "";
-    return new URLSearchParams(window.location.search).get("token")?.trim() ?? "";
+    return (
+      new URLSearchParams(window.location.search).get("token")?.trim() ?? ""
+    );
   }, []);
-  const [orderData, setOrderData] = useState<CheckoutOrderResponse | null>(null);
+  const [orderData, setOrderData] = useState<CheckoutOrderResponse | null>(
+    null,
+  );
   const [seconds, setSeconds] = useState(REDIRECT_SECONDS);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,12 +65,27 @@ export function CheckoutResultPage({ gatewayOrderNo }: CheckoutResultPageProps) 
   useEffect(() => {
     if (!merchantReturnURL || error) return;
     if (seconds <= 0) {
-      window.location.assign(withResultParams(merchantReturnURL, gatewayOrderNo, orderData?.order.status ?? ""));
+      window.location.assign(
+        withResultParams(
+          merchantReturnURL,
+          gatewayOrderNo,
+          orderData?.order.status ?? "",
+        ),
+      );
       return;
     }
-    const timer = window.setTimeout(() => setSeconds((current) => current - 1), 1000);
+    const timer = window.setTimeout(
+      () => setSeconds((current) => current - 1),
+      1000,
+    );
     return () => window.clearTimeout(timer);
-  }, [error, gatewayOrderNo, merchantReturnURL, orderData?.order.status, seconds]);
+  }, [
+    error,
+    gatewayOrderNo,
+    merchantReturnURL,
+    orderData?.order.status,
+    seconds,
+  ]);
 
   const order = orderData?.order;
   const isPaid = order?.status === "paid";
@@ -73,7 +96,13 @@ export function CheckoutResultPage({ gatewayOrderNo }: CheckoutResultPageProps) 
       <Card className="mx-auto w-full max-w-xl">
         <CardHeader>
           <div className="mb-2">
-            {isPaid ? <CheckCircle2 /> : isClosed ? <AlertCircle /> : <Clock3 />}
+            {isPaid ? (
+              <CheckCircle2 />
+            ) : isClosed ? (
+              <AlertCircle />
+            ) : (
+              <Clock3 />
+            )}
           </div>
           <CardTitle>
             {isPaid
@@ -99,19 +128,38 @@ export function CheckoutResultPage({ gatewayOrderNo }: CheckoutResultPageProps) 
           {order ? (
             <div className="rounded-lg border p-4 text-sm">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-muted-foreground">{t("checkout.gatewayOrderNo")}</span>
-                <span className="font-mono text-xs">{order.gateway_order_no}</span>
+                <span className="text-muted-foreground">
+                  {t("checkout.gatewayOrderNo")}
+                </span>
+                <span className="font-mono text-xs">
+                  {order.gateway_order_no}
+                </span>
               </div>
               <div className="mt-3 flex items-center justify-between gap-4">
-                <span className="text-muted-foreground">{t("checkout.amount")}</span>
-                <span className="font-mono">{formatMinorAmount(order.amount, order.currency)}</span>
+                <span className="text-muted-foreground">
+                  {t("checkout.amount")}
+                </span>
+                <span className="font-mono">
+                  {formatMinorAmount(order.amount, order.currency)}
+                </span>
               </div>
             </div>
           ) : null}
         </CardContent>
         {merchantReturnURL ? (
           <CardFooter>
-            <Button className="w-full" onClick={() => window.location.assign(withResultParams(merchantReturnURL, gatewayOrderNo, order?.status ?? ""))}>
+            <Button
+              className="w-full"
+              onClick={() =>
+                window.location.assign(
+                  withResultParams(
+                    merchantReturnURL,
+                    gatewayOrderNo,
+                    order?.status ?? "",
+                  ),
+                )
+              }
+            >
               {t("checkout.result.returnNow")}
               <ExternalLink />
             </Button>
@@ -122,7 +170,11 @@ export function CheckoutResultPage({ gatewayOrderNo }: CheckoutResultPageProps) 
   );
 }
 
-function withResultParams(target: string, gatewayOrderNo: string, status: string) {
+function withResultParams(
+  target: string,
+  gatewayOrderNo: string,
+  status: string,
+) {
   try {
     const parsed = new URL(target);
     parsed.searchParams.set("gateway_order_no", gatewayOrderNo);

@@ -1,20 +1,20 @@
-# Pay Gateway Go SDK
+# StarPay Go SDK
 
 ## 安装
 
 第三方 Go 服务直接引入：
 
 ```bash
-go get codeup.aliyun.com/h-star/pay-gateway.git/sdk/go
+go get github.com/zmoyi/starpay-go
 ```
 
 如果仓库是私有的，需要先配置 Go 私有模块：
 
 ```bash
-go env -w GOPRIVATE=codeup.aliyun.com/h-star/*
+go env -w GOPRIVATE=github.com/zmoyi/*
 ```
 
-然后确保当前机器可以通过 SSH 或 HTTPS 访问 Codeup 仓库。
+然后确保当前机器可以通过 SSH 或 HTTPS 访问 GitHub 仓库。
 
 ## 创建客户端
 

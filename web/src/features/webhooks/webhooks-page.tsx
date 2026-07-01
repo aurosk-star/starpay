@@ -31,6 +31,7 @@ import { useAuthStore } from "@/features/auth/store";
 import { APIError } from "@/lib/api";
 
 import { listWebhookDeliveries, retryWebhookDelivery } from "./api";
+import { formatWebhookEventType } from "./event-types";
 import type { WebhookDelivery } from "./types";
 import { webhookStatusVariant } from "./utils";
 
@@ -54,10 +55,38 @@ export function WebhooksPage() {
 
   const columns = useMemo<DataTableColumn<WebhookDelivery>[]>(
     () => [
-      { accessorKey: "delivery_no", header: t("webhooks.table.deliveryNo") },
-      { accessorKey: "event_type", header: t("webhooks.table.eventType") },
-      { accessorKey: "app_id", header: t("webhooks.table.app") },
-      { accessorKey: "gateway_order_no", header: t("webhooks.table.orderNo") },
+      {
+        accessorKey: "delivery_no",
+        header: t("webhooks.table.deliveryNo"),
+        cell: ({ row }) => (
+          <span className="block max-w-48 truncate font-mono text-xs">
+            {row.original.delivery_no}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "event_type",
+        header: t("webhooks.table.eventType"),
+        cell: ({ row }) => formatWebhookEventType(row.original.event_type, t),
+      },
+      {
+        accessorKey: "app_id",
+        header: t("webhooks.table.app"),
+        cell: ({ row }) => (
+          <span className="block max-w-40 truncate font-mono text-xs">
+            {row.original.app_id}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "gateway_order_no",
+        header: t("webhooks.table.orderNo"),
+        cell: ({ row }) => (
+          <span className="block max-w-48 truncate font-mono text-xs">
+            {row.original.gateway_order_no}
+          </span>
+        ),
+      },
       {
         accessorKey: "status",
         header: t("webhooks.table.status"),
@@ -127,6 +156,8 @@ export function WebhooksPage() {
         event_type: nextFilters.eventType,
         status: nextFilters.status === "all" ? "" : nextFilters.status,
         gateway_order_no: nextFilters.gatewayOrderNo,
+        page: 1,
+        page_size: 100,
       });
       setItems(result.items);
     } catch (err) {
@@ -171,9 +202,9 @@ export function WebhooksPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
+    <div className="flex min-w-0 max-w-full flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight">
             {t("webhooks.title")}
           </h1>
@@ -181,7 +212,11 @@ export function WebhooksPage() {
             {t("webhooks.description")}
           </p>
         </div>
-        <Button variant="outline" onClick={() => load()}>
+        <Button
+          className="w-full md:w-auto"
+          variant="outline"
+          onClick={() => load()}
+        >
           <RefreshCw />
           {t("common.refresh")}
         </Button>
@@ -192,13 +227,16 @@ export function WebhooksPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
-      <Card>
+      <Card className="min-w-0 max-w-full">
         <CardHeader>
           <CardTitle>{t("webhooks.filters")}</CardTitle>
           <CardDescription>{t("webhooks.description")}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form className="grid gap-4 md:grid-cols-4" onSubmit={applyFilters}>
+        <CardContent className="min-w-0">
+          <form
+            className="grid min-w-0 gap-4 md:grid-cols-[repeat(4,minmax(0,1fr))]"
+            onSubmit={applyFilters}
+          >
             <FieldGroup>
               <Field>
                 <FieldLabel>{t("webhooks.filter.app")}</FieldLabel>
@@ -265,21 +303,31 @@ export function WebhooksPage() {
                 />
               </Field>
             </FieldGroup>
-            <div className="md:col-span-4 flex gap-2">
-              <Button type="submit">
+            <div className="flex flex-col gap-2 md:col-span-4 sm:flex-row">
+              <Button type="submit" className="w-full sm:w-auto">
                 <Search />
                 {t("common.search")}
               </Button>
-              <Button type="button" variant="outline" onClick={resetFilters}>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={resetFilters}
+              >
                 {t("common.reset")}
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
-      <Card>
-        <CardContent className="pt-6">
-          <WebhooksDataTable columns={columns} data={items} loading={loading} />
+      <Card className="min-w-0 max-w-full">
+        <CardContent className="min-w-0 pt-6">
+          <WebhooksDataTable
+            columns={columns}
+            data={items}
+            loading={loading}
+            pageSize={20}
+          />
         </CardContent>
       </Card>
     </div>
