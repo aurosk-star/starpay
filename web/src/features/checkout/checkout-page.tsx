@@ -17,6 +17,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { formatMinorAmount } from "@/lib/money";
 
 import {
   getCheckoutOrder,
@@ -310,13 +311,6 @@ function Info({ label, value }: { label: string; value: string }) {
       </p>
     </div>
   );
-}
-
-function formatMinorAmount(amount: number, currency: string) {
-  if (currency === "JPY") {
-    return `${currency} ${amount}`;
-  }
-  return `${currency} ${(amount / 100).toFixed(2)}`;
 }
 
 function submitPaymentForm(formHTML: string) {

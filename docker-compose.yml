@@ -1,4 +1,32 @@
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: payment-gateway-api
+    env_file:
+      - .env
+    environment:
+      APP_ENV: local
+      HTTP_ADDR: :8080
+      DB_DRIVER: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-payment_gateway}
+      DB_USER: ${POSTGRES_USER:-payment}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-payment}
+      DB_SSLMODE: disable
+      REDIS_ADDR: redis:6379
+      ORDER_EXPIRE_WORKER_CONCURRENCY: ${ORDER_EXPIRE_WORKER_CONCURRENCY:-2}
+    ports:
+      - "${HTTP_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   postgres:
     image: postgres:latest
     container_name: payment-gateway-postgres
@@ -9,7 +37,7 @@ services:
     ports:
       - "${POSTGRES_PORT:-15434}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U payment -d payment_gateway"]
       interval: 5s

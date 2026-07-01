@@ -18,11 +18,13 @@ import (
 
 type alipayClient interface {
 	TradePagePay(ctx context.Context, body gopay.BodyMap) (string, error)
+	TradeWapPay(ctx context.Context, body gopay.BodyMap) (string, error)
 	TradePrecreate(ctx context.Context, body gopay.BodyMap) (string, error)
 }
 
 type v3PrecreateClient interface {
 	TradePagePay(ctx context.Context, body gopay.BodyMap) (string, error)
+	TradeWapPay(ctx context.Context, body gopay.BodyMap) (string, error)
 	TradePrecreate(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradePrecreateRsp, error)
 }
 
@@ -79,6 +81,14 @@ func (p Provider) StartPayment(ctx context.Context, req provider.StartPaymentReq
 		return result, nil
 	}
 	body.Set("product_code", cfg.ProductCode)
+	if cfg.Mode == "wap" {
+		payURL, err := client.TradeWapPay(ctx, body)
+		if err != nil {
+			return nil, err
+		}
+		result.PayURL = payURL
+		return result, nil
+	}
 	payURL, err := client.TradePagePay(ctx, body)
 	if err != nil {
 		return nil, err
@@ -105,14 +115,15 @@ func (p Provider) ParseNotify(ctx context.Context, req provider.NotifyRequest) (
 	if err != nil {
 		return nil, err
 	}
-	if cfg.AlipayPublicKey != "" {
-		ok, err := gopayalipay.VerifySign(cfg.AlipayPublicKey, bodyMap)
-		if err != nil {
-			return nil, err
-		}
-		if !ok {
-			return nil, fmt.Errorf("alipay notify signature verification failed")
-		}
+	if strings.TrimSpace(cfg.AlipayPublicKey) == "" {
+		return nil, fmt.Errorf("alipay notify signature verification requires alipay_public_key")
+	}
+	ok, err := gopayalipay.VerifySign(cfg.AlipayPublicKey, bodyMap)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("alipay notify signature verification failed")
 	}
 	tradeStatus := bodyMap.GetString("trade_status")
 	status := normalizeTradeStatus(tradeStatus)
@@ -144,6 +155,10 @@ type gopayClient struct {
 
 func (c *gopayClient) TradePagePay(ctx context.Context, body gopay.BodyMap) (string, error) {
 	return c.client.TradePagePay(ctx, body)
+}
+
+func (c *gopayClient) TradeWapPay(ctx context.Context, body gopay.BodyMap) (string, error) {
+	return c.client.TradeWapPay(ctx, body)
 }
 
 func (c *gopayClient) TradePrecreate(ctx context.Context, body gopay.BodyMap) (string, error) {

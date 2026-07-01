@@ -7,9 +7,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
+	ordersvc "payment-gateway/internal/domain/orders/service"
+	webhooksvc "payment-gateway/internal/domain/webhooks/service"
 	"payment-gateway/internal/platform/cache"
 	"payment-gateway/internal/platform/config"
 	"payment-gateway/internal/platform/database"
@@ -35,6 +38,30 @@ func main() {
 
 	redisClient := cache.New(cfg.Redis)
 	defer redisClient.Close()
+
+	webhookService := webhooksvc.New(db,
+		webhooksvc.WithRedis(redisClient),
+		webhooksvc.WithSecretEncryptionKey(cfg.Auth.AppSecretEncryptionKey),
+	)
+	webhookWorker := webhooksvc.NewWorker(webhookService, redisClient, cfg.App.Name)
+	go webhookWorker.Run(ctx)
+	go webhookWorker.RunRetryScanner(ctx, 30*time.Second, 100)
+
+	orderService := ordersvc.New(db,
+		ordersvc.WithWebhookService(webhookService),
+		ordersvc.WithDefaultOrderTTL(cfg.Orders.DefaultTTL),
+		ordersvc.WithExpirationEnqueuer(ordersvc.NewRedisExpirationEnqueuer(redisClient)),
+	)
+	orderWorker := ordersvc.NewWorker(orderService, redisClient, cfg.App.Name)
+	go orderWorker.RunExpireScanner(ctx, cfg.Orders.ExpireScanInterval, cfg.Orders.ExpireScanLimit)
+	orderWorkerConcurrency := cfg.Orders.ExpireWorkerConcurrency
+	if orderWorkerConcurrency < 1 {
+		orderWorkerConcurrency = 1
+	}
+	for i := 0; i < orderWorkerConcurrency; i++ {
+		consumer := cfg.App.Name + "-order-expiration-" + strconv.Itoa(i+1)
+		go ordersvc.NewWorker(orderService, redisClient, consumer).Run(ctx)
+	}
 
 	server := &http.Server{
 		Addr:              cfg.HTTP.Addr,

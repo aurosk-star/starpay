@@ -12,6 +12,7 @@ import (
 	apprepo "payment-gateway/internal/domain/apps/repository"
 	orderrepo "payment-gateway/internal/domain/orders/repository"
 	paymentsvc "payment-gateway/internal/domain/payments/service"
+	webhooksvc "payment-gateway/internal/domain/webhooks/service"
 )
 
 var (
@@ -29,13 +30,53 @@ var (
 )
 
 type Service struct {
-	orders orderrepo.Repository
-	apps   apprepo.Repository
-	now    func() time.Time
+	orders          orderrepo.Repository
+	apps            apprepo.Repository
+	webhooks        webhooksvc.Service
+	enqueuer        ExpirationEnqueuer
+	now             func() time.Time
+	defaultOrderTTL time.Duration
 }
 
-func New(client *ent.Client) Service {
-	return Service{orders: orderrepo.New(client), apps: apprepo.New(client), now: time.Now}
+type Option func(*Service)
+
+func WithWebhookService(webhooks webhooksvc.Service) Option {
+	return func(s *Service) {
+		s.webhooks = webhooks
+	}
+}
+
+func WithNow(now func() time.Time) Option {
+	return func(s *Service) {
+		if now != nil {
+			s.now = now
+		}
+	}
+}
+
+func WithDefaultOrderTTL(ttl time.Duration) Option {
+	return func(s *Service) {
+		s.defaultOrderTTL = ttl
+	}
+}
+
+func WithExpirationEnqueuer(enqueuer ExpirationEnqueuer) Option {
+	return func(s *Service) {
+		s.enqueuer = enqueuer
+	}
+}
+
+func New(client *ent.Client, opts ...Option) Service {
+	svc := Service{
+		orders:          orderrepo.New(client),
+		apps:            apprepo.New(client),
+		now:             time.Now,
+		defaultOrderTTL: 15 * time.Minute,
+	}
+	for _, opt := range opts {
+		opt(&svc)
+	}
+	return svc
 }
 
 type ManageOrderInput struct {
@@ -115,6 +156,10 @@ func (s Service) CreateOrder(ctx context.Context, input ManageOrderInput) (*ent.
 	if err := validateChannelCurrency(normalized.Channel, normalized.PayMethod, normalized.Currency); err != nil {
 		return nil, err
 	}
+	expiresAt := normalized.ExpiresAt
+	if expiresAt == nil {
+		expiresAt = s.defaultExpiresAt()
+	}
 	gatewayOrderNo, err := newGatewayOrderNo(s.now())
 	if err != nil {
 		return nil, err
@@ -134,7 +179,7 @@ func (s Service) CreateOrder(ctx context.Context, input ManageOrderInput) (*ent.
 		PayMethod:          normalized.PayMethod,
 		ReturnURL:          returnURL,
 		Status:             "pending",
-		ExpiresAt:          normalized.ExpiresAt,
+		ExpiresAt:          expiresAt,
 		Metadata:           normalized.Metadata,
 	})
 }
@@ -294,8 +339,77 @@ func (s Service) CloseOrderForApp(ctx context.Context, appID string, gatewayOrde
 	return s.orders.SetStatus(ctx, existing.ID, "closed", s.now())
 }
 
+func (s Service) ScanExpiredPendingOrders(ctx context.Context, limit int) (int, error) {
+	now := s.now()
+	orders, err := s.orders.ListExpiredPending(ctx, now, limit)
+	if err != nil {
+		return 0, err
+	}
+	enqueued := 0
+	for _, order := range orders {
+		if order.Status != "pending" {
+			continue
+		}
+		if order.ExpiresAt == nil || order.ExpiresAt.After(now) {
+			continue
+		}
+		if err := s.enqueueOrderExpiration(ctx, order.ID); err != nil {
+			return enqueued, err
+		}
+		enqueued++
+	}
+	return enqueued, nil
+}
+
+func (s Service) CloseExpiredPendingOrder(ctx context.Context, id int) (bool, error) {
+	closed, err := s.orders.CloseExpiredPending(ctx, id, s.now())
+	if err != nil || !closed {
+		return closed, err
+	}
+	if s.webhooks.IsZero() {
+		return true, nil
+	}
+	order, err := s.orders.FindByID(ctx, id)
+	if err != nil {
+		return true, err
+	}
+	if _, err := s.webhooks.RecordOrderExpired(ctx, order); err != nil {
+		return true, err
+	}
+	return true, nil
+}
+
 func (s Service) MarkPaid(ctx context.Context, id int, channelTradeNo string) (*ent.PaymentOrder, error) {
-	return s.orders.MarkPaid(ctx, id, strings.TrimSpace(channelTradeNo), s.now())
+	existing, err := s.orders.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	paid, err := s.orders.MarkPaid(ctx, id, strings.TrimSpace(channelTradeNo), s.now())
+	if err != nil {
+		return nil, err
+	}
+	if existing.Status != "paid" && !s.webhooks.IsZero() {
+		if _, err := s.webhooks.RecordPaymentSucceeded(ctx, paid); err != nil {
+			return nil, err
+		}
+	}
+	return paid, nil
+}
+
+func (s Service) defaultExpiresAt() *time.Time {
+	if s.defaultOrderTTL <= 0 {
+		return nil
+	}
+	expiresAt := s.now().Add(s.defaultOrderTTL)
+	return &expiresAt
+}
+
+func (s Service) enqueueOrderExpiration(ctx context.Context, orderID int) error {
+	if s.enqueuer == nil {
+		_, err := s.CloseExpiredPendingOrder(ctx, orderID)
+		return err
+	}
+	return s.enqueuer.EnqueueOrderExpiration(ctx, orderID)
 }
 
 func (s Service) SetChannelTradeNo(ctx context.Context, id int, channelTradeNo string) (*ent.PaymentOrder, error) {

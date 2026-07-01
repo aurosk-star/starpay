@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "@/features/auth/store";
 import { APIError } from "@/lib/api";
@@ -418,7 +419,21 @@ function ChannelConfigFields({
           value={config.product_code}
           onChange={onChange}
         />
-        <ConfigInput name="mode" value={config.mode} onChange={onChange} />
+        <CapabilitySwitch
+          name="enable_page_pay"
+          checked={config.enable_page_pay !== "false"}
+          onChange={onChange}
+        />
+        <CapabilitySwitch
+          name="enable_wap_pay"
+          checked={config.enable_wap_pay !== "false"}
+          onChange={onChange}
+        />
+        <CapabilitySwitch
+          name="enable_qr_pay"
+          checked={config.enable_qr_pay !== "false"}
+          onChange={onChange}
+        />
       </>
     );
   }
@@ -539,6 +554,36 @@ function ConfigTextarea({
           ? t("channels.secretEditHint")
           : t(`channels.hints.${name}`)}
       </FieldDescription>
+    </Field>
+  );
+}
+
+function CapabilitySwitch({
+  name,
+  checked,
+  onChange,
+}: {
+  name: keyof ChannelConfig;
+  checked: boolean;
+  onChange: (key: keyof ChannelConfig, value: string) => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <Field orientation="horizontal" className="rounded-md border p-3">
+      <div className="space-y-1">
+        <FieldLabel htmlFor={`config_${name}`}>
+          {t(`channels.fields.${name}`)}
+        </FieldLabel>
+        <FieldDescription>{t(`channels.hints.${name}`)}</FieldDescription>
+      </div>
+      <Switch
+        id={`config_${name}`}
+        checked={checked}
+        onCheckedChange={(nextChecked) =>
+          onChange(name, nextChecked ? "true" : "false")
+        }
+      />
     </Field>
   );
 }

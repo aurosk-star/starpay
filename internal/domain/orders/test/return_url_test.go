@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"entgo.io/ent/dialect"
@@ -14,8 +13,11 @@ import (
 
 	"payment-gateway/ent/enttest"
 	appsvc "payment-gateway/internal/domain/apps/service"
+	channelrepo "payment-gateway/internal/domain/channels/repository"
+	channelsvc "payment-gateway/internal/domain/channels/service"
 	orderhandler "payment-gateway/internal/domain/orders/handler"
 	ordersvc "payment-gateway/internal/domain/orders/service"
+	paymentsvc "payment-gateway/internal/domain/payments/service"
 )
 
 func TestOpenOrderStoresRequestReturnURL(t *testing.T) {
@@ -93,8 +95,28 @@ func TestCheckoutPaymentUsesPersistedOrderReturnURL(t *testing.T) {
 		t.Fatalf("CreateOrder() error = %v", err)
 	}
 
+	channelService := channelsvc.New(client)
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "alipay",
+		Name:    "支付宝沙箱",
+		Enabled: true,
+		Env:     "sandbox",
+		Config:  map[string]any{"app_id": "app-1"},
+	}); err != nil {
+		t.Fatalf("CreateChannelAccount(alipay) error = %v", err)
+	}
+	provider := &checkoutFakeProvider{channel: "alipay"}
+	paymentService := paymentsvc.New(
+		paymentsvc.WithChannelRepository(channelrepo.New(client)),
+		paymentsvc.WithProvider(provider),
+	)
+
 	router := gin.New()
-	checkoutHandler := orderhandler.NewCheckout(svc)
+	checkoutHandler := orderhandler.NewCheckout(
+		svc,
+		orderhandler.WithChannelService(channelService),
+		orderhandler.WithPaymentService(paymentService),
+	)
 	router.POST("/orders/:gateway_order_no/pay", checkoutHandler.StartPayment)
 
 	recorder := httptest.NewRecorder()
@@ -109,9 +131,7 @@ func TestCheckoutPaymentUsesPersistedOrderReturnURL(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	payment := response["data"].(map[string]any)["payment"].(map[string]any)
-	payURL := payment["pay_url"].(string)
-	if !strings.Contains(payURL, "https%3A%2F%2Fsnsgo.example.com%2Forder-return") {
-		t.Fatalf("pay_url = %q, want persisted return_url query", payURL)
+	if provider.req.ReturnURL != "https://snsgo.example.com/order-return" {
+		t.Fatalf("provider ReturnURL = %q, want persisted order return URL", provider.req.ReturnURL)
 	}
 }

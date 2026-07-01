@@ -66,6 +66,142 @@ func TestCheckoutHandlerListsOnlyEnabledPaymentMethods(t *testing.T) {
 	}
 }
 
+func TestCheckoutHandlerUsesMobileAlipayWapCapabilityFromUserAgent(t *testing.T) {
+	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_mobile_wap")
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "alipay",
+		Name:    "支付宝沙箱",
+		Enabled: true,
+		Env:     "sandbox",
+		Config: map[string]any{
+			"app_id":         "app-1",
+			"private_key":    "private-key",
+			"enable_wap_pay": "true",
+			"enable_qr_pay":  "true",
+		},
+	}); err != nil {
+		t.Fatalf("CreateChannelAccount(alipay) error = %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148")
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	methods := decodeCheckoutMethods(t, recorder)
+	if len(methods) != 1 {
+		t.Fatalf("methods len = %d, want 1", len(methods))
+	}
+	first := methods[0].(map[string]any)
+	if first["channel"] != "alipay" || first["pay_mode"] != "wap" {
+		t.Fatalf("first method = %#v, want alipay wap for mobile UA", first)
+	}
+}
+
+func TestCheckoutHandlerFallsBackToAlipayQRCodeOnMobileWhenWapDisabled(t *testing.T) {
+	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_mobile_qr_fallback")
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "alipay",
+		Name:    "支付宝沙箱",
+		Enabled: true,
+		Env:     "sandbox",
+		Config: map[string]any{
+			"app_id":          "app-1",
+			"private_key":     "private-key",
+			"enable_wap_pay":  "false",
+			"enable_page_pay": "true",
+			"enable_qr_pay":   "true",
+		},
+	}); err != nil {
+		t.Fatalf("CreateChannelAccount(alipay) error = %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Mobile Safari/537.36")
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	methods := decodeCheckoutMethods(t, recorder)
+	if len(methods) != 1 {
+		t.Fatalf("methods len = %d, want 1", len(methods))
+	}
+	first := methods[0].(map[string]any)
+	if first["channel"] != "alipay" || first["pay_mode"] != "qr" {
+		t.Fatalf("first method = %#v, want alipay qr fallback for mobile UA", first)
+	}
+}
+
+func TestCheckoutHandlerPassesAlipayQRModeWhenMobileWapDisabled(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_pay_mobile_qr_fallback?mode=memory&cache=shared&_fk=1")
+	t.Cleanup(func() { client.Close() })
+	createEnabledApp(t, client, "snsgo")
+
+	orderService := ordersvc.New(client)
+	order, err := orderService.CreateOrder(t.Context(), ordersvc.ManageOrderInput{
+		AppID:           "snsgo",
+		MerchantOrderNo: "biz_checkout_pay_mobile_qr_fallback",
+		Subject:         "Pro 会员",
+		Amount:          9900,
+		Currency:        "CNY",
+		PayMethod:       "alipay",
+		Channel:         "alipay",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+
+	channelService := channelsvc.New(client)
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "alipay",
+		Name:    "支付宝沙箱",
+		Enabled: true,
+		Env:     "sandbox",
+		Config: map[string]any{
+			"app_id":         "app-1",
+			"private_key":    "private-key",
+			"enable_wap_pay": "false",
+			"enable_qr_pay":  "true",
+		},
+	}); err != nil {
+		t.Fatalf("CreateChannelAccount(alipay) error = %v", err)
+	}
+	provider := &checkoutFakeProvider{channel: "alipay"}
+	paymentService := paymentsvc.New(
+		paymentsvc.WithChannelRepository(channelrepo.New(client)),
+		paymentsvc.WithProvider(provider),
+	)
+
+	router := gin.New()
+	checkoutHandler := orderhandler.NewCheckout(
+		orderService,
+		orderhandler.WithChannelService(channelService),
+		orderhandler.WithPaymentService(paymentService),
+	)
+	router.POST("/orders/:gateway_order_no/pay", checkoutHandler.StartPayment)
+
+	recorder := httptest.NewRecorder()
+	req := jsonRequest(http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
+		"pay_method": "alipay",
+		"channel":    "alipay",
+	})
+	req.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148")
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if provider.req.ChannelAccount.Config["mode"] != "qr" {
+		t.Fatalf("provider config mode = %#v, want qr fallback", provider.req.ChannelAccount.Config["mode"])
+	}
+}
+
 func TestCheckoutHandlerHidesMethodsWhenNoChannelEnabled(t *testing.T) {
 	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_empty")
 	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
@@ -230,7 +366,16 @@ func TestCheckoutHandlerLockedOrderShowsOnlyPersistedMethod(t *testing.T) {
 }
 
 func TestCheckoutHandlerStartsPaymentThroughPaymentService(t *testing.T) {
-	router, created, _, _ := newCheckoutPaymentTestRouter(t, "checkout_pay")
+	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_pay")
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "alipay",
+		Name:    "支付宝沙箱",
+		Enabled: true,
+		Env:     "sandbox",
+		Config:  map[string]any{"app_id": "app-1"},
+	}); err != nil {
+		t.Fatalf("CreateChannelAccount(alipay) error = %v", err)
+	}
 	body := map[string]any{
 		"pay_method": "alipay",
 		"channel":    "alipay",
@@ -252,8 +397,8 @@ func TestCheckoutHandlerStartsPaymentThroughPaymentService(t *testing.T) {
 	if payment["status"] != "pending" || payment["pay_method"] != "alipay" || payment["channel"] != "alipay" {
 		t.Fatalf("payment = %#v, want pending alipay/alipay", payment)
 	}
-	if payment["provider_order_no"] != "mock_"+created.GatewayOrderNo {
-		t.Fatalf("provider_order_no = %#v, want mock gateway order", payment["provider_order_no"])
+	if payment["provider_order_no"] != "provider_"+created.GatewayOrderNo {
+		t.Fatalf("provider_order_no = %#v, want provider gateway order", payment["provider_order_no"])
 	}
 	if payment["pay_url"] == "" {
 		t.Fatalf("payment = %#v, want pay_url", payment)
@@ -292,7 +437,6 @@ func TestCheckoutHandlerPersistsSelectedMethodWhenOrderHasNoMethod(t *testing.T)
 	paymentService := paymentsvc.New(
 		paymentsvc.WithChannelRepository(channelrepo.New(client)),
 		paymentsvc.WithProvider(provider),
-		paymentsvc.WithMockFallback(false),
 	)
 
 	router := gin.New()
@@ -397,7 +541,7 @@ func TestCheckoutHandlerRejectsUnsupportedCurrencyAtPaymentStart(t *testing.T) {
 	checkoutHandler := orderhandler.NewCheckout(
 		orderService,
 		orderhandler.WithChannelService(channelService),
-		orderhandler.WithPaymentService(paymentsvc.New(paymentsvc.WithMockFallback(true))),
+		orderhandler.WithPaymentService(paymentsvc.New()),
 	)
 	router.POST("/orders/:gateway_order_no/pay", checkoutHandler.StartPayment)
 
@@ -451,7 +595,6 @@ func TestCheckoutHandlerUsesGatewayPaypalReturnURL(t *testing.T) {
 	paymentService := paymentsvc.New(
 		paymentsvc.WithChannelRepository(channelrepo.New(client)),
 		paymentsvc.WithProvider(provider),
-		paymentsvc.WithMockFallback(false),
 	)
 
 	router := gin.New()
@@ -526,7 +669,6 @@ func TestCheckoutHandlerAppendsOrderReturnURLToPaypalReturnURLWhenRequestOmitsIt
 	paymentService := paymentsvc.New(
 		paymentsvc.WithChannelRepository(channelrepo.New(client)),
 		paymentsvc.WithProvider(provider),
-		paymentsvc.WithMockFallback(false),
 	)
 
 	router := gin.New()
@@ -597,44 +739,6 @@ func TestCheckoutHandlerRedirectsPaypalReturnToFallbackReturnURL(t *testing.T) {
 	}
 }
 
-func TestCheckoutHandlerCompletesMockPayment(t *testing.T) {
-	router, created, _, _ := newCheckoutPaymentTestRouter(t, "checkout_complete")
-
-	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/mock-pay/"+created.GatewayOrderNo+"/complete", nil))
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-	var response map[string]any
-	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	data := response["data"].(map[string]any)
-	order := data["order"].(map[string]any)
-	if order["status"] != "paid" {
-		t.Fatalf("order.status = %#v, want paid", order["status"])
-	}
-	if order["channel_trade_no"] != "mock_"+created.GatewayOrderNo {
-		t.Fatalf("channel_trade_no = %#v, want mock trade no", order["channel_trade_no"])
-	}
-}
-
-func TestCheckoutHandlerRejectsMockCompleteForClosedOrder(t *testing.T) {
-	router, created, svc, _ := newCheckoutPaymentTestRouter(t, "checkout_complete_closed")
-
-	if _, err := svc.CloseOrder(t.Context(), created.ID); err != nil {
-		t.Fatalf("CloseOrder() error = %v", err)
-	}
-
-	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/mock-pay/"+created.GatewayOrderNo+"/complete", nil))
-
-	if recorder.Code != http.StatusConflict {
-		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-}
-
 func newCheckoutPaymentTestRouter(t *testing.T, dbName string) (*gin.Engine, *ent.PaymentOrder, ordersvc.Service, channelsvc.Service) {
 	t.Helper()
 	gin.SetMode(gin.ReleaseMode)
@@ -659,11 +763,29 @@ func newCheckoutPaymentTestRouter(t *testing.T, dbName string) (*gin.Engine, *en
 	}
 
 	router := gin.New()
-	checkoutHandler := orderhandler.NewCheckout(svc, orderhandler.WithChannelService(channelService))
+	provider := &checkoutFakeProvider{channel: "alipay"}
+	paymentService := paymentsvc.New(
+		paymentsvc.WithChannelRepository(channelrepo.New(client)),
+		paymentsvc.WithProvider(provider),
+	)
+	checkoutHandler := orderhandler.NewCheckout(
+		svc,
+		orderhandler.WithChannelService(channelService),
+		orderhandler.WithPaymentService(paymentService),
+	)
 	router.GET("/orders/:gateway_order_no/methods", checkoutHandler.ListPaymentMethods)
 	router.POST("/orders/:gateway_order_no/pay", checkoutHandler.StartPayment)
-	router.POST("/mock-pay/:gateway_order_no/complete", checkoutHandler.CompleteMockPayment)
 	return router, created, svc, channelService
+}
+
+func decodeCheckoutMethods(t *testing.T, recorder *httptest.ResponseRecorder) []any {
+	t.Helper()
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	data := response["data"].(map[string]any)
+	return data["methods"].([]any)
 }
 
 type checkoutFakeProvider struct {

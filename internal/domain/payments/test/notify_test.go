@@ -69,7 +69,6 @@ func TestHandleNotifyUsesEnabledChannelProvider(t *testing.T) {
 	service := paymentsvc.New(
 		paymentsvc.WithChannelRepository(channels),
 		paymentsvc.WithProvider(provider),
-		paymentsvc.WithMockFallback(false),
 	)
 
 	result, err := service.HandleNotify(ctx, paymentsvc.NotifyInput{
@@ -107,7 +106,6 @@ func TestHandleNotifyRejectsProviderWithoutNotifySupport(t *testing.T) {
 	service := paymentsvc.New(
 		paymentsvc.WithChannelRepository(channels),
 		paymentsvc.WithProvider(&fakeProvider{channel: "alipay"}),
-		paymentsvc.WithMockFallback(false),
 	)
 
 	if _, err := service.HandleNotify(ctx, paymentsvc.NotifyInput{Channel: "alipay"}); !errors.Is(err, paymentsvc.ErrNotifyUnsupported) {

@@ -14,6 +14,8 @@ import (
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
 	"payment-gateway/ent/user"
+	"payment-gateway/ent/webhookdelivery"
+	"payment-gateway/ent/webhookevent"
 	"reflect"
 	"sync"
 
@@ -80,14 +82,16 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			app.Table:            app.ValidColumn,
-			casbinrule.Table:     casbinrule.ValidColumn,
-			channelaccount.Table: channelaccount.ValidColumn,
-			gatewayconfig.Table:  gatewayconfig.ValidColumn,
-			paymentorder.Table:   paymentorder.ValidColumn,
-			refreshtoken.Table:   refreshtoken.ValidColumn,
-			role.Table:           role.ValidColumn,
-			user.Table:           user.ValidColumn,
+			app.Table:             app.ValidColumn,
+			casbinrule.Table:      casbinrule.ValidColumn,
+			channelaccount.Table:  channelaccount.ValidColumn,
+			gatewayconfig.Table:   gatewayconfig.ValidColumn,
+			paymentorder.Table:    paymentorder.ValidColumn,
+			refreshtoken.Table:    refreshtoken.ValidColumn,
+			role.Table:            role.ValidColumn,
+			user.Table:            user.ValidColumn,
+			webhookdelivery.Table: webhookdelivery.ValidColumn,
+			webhookevent.Table:    webhookevent.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

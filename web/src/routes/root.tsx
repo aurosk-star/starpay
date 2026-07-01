@@ -15,7 +15,6 @@ import {
   GitBranch,
   LogOut,
   MoonStar,
-  RadioTower,
   ReceiptText,
   RefreshCw,
   ShieldCheck,
@@ -24,9 +23,9 @@ import {
   Webhook,
   Users,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import {
@@ -81,17 +80,30 @@ function ShellLayout() {
     return <Outlet />;
   }
 
-  const navItems = [
-    { label: t("nav.overview"), icon: Gauge, to: "/" },
-    { label: t("nav.users"), icon: Users, to: "/users" },
-    { label: t("nav.apps"), icon: Boxes, to: "/apps" },
-    { label: t("nav.gatewayConfig"), icon: Settings2, to: "/config/gateway" },
-    { label: t("nav.orders"), icon: ClipboardList, to: "/orders" },
-    { label: t("nav.channels"), icon: CreditCard, to: "/channels" },
-    { label: t("nav.routing"), icon: GitBranch },
-    { label: t("nav.webhooks"), icon: Webhook },
-    { label: t("nav.refunds"), icon: RefreshCw },
-    { label: t("nav.subscriptions"), icon: ReceiptText },
+  const navGroups: NavGroup[] = [
+    {
+      label: t("nav.groups.workspace"),
+      items: [{ label: t("nav.overview"), icon: Gauge, to: "/" }],
+    },
+    {
+      label: t("nav.groups.payments"),
+      items: [
+        { label: t("nav.orders"), icon: ClipboardList, to: "/orders" },
+        { label: t("nav.webhooks"), icon: Webhook, to: "/webhooks" },
+        { label: t("nav.refunds"), icon: RefreshCw, disabled: true },
+        { label: t("nav.subscriptions"), icon: ReceiptText, disabled: true },
+      ],
+    },
+    {
+      label: t("nav.groups.platform"),
+      items: [
+        { label: t("nav.apps"), icon: Boxes, to: "/apps" },
+        { label: t("nav.channels"), icon: CreditCard, to: "/channels" },
+        { label: t("nav.routing"), icon: GitBranch, disabled: true },
+        { label: t("nav.gatewayConfig"), icon: Settings2, to: "/config/gateway" },
+        { label: t("nav.users"), icon: Users, to: "/users" },
+      ],
+    },
   ];
 
   function handleLogout() {
@@ -103,13 +115,15 @@ function ShellLayout() {
   }
 
   const currentPage =
-    navItems.find((item) => item.to && item.to === pathname)?.label ??
+    navGroups
+      .flatMap((group) => group.items)
+      .find((item) => isNavItemActive(item, pathname))?.label ??
     t("nav.overview");
 
   return (
     <SidebarProvider className="h-svh min-h-0 overflow-hidden">
       <AppSidebar
-        navItems={navItems}
+        navGroups={navGroups}
         pathname={pathname}
         user={currentUser}
         onLogout={handleLogout}
@@ -129,13 +143,6 @@ function ShellLayout() {
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
-            <div className="hidden min-w-0 items-center gap-2 md:flex">
-              <RadioTower className="text-muted-foreground" />
-              <span className="truncate text-sm font-medium">
-                {t("shell.environment")}
-              </span>
-              <Badge variant="secondary">{t("common.healthy")}</Badge>
-            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -172,16 +179,12 @@ function ShellLayout() {
 }
 
 function AppSidebar({
-  navItems,
+  navGroups,
   pathname,
   user,
   onLogout,
 }: {
-  navItems: {
-    label: string;
-    icon: typeof Gauge;
-    to?: string;
-  }[];
+  navGroups: NavGroup[];
   pathname: string;
   user: { username: string; email: string; display_name?: string } | null;
   onLogout: () => void;
@@ -224,41 +227,45 @@ function AppSidebar({
         </DropdownMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>{t("common.dashboard")}</SidebarGroupLabel>
-          <SidebarMenu>
-            {navItems.map((item) => {
-              const active = item.to ? pathname === item.to : false;
+        {navGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarMenu>
+              {group.items.map((item) => {
+                const active = isNavItemActive(item, pathname);
+                const itemClassName = item.disabled
+                  ? "text-sidebar-foreground/40"
+                  : "text-sidebar-foreground/75";
 
-              return (
-                <SidebarMenuItem key={item.label}>
-                  <SidebarMenuButton
-                    asChild
-                    aria-current={active ? "page" : undefined}
-                    className={
-                      active
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground/75"
-                    }
-                    title={item.label}
-                  >
-                    {item.to ? (
-                      <Link to={item.to}>
-                        <item.icon />
-                        {open ? <span>{item.label}</span> : null}
-                      </Link>
-                    ) : (
-                      <a href="/">
-                        <item.icon />
-                        {open ? <span>{item.label}</span> : null}
-                      </a>
-                    )}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
+                return (
+                  <SidebarMenuItem key={item.label}>
+                    <SidebarMenuButton
+                      asChild={Boolean(item.to)}
+                      isActive={active}
+                      aria-current={active ? "page" : undefined}
+                      aria-disabled={item.disabled ? true : undefined}
+                      className={itemClassName}
+                      title={item.label}
+                      tooltip={item.label}
+                    >
+                      {item.to ? (
+                        <Link to={item.to}>
+                          <item.icon />
+                          {open ? <span>{item.label}</span> : null}
+                        </Link>
+                      ) : (
+                        <>
+                          <item.icon />
+                          {open ? <span>{item.label}</span> : null}
+                        </>
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter>
         <UserMenu user={user} onLogout={onLogout} />
@@ -266,6 +273,24 @@ function AppSidebar({
       <SidebarRail />
     </Sidebar>
   );
+}
+
+type NavItem = {
+  label: string;
+  icon: LucideIcon;
+  to?: string;
+  disabled?: boolean;
+};
+
+type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+function isNavItemActive(item: NavItem, pathname: string) {
+  if (!item.to) return false;
+  if (item.to === "/") return pathname === "/";
+  return pathname === item.to || pathname.startsWith(`${item.to}/`);
 }
 
 function UserMenu({

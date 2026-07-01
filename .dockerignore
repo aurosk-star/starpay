@@ -1,0 +1,10 @@
+.git
+.tmp
+web/node_modules
+web/dist
+web/.rsbuild
+.env
+server
+bin
+docs
+*.log

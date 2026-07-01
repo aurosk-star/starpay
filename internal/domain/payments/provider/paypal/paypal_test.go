@@ -14,8 +14,10 @@ import (
 )
 
 type fakeClient struct {
-	body gopay.BodyMap
-	rsp  *gopaypaypal.CreateOrderRsp
+	body      gopay.BodyMap
+	verifyBM  gopay.BodyMap
+	rsp       *gopaypaypal.CreateOrderRsp
+	verifyRsp *gopaypaypal.VerifyWebhookResponse
 }
 
 func (c *fakeClient) CreateOrder(ctx context.Context, body gopay.BodyMap) (*gopaypaypal.CreateOrderRsp, error) {
@@ -29,6 +31,12 @@ func (c *fakeClient) OrderCapture(ctx context.Context, orderID string, body gopa
 	_ = orderID
 	_ = body
 	return nil, nil
+}
+
+func (c *fakeClient) VerifyWebhookSignature(ctx context.Context, body gopay.BodyMap) (*gopaypaypal.VerifyWebhookResponse, error) {
+	_ = ctx
+	c.verifyBM = body
+	return c.verifyRsp, nil
 }
 
 func TestParseConfigRequiresClientID(t *testing.T) {
@@ -269,5 +277,75 @@ func TestProviderCreateOrderReportsPaypalErrorDetails(t *testing.T) {
 		if !strings.Contains(message, want) {
 			t.Fatalf("error = %q, want detail %q", message, want)
 		}
+	}
+}
+
+func TestParseNotifyVerifiesPaypalWebhookSignature(t *testing.T) {
+	client := &fakeClient{
+		verifyRsp: &gopaypaypal.VerifyWebhookResponse{VerificationStatus: "SUCCESS"},
+	}
+	p := NewWithClientFactory(func(Config) (paypalClient, error) {
+		return client, nil
+	})
+
+	result, err := p.ParseNotify(context.Background(), provider.NotifyRequest{
+		ChannelAccount: &ent.ChannelAccount{
+			Channel: "paypal",
+			Env:     "sandbox",
+			Config: map[string]any{
+				"client_id":     "client",
+				"client_secret": "secret",
+				"webhook_id":    "WH-123",
+			},
+		},
+		Header: map[string][]string{
+			"Paypal-Auth-Algo":         {"SHA256withRSA"},
+			"Paypal-Cert-Url":          {"https://api-m.sandbox.paypal.com/certs/CERT"},
+			"Paypal-Transmission-Id":   {"transmission-id"},
+			"Paypal-Transmission-Sig":  {"signature"},
+			"Paypal-Transmission-Time": {"2026-07-01T00:00:00Z"},
+		},
+		RawBody: []byte(`{"event_type":"CHECKOUT.ORDER.APPROVED","resource":{"id":"PAYPAL_ORDER_001","custom_id":"pay_001","status":"COMPLETED"}}`),
+	})
+	if err != nil {
+		t.Fatalf("ParseNotify() error = %v", err)
+	}
+	if client.verifyBM.GetString("webhook_id") != "WH-123" || client.verifyBM.GetString("transmission_id") != "transmission-id" {
+		t.Fatalf("verify body = %#v, want webhook id and transmission id", client.verifyBM)
+	}
+	if result.GatewayOrderNo != "pay_001" || result.ChannelTradeNo != "PAYPAL_ORDER_001" || result.Status != "paid" {
+		t.Fatalf("result = %#v, want paid PayPal notify", result)
+	}
+}
+
+func TestParseNotifyRejectsUnverifiedPaypalWebhookSignature(t *testing.T) {
+	client := &fakeClient{
+		verifyRsp: &gopaypaypal.VerifyWebhookResponse{VerificationStatus: "FAILURE"},
+	}
+	p := NewWithClientFactory(func(Config) (paypalClient, error) {
+		return client, nil
+	})
+
+	_, err := p.ParseNotify(context.Background(), provider.NotifyRequest{
+		ChannelAccount: &ent.ChannelAccount{
+			Channel: "paypal",
+			Env:     "sandbox",
+			Config: map[string]any{
+				"client_id":     "client",
+				"client_secret": "secret",
+				"webhook_id":    "WH-123",
+			},
+		},
+		Header: map[string][]string{
+			"Paypal-Auth-Algo":         {"SHA256withRSA"},
+			"Paypal-Cert-Url":          {"https://api-m.sandbox.paypal.com/certs/CERT"},
+			"Paypal-Transmission-Id":   {"transmission-id"},
+			"Paypal-Transmission-Sig":  {"signature"},
+			"Paypal-Transmission-Time": {"2026-07-01T00:00:00Z"},
+		},
+		RawBody: []byte(`{"event_type":"CHECKOUT.ORDER.APPROVED","resource":{"id":"PAYPAL_ORDER_001","custom_id":"pay_001","status":"COMPLETED"}}`),
+	})
+	if err == nil {
+		t.Fatal("ParseNotify() error = nil, want unverified webhook error")
 	}
 }

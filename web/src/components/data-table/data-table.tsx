@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -47,13 +48,16 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-hidden rounded-md border">
-        <Table>
+      <ScrollArea className="h-[min(72vh,44rem)] rounded-md border">
+        <Table containerClassName="overflow-visible">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="px-4">
+                  <TableHead
+                    key={header.id}
+                    className="sticky top-0 z-10 bg-background px-4"
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -100,7 +104,7 @@ export function DataTable<TData, TValue>({
             )}
           </TableBody>
         </Table>
-      </div>
+      </ScrollArea>
       {data.length > pageSize ? (
         <div className="flex items-center justify-end gap-2">
           <Button

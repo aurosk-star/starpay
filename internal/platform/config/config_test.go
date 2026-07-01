@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestLoadDefaults(t *testing.T) {
@@ -20,6 +21,9 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("DB_SSLMODE", "")
 	t.Setenv("REDIS_ADDR", "")
 	t.Setenv("APP_SECRET_ENCRYPTION_KEY", "")
+	t.Setenv("ORDER_DEFAULT_TTL", "")
+	t.Setenv("ORDER_EXPIRE_SCAN_INTERVAL", "")
+	t.Setenv("ORDER_EXPIRE_SCAN_LIMIT", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -43,6 +47,42 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.Auth.AppSecretEncryptionKey != "0123456789abcdef0123456789abcdef" {
 		t.Fatalf("Auth.AppSecretEncryptionKey = %q, want default key", cfg.Auth.AppSecretEncryptionKey)
+	}
+	if cfg.Orders.DefaultTTL != 15*time.Minute {
+		t.Fatalf("Orders.DefaultTTL = %v, want 15m", cfg.Orders.DefaultTTL)
+	}
+	if cfg.Orders.ExpireScanInterval != 30*time.Second {
+		t.Fatalf("Orders.ExpireScanInterval = %v, want 30s", cfg.Orders.ExpireScanInterval)
+	}
+	if cfg.Orders.ExpireScanLimit != 100 {
+		t.Fatalf("Orders.ExpireScanLimit = %d, want 100", cfg.Orders.ExpireScanLimit)
+	}
+	if cfg.Orders.ExpireWorkerConcurrency != 2 {
+		t.Fatalf("Orders.ExpireWorkerConcurrency = %d, want 2", cfg.Orders.ExpireWorkerConcurrency)
+	}
+}
+
+func TestLoadOrderExpirationConfig(t *testing.T) {
+	t.Setenv("ORDER_DEFAULT_TTL", "20m")
+	t.Setenv("ORDER_EXPIRE_SCAN_INTERVAL", "45s")
+	t.Setenv("ORDER_EXPIRE_SCAN_LIMIT", "50")
+	t.Setenv("ORDER_EXPIRE_WORKER_CONCURRENCY", "4")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Orders.DefaultTTL != 20*time.Minute {
+		t.Fatalf("Orders.DefaultTTL = %v, want 20m", cfg.Orders.DefaultTTL)
+	}
+	if cfg.Orders.ExpireScanInterval != 45*time.Second {
+		t.Fatalf("Orders.ExpireScanInterval = %v, want 45s", cfg.Orders.ExpireScanInterval)
+	}
+	if cfg.Orders.ExpireScanLimit != 50 {
+		t.Fatalf("Orders.ExpireScanLimit = %d, want 50", cfg.Orders.ExpireScanLimit)
+	}
+	if cfg.Orders.ExpireWorkerConcurrency != 4 {
+		t.Fatalf("Orders.ExpireWorkerConcurrency = %d, want 4", cfg.Orders.ExpireWorkerConcurrency)
 	}
 }
 
@@ -151,6 +191,10 @@ func clearConfigEnv(t *testing.T) {
 		"DB_SSLMODE",
 		"REDIS_ADDR",
 		"APP_SECRET_ENCRYPTION_KEY",
+		"ORDER_DEFAULT_TTL",
+		"ORDER_EXPIRE_SCAN_INTERVAL",
+		"ORDER_EXPIRE_SCAN_LIMIT",
+		"ORDER_EXPIRE_WORKER_CONCURRENCY",
 	} {
 		t.Setenv(key, "")
 	}

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	channelsvc "payment-gateway/internal/domain/channels/service"
 	ordersvc "payment-gateway/internal/domain/orders/service"
 	paymentsvc "payment-gateway/internal/domain/payments/service"
+	"payment-gateway/internal/platform/configvalue"
 	"payment-gateway/internal/platform/httpx"
 )
 
@@ -109,11 +109,22 @@ func (h CheckoutHandler) ListPaymentMethods(ctx *gin.Context) {
 			if !paymentsvc.ChannelSupportsCurrency(account.Channel, order.Currency) {
 				continue
 			}
+			payMode := ""
+			if strings.EqualFold(account.Channel, "alipay") {
+				var ok bool
+				payMode, ok = selectAlipayPayMode(account.Config, ctx.Request.UserAgent())
+				if !ok {
+					continue
+				}
+			}
 			method := gin.H{
 				"pay_method": account.Channel,
 				"channel":    account.Channel,
 				"label":      paymentMethodLabel(account.Channel),
 				"enabled":    true,
+			}
+			if payMode != "" {
+				method["pay_mode"] = payMode
 			}
 			if locked {
 				method["pay_method"] = lockedPayMethod
@@ -194,6 +205,19 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 		httpx.JSONError(ctx, http.StatusBadRequest, "unsupported_currency_for_channel", "currency is not supported by channel")
 		return
 	}
+	payMode := ""
+	if channel == "alipay" {
+		resolvedMode, ok, err := h.resolveAlipayPayMode(ctx, ctx.Request.UserAgent())
+		if err != nil {
+			httpx.JSONError(ctx, http.StatusInternalServerError, "resolve_alipay_mode_failed", err.Error())
+			return
+		}
+		if !ok {
+			httpx.JSONError(ctx, http.StatusBadRequest, "alipay_mode_unavailable", "alipay is not available for current terminal")
+			return
+		}
+		payMode = resolvedMode
+	}
 	returnURL := req.ReturnURL
 	if returnURL == "" {
 		returnURL = order.ReturnURL
@@ -213,6 +237,7 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 		Order:     order,
 		PayMethod: payMethod,
 		Channel:   channel,
+		PayMode:   payMode,
 		ClientIP:  req.ClientIP,
 		ReturnURL: returnURL,
 		NotifyURL: notifyURL,
@@ -234,6 +259,58 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 		}
 	}
 	httpx.JSONOK(ctx, http.StatusOK, gin.H{"payment": payment})
+}
+
+func (h CheckoutHandler) resolveAlipayPayMode(ctx *gin.Context, userAgent string) (string, bool, error) {
+	if h.channels.IsZero() {
+		if isMobileUserAgent(userAgent) {
+			return "wap", true, nil
+		}
+		return "page", true, nil
+	}
+	accounts, err := h.channels.ListChannelAccounts(ctx.Request.Context())
+	if err != nil {
+		return "", false, err
+	}
+	for _, account := range accounts {
+		if !account.Enabled || !strings.EqualFold(account.Channel, "alipay") {
+			continue
+		}
+		payMode, ok := selectAlipayPayMode(account.Config, userAgent)
+		return payMode, ok, nil
+	}
+	return "", false, nil
+}
+
+func selectAlipayPayMode(config map[string]any, userAgent string) (string, bool) {
+	pageEnabled := configvalue.BoolDefault(config["enable_page_pay"], true)
+	wapEnabled := configvalue.BoolDefault(config["enable_wap_pay"], true)
+	qrEnabled := configvalue.BoolDefault(config["enable_qr_pay"], true)
+	if isMobileUserAgent(userAgent) {
+		if wapEnabled {
+			return "wap", true
+		}
+		if qrEnabled {
+			return "qr", true
+		}
+		return "", false
+	}
+	if pageEnabled {
+		return "page", true
+	}
+	if qrEnabled {
+		return "qr", true
+	}
+	return "", false
+}
+
+func isMobileUserAgent(userAgent string) bool {
+	ua := strings.ToLower(userAgent)
+	return strings.Contains(ua, "mobile") ||
+		strings.Contains(ua, "iphone") ||
+		strings.Contains(ua, "android") ||
+		strings.Contains(ua, "ipad") ||
+		strings.Contains(ua, "ipod")
 }
 
 func (h CheckoutHandler) CompletePaypalPayment(ctx *gin.Context) {
@@ -276,28 +353,6 @@ func (h CheckoutHandler) CompletePaypalPayment(ctx *gin.Context) {
 		}
 	}
 	redirectAfterPaypal(ctx, finalReturnURL, gatewayOrderNo, result.Status)
-}
-
-func (h CheckoutHandler) CompleteMockPayment(ctx *gin.Context) {
-	order, err := h.service.FindOrderByGatewayOrderNo(ctx.Request.Context(), ctx.Param("gateway_order_no"))
-	if err != nil {
-		httpx.JSONError(ctx, http.StatusNotFound, "order_not_found", "payment order not found")
-		return
-	}
-	if order.Status != "pending" {
-		httpx.JSONError(ctx, http.StatusConflict, "order_not_payable", "order is not payable")
-		return
-	}
-	paid, err := h.service.MarkPaid(ctx.Request.Context(), order.ID, "mock_"+order.GatewayOrderNo)
-	if err != nil {
-		status := http.StatusBadRequest
-		if errors.Is(err, ordersvc.ErrOrderCannotBeClosed) {
-			status = http.StatusConflict
-		}
-		httpx.JSONError(ctx, status, "complete_mock_payment_failed", err.Error())
-		return
-	}
-	httpx.JSONOK(ctx, http.StatusOK, gin.H{"order": serializeOrder(paid)})
 }
 
 func (h CheckoutHandler) resolvePaypalReturnURL(ctx *gin.Context, gatewayOrderNo string) string {

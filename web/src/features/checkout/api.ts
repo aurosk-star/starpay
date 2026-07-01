@@ -31,10 +31,3 @@ export function startCheckoutPayment(
     },
   );
 }
-
-export function completeMockPayment(gatewayOrderNo: string) {
-  return apiRequest<{ order: { status: string; gateway_order_no: string } }>(
-    `/v1/checkout/mock-pay/${encodeURIComponent(gatewayOrderNo)}/complete`,
-    { method: "POST" },
-  );
-}

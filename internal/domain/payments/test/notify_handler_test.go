@@ -18,6 +18,8 @@ import (
 	paymentprovider "payment-gateway/internal/domain/payments/provider"
 	paymentrouter "payment-gateway/internal/domain/payments/router"
 	paymentsvc "payment-gateway/internal/domain/payments/service"
+	webhookrepo "payment-gateway/internal/domain/webhooks/repository"
+	webhooksvc "payment-gateway/internal/domain/webhooks/service"
 )
 
 func TestNotifyHandlerMarksOrderPaidAndReturnsAlipaySuccess(t *testing.T) {
@@ -26,9 +28,9 @@ func TestNotifyHandlerMarksOrderPaidAndReturnsAlipaySuccess(t *testing.T) {
 	client := enttest.Open(t, dialect.SQLite, "file:notify_handler_paid?mode=memory&cache=shared&_fk=1")
 	defer client.Close()
 
-	createEnabledApp(t, client, "snsgo")
+	createEnabledAppWithNotifyURL(t, client, "snsgo", "https://merchant.example.com/payment/webhook")
 
-	orderService := ordersvc.New(client)
+	orderService := ordersvc.New(client, ordersvc.WithWebhookService(webhooksvc.New(client)))
 	order, err := orderService.CreateOrder(ctx, ordersvc.ManageOrderInput{
 		AppID:           "snsgo",
 		MerchantOrderNo: "biz_notify_handler",
@@ -66,7 +68,6 @@ func TestNotifyHandlerMarksOrderPaidAndReturnsAlipaySuccess(t *testing.T) {
 	paymentService := paymentsvc.New(
 		paymentsvc.WithChannelRepository(channels),
 		paymentsvc.WithProvider(provider),
-		paymentsvc.WithMockFallback(false),
 	)
 
 	router := gin.New()
@@ -92,5 +93,19 @@ func TestNotifyHandlerMarksOrderPaidAndReturnsAlipaySuccess(t *testing.T) {
 	}
 	if updated.Status != "paid" || updated.ChannelTradeNo != "2026070122000000001" || updated.PaidAt == nil {
 		t.Fatalf("updated order = %#v, want paid with channel trade no", updated)
+	}
+	_, totalEvents, err := webhookrepo.New(client).ListEvents(ctx, webhookrepo.ListEventsInput{})
+	if err != nil {
+		t.Fatalf("ListEvents() error = %v", err)
+	}
+	deliveries, totalDeliveries, err := webhookrepo.New(client).ListDeliveries(ctx, webhookrepo.ListDeliveriesInput{})
+	if err != nil {
+		t.Fatalf("ListDeliveries() error = %v", err)
+	}
+	if totalEvents != 1 || totalDeliveries != 1 {
+		t.Fatalf("webhook totals events=%d deliveries=%d, want one payment.succeeded delivery", totalEvents, totalDeliveries)
+	}
+	if deliveries[0].EventType != webhooksvc.EventPaymentSucceeded || deliveries[0].TargetURL != "https://merchant.example.com/payment/webhook" {
+		t.Fatalf("delivery = %#v, want payment.succeeded to merchant notify url", deliveries[0])
 	}
 }

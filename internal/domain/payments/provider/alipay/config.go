@@ -3,6 +3,8 @@ package alipay
 import (
 	"errors"
 	"strings"
+
+	"payment-gateway/internal/platform/configvalue"
 )
 
 const (
@@ -22,6 +24,9 @@ type Config struct {
 	ServerURL       string
 	ProductCode     string
 	Mode            string
+	EnablePagePay   bool
+	EnableWapPay    bool
+	EnableQRPay     bool
 	IsProd          bool
 }
 
@@ -33,6 +38,9 @@ func ParseConfig(values map[string]any, env string) (Config, error) {
 		ServerURL:       strings.TrimSpace(stringValue(values["server_url"])),
 		ProductCode:     strings.TrimSpace(stringValue(values["product_code"])),
 		Mode:            strings.ToLower(strings.TrimSpace(stringValue(values["mode"]))),
+		EnablePagePay:   configvalue.BoolDefault(values["enable_page_pay"], true),
+		EnableWapPay:    configvalue.BoolDefault(values["enable_wap_pay"], true),
+		EnableQRPay:     configvalue.BoolDefault(values["enable_qr_pay"], true),
 		IsProd:          strings.EqualFold(strings.TrimSpace(env), "prod"),
 	}
 	if cfg.AppID == "" {

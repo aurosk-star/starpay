@@ -16,6 +16,7 @@ type Config struct {
 	Database DatabaseConfig
 	Redis    RedisConfig
 	Auth     AuthConfig
+	Orders   OrdersConfig
 }
 
 type AppConfig struct {
@@ -48,6 +49,13 @@ type AuthConfig struct {
 	AppSecretEncryptionKey string
 }
 
+type OrdersConfig struct {
+	DefaultTTL              time.Duration
+	ExpireScanInterval      time.Duration
+	ExpireScanLimit         int
+	ExpireWorkerConcurrency int
+}
+
 func Load() (Config, error) {
 	loadDotEnv(".env")
 	return Config{
@@ -72,6 +80,12 @@ func Load() (Config, error) {
 			RefreshCookieSecure:    boolEnv("REFRESH_COOKIE_SECURE", false),
 			RefreshCookieSameSite:  env("REFRESH_COOKIE_SAME_SITE", "lax"),
 			AppSecretEncryptionKey: env("APP_SECRET_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef"),
+		},
+		Orders: OrdersConfig{
+			DefaultTTL:              durationEnv("ORDER_DEFAULT_TTL", 15*time.Minute),
+			ExpireScanInterval:      durationEnv("ORDER_EXPIRE_SCAN_INTERVAL", 30*time.Second),
+			ExpireScanLimit:         intEnv("ORDER_EXPIRE_SCAN_LIMIT", 100),
+			ExpireWorkerConcurrency: intEnv("ORDER_EXPIRE_WORKER_CONCURRENCY", 2),
 		},
 	}, nil
 }
@@ -171,6 +185,18 @@ func boolEnv(key string, fallback bool) bool {
 		return fallback
 	}
 	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func intEnv(key string, fallback int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
 	if err != nil {
 		return fallback
 	}

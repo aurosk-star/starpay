@@ -5,16 +5,17 @@ import (
 	"errors"
 	"net/url"
 	"strings"
+	"time"
 
 	"payment-gateway/ent"
 	channelrepo "payment-gateway/internal/domain/channels/repository"
 	"payment-gateway/internal/domain/payments/provider"
-	mockprovider "payment-gateway/internal/domain/payments/provider/mock"
 )
 
 var (
 	ErrOrderRequired       = errors.New("order is required")
 	ErrOrderNotPayable     = errors.New("order is not payable")
+	ErrOrderExpired        = errors.New("order is expired")
 	ErrPayMethodRequired   = errors.New("pay_method is required")
 	ErrProviderUnavailable = errors.New("payment provider unavailable")
 	ErrNotifyUnsupported   = errors.New("payment notify unsupported")
@@ -22,10 +23,8 @@ var (
 )
 
 type Service struct {
-	channels          channelrepo.Repository
-	providers         map[string]provider.Provider
-	allowMockFallback bool
-	mock              provider.Provider
+	channels  channelrepo.Repository
+	providers map[string]provider.Provider
 }
 
 type Option func(*Service)
@@ -45,17 +44,9 @@ func WithProvider(paymentProvider provider.Provider) Option {
 	}
 }
 
-func WithMockFallback(enabled bool) Option {
-	return func(s *Service) {
-		s.allowMockFallback = enabled
-	}
-}
-
 func New(opts ...Option) Service {
 	svc := Service{
-		providers:         map[string]provider.Provider{},
-		allowMockFallback: true,
-		mock:              mockprovider.New(),
+		providers: map[string]provider.Provider{},
 	}
 	for _, opt := range opts {
 		opt(&svc)
@@ -85,6 +76,7 @@ type StartPaymentInput struct {
 	Order     *ent.PaymentOrder
 	PayMethod string
 	Channel   string
+	PayMode   string
 	ClientIP  string
 	ReturnURL string
 	NotifyURL string
@@ -131,6 +123,9 @@ func (s Service) StartPayment(ctx context.Context, input StartPaymentInput) (*Pa
 	if input.Order.Status != "pending" {
 		return nil, ErrOrderNotPayable
 	}
+	if input.Order.ExpiresAt != nil && !input.Order.ExpiresAt.After(time.Now()) {
+		return nil, ErrOrderExpired
+	}
 	payMethod := strings.ToLower(strings.TrimSpace(input.PayMethod))
 	if payMethod == "" {
 		payMethod = strings.ToLower(strings.TrimSpace(input.Order.PayMethod))
@@ -157,11 +152,9 @@ func (s Service) StartPayment(ctx context.Context, input StartPaymentInput) (*Pa
 		}
 	}
 	if channelAccount == nil || paymentProvider == nil {
-		if !s.allowMockFallback {
-			return nil, ErrProviderUnavailable
-		}
-		paymentProvider = s.mock
+		return nil, ErrProviderUnavailable
 	}
+	channelAccount = withRuntimePayMode(channelAccount, input.PayMode)
 	result, err := paymentProvider.StartPayment(ctx, provider.StartPaymentRequest{
 		Order:          input.Order,
 		ChannelAccount: channelAccount,
@@ -184,6 +177,20 @@ func (s Service) StartPayment(ctx context.Context, input StartPaymentInput) (*Pa
 		FormHTML:        result.FormHTML,
 		Raw:             result.Raw,
 	}, nil
+}
+
+func withRuntimePayMode(account *ent.ChannelAccount, payMode string) *ent.ChannelAccount {
+	mode := strings.ToLower(strings.TrimSpace(payMode))
+	if account == nil || mode == "" {
+		return account
+	}
+	next := *account
+	next.Config = make(map[string]any, len(account.Config)+1)
+	for key, value := range account.Config {
+		next.Config[key] = value
+	}
+	next.Config["mode"] = mode
+	return &next
 }
 
 func (s Service) HandleNotify(ctx context.Context, input NotifyInput) (*NotifyResult, error) {

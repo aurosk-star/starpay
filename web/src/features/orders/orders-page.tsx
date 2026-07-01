@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Eye, RefreshCw, Search, XCircle } from "lucide-react";
 
@@ -27,13 +28,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -46,9 +40,12 @@ import {
 } from "@/components/ui/select";
 import { useAuthStore } from "@/features/auth/store";
 import { APIError } from "@/lib/api";
+import { formatDateTime } from "@/lib/date";
+import { formatMinorAmount } from "@/lib/money";
 
 import { closeOrder, listOrders } from "./api";
 import type { ListOrdersParams, PaymentOrder } from "./types";
+import { canCloseOrder, orderStatusVariant } from "./utils";
 
 const OrdersDataTable = createDataTable<PaymentOrder>();
 
@@ -72,7 +69,6 @@ export function OrdersPage() {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [appliedFilters, setAppliedFilters] =
     useState<FilterState>(defaultFilters);
-  const [selectedOrder, setSelectedOrder] = useState<PaymentOrder | null>(null);
   const [closeTarget, setCloseTarget] = useState<PaymentOrder | null>(null);
 
   const columns = useMemo<DataTableColumn<PaymentOrder>[]>(
@@ -112,7 +108,7 @@ export function OrdersPage() {
         header: t("orders.table.amount"),
         cell: ({ row }) => (
           <span className="font-mono text-xs">
-            {formatAmount(row.original.amount, row.original.currency)}
+            {formatMinorAmount(row.original.amount, row.original.currency)}
           </span>
         ),
       },
@@ -120,7 +116,7 @@ export function OrdersPage() {
         accessorKey: "status",
         header: t("orders.table.status"),
         cell: ({ row }) => (
-          <Badge variant={statusVariant(row.original.status)}>
+          <Badge variant={orderStatusVariant(row.original.status)}>
             {t(`orders.status.${row.original.status}`)}
           </Badge>
         ),
@@ -144,7 +140,7 @@ export function OrdersPage() {
         header: t("orders.table.createdAt"),
         cell: ({ row }) => (
           <span className="font-mono text-xs text-muted-foreground">
-            {formatDate(row.original.created_at)}
+            {formatDateTime(row.original.created_at)}
           </span>
         ),
       },
@@ -159,12 +155,21 @@ export function OrdersPage() {
               {
                 label: t("orders.view"),
                 icon: Eye,
-                onClick: () => setSelectedOrder(row.original),
+                asChild: true,
+                child: (
+                  <Link
+                    to="/orders/$orderId"
+                    params={{ orderId: String(row.original.id) }}
+                  >
+                    <Eye data-icon="inline-start" />
+                    {t("orders.view")}
+                  </Link>
+                ),
               },
               {
                 label: t("orders.close"),
                 icon: XCircle,
-                disabled: !canClose(row.original),
+                disabled: !canCloseOrder(row.original),
                 onClick: () => setCloseTarget(row.original),
               },
             ]}
@@ -398,14 +403,6 @@ export function OrdersPage() {
         </CardContent>
       </Card>
 
-      <OrderDetailDialog
-        order={selectedOrder}
-        open={Boolean(selectedOrder)}
-        onOpenChange={(open) => {
-          if (!open) setSelectedOrder(null);
-        }}
-      />
-
       <AlertDialog
         open={Boolean(closeTarget)}
         onOpenChange={(open) => {
@@ -433,103 +430,6 @@ export function OrdersPage() {
   );
 }
 
-function OrderDetailDialog({
-  order,
-  open,
-  onOpenChange,
-}: {
-  order: PaymentOrder | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>{t("orders.detailTitle")}</DialogTitle>
-          <DialogDescription>
-            {order?.gateway_order_no ?? t("orders.detailDescription")}
-          </DialogDescription>
-        </DialogHeader>
-        {order ? (
-          <div className="grid gap-3 md:grid-cols-2">
-            <DetailItem label={t("orders.fields.appId")} value={order.app_id} />
-            <DetailItem
-              label={t("orders.fields.merchantOrderNo")}
-              value={order.merchant_order_no}
-            />
-            <DetailItem
-              label={t("orders.fields.subject")}
-              value={order.subject}
-            />
-            <DetailItem
-              label={t("orders.fields.amount")}
-              value={formatAmount(order.amount, order.currency)}
-            />
-            <DetailItem
-              label={t("orders.fields.status")}
-              value={t(`orders.status.${order.status}`)}
-            />
-            <DetailItem
-              label={t("orders.fields.channel")}
-              value={order.channel || "-"}
-            />
-            <DetailItem
-              label={t("orders.fields.payMethod")}
-              value={order.pay_method || "-"}
-            />
-            <DetailItem
-              label={t("orders.fields.channelTradeNo")}
-              value={order.channel_trade_no || "-"}
-            />
-            <DetailItem
-              label={t("orders.fields.createdAt")}
-              value={formatDate(order.created_at)}
-            />
-            <DetailItem
-              label={t("orders.fields.updatedAt")}
-              value={formatDate(order.updated_at)}
-            />
-            <div className="md:col-span-2">
-              <DetailItem
-                label={t("orders.fields.metadata")}
-                value={JSON.stringify(order.metadata ?? {}, null, 2)}
-                multiline
-              />
-            </div>
-          </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function DetailItem({
-  label,
-  value,
-  multiline = false,
-}: {
-  label: string;
-  value: string;
-  multiline?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-1 rounded-md border p-3">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span
-        className={
-          multiline
-            ? "whitespace-pre-wrap break-all font-mono text-xs"
-            : "break-all text-sm"
-        }
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
 function toListParams(filters: FilterState): ListOrdersParams {
   return {
     app_id: filters.appId.trim() || undefined,
@@ -540,30 +440,4 @@ function toListParams(filters: FilterState): ListOrdersParams {
     page: 1,
     page_size: 100,
   };
-}
-
-function canClose(order: PaymentOrder) {
-  return order.status === "pending" || order.status === "failed";
-}
-
-function statusVariant(status: PaymentOrder["status"]) {
-  switch (status) {
-    case "paid":
-      return "secondary";
-    case "closed":
-      return "outline";
-    case "failed":
-      return "destructive";
-    default:
-      return "outline";
-  }
-}
-
-function formatAmount(amount: number, currency: string) {
-  return `${currency} ${amount}`;
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return "-";
-  return new Date(value).toLocaleString();
 }

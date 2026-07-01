@@ -2,12 +2,17 @@ package alipay
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/base64"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/go-pay/gopay"
+	gopayalipay "github.com/go-pay/gopay/alipay"
 	gopayalipayv3 "github.com/go-pay/gopay/alipay/v3"
 
 	"payment-gateway/ent"
@@ -16,8 +21,10 @@ import (
 
 type fakeClient struct {
 	pageBody       gopay.BodyMap
+	wapBody        gopay.BodyMap
 	precreateBody  gopay.BodyMap
 	pageCalls      int
+	wapCalls       int
 	precreateCalls int
 }
 
@@ -26,6 +33,13 @@ func (c *fakeClient) TradePagePay(ctx context.Context, body gopay.BodyMap) (stri
 	c.pageBody = body
 	c.pageCalls++
 	return "https://openapi-sandbox.dl.alipaydev.com/gateway.do?test=1", nil
+}
+
+func (c *fakeClient) TradeWapPay(ctx context.Context, body gopay.BodyMap) (string, error) {
+	_ = ctx
+	c.wapBody = body
+	c.wapCalls++
+	return "https://openapi-sandbox.dl.alipaydev.com/gateway.do?wap=1", nil
 }
 
 func (c *fakeClient) TradePrecreate(ctx context.Context, body gopay.BodyMap) (string, error) {
@@ -48,6 +62,11 @@ func (c *fakeV3Transport) TradePrecreate(ctx context.Context, body gopay.BodyMap
 func (c *fakeV3Transport) TradePagePay(ctx context.Context, body gopay.BodyMap) (string, error) {
 	_ = ctx
 	return "https://openapi-sandbox.dl.alipaydev.com/gateway.do?test=1", c.err
+}
+
+func (c *fakeV3Transport) TradeWapPay(ctx context.Context, body gopay.BodyMap) (string, error) {
+	_ = ctx
+	return "https://openapi-sandbox.dl.alipaydev.com/gateway.do?wap=1", c.err
 }
 
 func TestParseConfigRequiresAppID(t *testing.T) {
@@ -80,6 +99,19 @@ func TestParseConfigDefaultsProductCodeAndMode(t *testing.T) {
 	}
 	if cfg.IsProd {
 		t.Fatal("IsProd = true, want false for sandbox")
+	}
+}
+
+func TestParseConfigDefaultsAlipayCapabilities(t *testing.T) {
+	cfg, err := ParseConfig(map[string]any{
+		"app_id":      "app-1",
+		"private_key": "private",
+	}, "sandbox")
+	if err != nil {
+		t.Fatalf("ParseConfig() error = %v", err)
+	}
+	if !cfg.EnablePagePay || !cfg.EnableWapPay || !cfg.EnableQRPay {
+		t.Fatalf("capabilities = page:%v wap:%v qr:%v, want all enabled by default", cfg.EnablePagePay, cfg.EnableWapPay, cfg.EnableQRPay)
 	}
 }
 
@@ -211,6 +243,47 @@ func TestProviderQRCodeModeReturnsQRCode(t *testing.T) {
 	}
 }
 
+func TestProviderWapModeReturnsPayURL(t *testing.T) {
+	client := &fakeClient{}
+	p := NewWithClientFactory(func(Config) (alipayClient, error) {
+		return client, nil
+	})
+
+	result, err := p.StartPayment(context.Background(), provider.StartPaymentRequest{
+		Order: &ent.PaymentOrder{
+			GatewayOrderNo: "pay_wap_001",
+			Subject:        "Pro 会员",
+			Amount:         9900,
+			Currency:       "CNY",
+		},
+		ChannelAccount: &ent.ChannelAccount{
+			Channel: "alipay",
+			Env:     "sandbox",
+			Config: map[string]any{
+				"app_id":      "app-1",
+				"private_key": "private",
+				"mode":        "wap",
+			},
+		},
+		Channel:   "alipay",
+		PayMethod: "alipay",
+		ReturnURL: "https://merchant.example.com/mobile-return",
+	})
+	if err != nil {
+		t.Fatalf("StartPayment() error = %v", err)
+	}
+	if result.PayURL != "https://openapi-sandbox.dl.alipaydev.com/gateway.do?wap=1" {
+		t.Fatalf("PayURL = %q, want fake wap pay URL", result.PayURL)
+	}
+	if result.QRCode != "" {
+		t.Fatalf("QRCode = %q, want empty for wap mode", result.QRCode)
+	}
+	if client.wapCalls != 1 || client.pageCalls != 0 || client.precreateCalls != 0 {
+		t.Fatalf("wap/page/precreate calls = %d/%d/%d, want 1/0/0", client.wapCalls, client.pageCalls, client.precreateCalls)
+	}
+	assertBody(t, client.wapBody, "return_url", "https://merchant.example.com/mobile-return")
+}
+
 func TestGopayClientReturnsPrecreateGatewayError(t *testing.T) {
 	client := &gopayClient{
 		client: &fakeV3Transport{
@@ -266,6 +339,72 @@ func TestParseNotifyMapsSuccessfulAlipayTrade(t *testing.T) {
 		t.Fatal("ParseNotify must not create a payment client")
 		return nil, nil
 	})
+	privateKey, alipayPublicKey := testAlipayKeys(t)
+	account := &ent.ChannelAccount{
+		Channel: "alipay",
+		Env:     "sandbox",
+		Config: map[string]any{
+			"app_id":            "app-1",
+			"private_key":       "private-key",
+			"alipay_public_key": alipayPublicKey,
+		},
+	}
+	form := url.Values{}
+	form.Set("out_trade_no", "GW202607010001")
+	form.Set("trade_no", "2026070122000000001")
+	form.Set("trade_status", "TRADE_SUCCESS")
+	form.Set("total_amount", "99.00")
+	signAlipayNotify(t, privateKey, form)
+
+	result, err := p.ParseNotify(context.Background(), provider.NotifyRequest{
+		ChannelAccount: account,
+		Form:           form,
+	})
+	if err != nil {
+		t.Fatalf("ParseNotify() error = %v", err)
+	}
+	if result.Status != "paid" || result.GatewayOrderNo != "GW202607010001" || result.ChannelTradeNo != "2026070122000000001" {
+		t.Fatalf("result = %#v, want paid alipay notify", result)
+	}
+	if result.Amount != 9900 || result.Currency != "CNY" {
+		t.Fatalf("amount/currency = %d/%s, want 9900/CNY", result.Amount, result.Currency)
+	}
+}
+
+func testAlipayKeys(t *testing.T) (*rsa.PrivateKey, string) {
+	t.Helper()
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("GenerateKey() error = %v", err)
+	}
+	publicDER, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		t.Fatalf("MarshalPKIXPublicKey() error = %v", err)
+	}
+	return privateKey, base64.StdEncoding.EncodeToString(publicDER)
+}
+
+func signAlipayNotify(t *testing.T, privateKey *rsa.PrivateKey, values url.Values) {
+	t.Helper()
+	body := gopay.BodyMap{}
+	for key, items := range values {
+		if len(items) > 0 {
+			body.Set(key, items[0])
+		}
+	}
+	sign, err := gopayalipay.GetRsaSign(body, gopayalipay.RSA2, privateKey)
+	if err != nil {
+		t.Fatalf("GetRsaSign() error = %v", err)
+	}
+	values.Set("sign_type", gopayalipay.RSA2)
+	values.Set("sign", sign)
+}
+
+func TestParseNotifyRequiresAlipayPublicKey(t *testing.T) {
+	p := NewWithClientFactory(func(Config) (alipayClient, error) {
+		t.Fatal("ParseNotify must not create a payment client")
+		return nil, nil
+	})
 	account := &ent.ChannelAccount{
 		Channel: "alipay",
 		Env:     "sandbox",
@@ -280,18 +419,11 @@ func TestParseNotifyMapsSuccessfulAlipayTrade(t *testing.T) {
 	form.Set("trade_status", "TRADE_SUCCESS")
 	form.Set("total_amount", "99.00")
 
-	result, err := p.ParseNotify(context.Background(), provider.NotifyRequest{
+	if _, err := p.ParseNotify(context.Background(), provider.NotifyRequest{
 		ChannelAccount: account,
 		Form:           form,
-	})
-	if err != nil {
-		t.Fatalf("ParseNotify() error = %v", err)
-	}
-	if result.Status != "paid" || result.GatewayOrderNo != "GW202607010001" || result.ChannelTradeNo != "2026070122000000001" {
-		t.Fatalf("result = %#v, want paid alipay notify", result)
-	}
-	if result.Amount != 9900 || result.Currency != "CNY" {
-		t.Fatalf("amount/currency = %d/%s, want 9900/CNY", result.Amount, result.Currency)
+	}); err == nil {
+		t.Fatal("ParseNotify() error = nil, want missing alipay public key error")
 	}
 }
 

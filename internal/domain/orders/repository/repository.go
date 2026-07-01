@@ -151,6 +151,24 @@ func (r Repository) List(ctx context.Context, input ListOrdersInput) ([]*ent.Pay
 	return items, total, err
 }
 
+func (r Repository) ListExpiredPending(ctx context.Context, now time.Time, limit int) ([]*ent.PaymentOrder, error) {
+	if limit < 1 {
+		limit = 100
+	}
+	if limit > 500 {
+		limit = 500
+	}
+	return r.client.PaymentOrder.Query().
+		Where(
+			paymentorder.Status("pending"),
+			paymentorder.ExpiresAtNotNil(),
+			paymentorder.ExpiresAtLTE(now),
+		).
+		Order(ent.Asc(paymentorder.FieldExpiresAt)).
+		Limit(limit).
+		All(ctx)
+}
+
 func (r Repository) Update(ctx context.Context, id int, input UpdateOrderInput) (*ent.PaymentOrder, error) {
 	update := r.client.PaymentOrder.UpdateOneID(id).
 		SetSubject(input.Subject).
@@ -193,6 +211,23 @@ func (r Repository) SetStatus(ctx context.Context, id int, status string, now ti
 		return nil, err
 	}
 	return r.FindByID(ctx, id)
+}
+
+func (r Repository) CloseExpiredPending(ctx context.Context, id int, now time.Time) (bool, error) {
+	affected, err := r.client.PaymentOrder.Update().
+		Where(
+			paymentorder.ID(id),
+			paymentorder.Status("pending"),
+			paymentorder.ExpiresAtNotNil(),
+			paymentorder.ExpiresAtLTE(now),
+		).
+		SetStatus("closed").
+		SetClosedAt(now).
+		Save(ctx)
+	if err != nil {
+		return false, err
+	}
+	return affected > 0, nil
 }
 
 func (r Repository) MarkPaid(ctx context.Context, id int, channelTradeNo string, now time.Time) (*ent.PaymentOrder, error) {

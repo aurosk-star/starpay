@@ -2,6 +2,7 @@ package paymentstest
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"entgo.io/ent/dialect"
@@ -89,9 +90,9 @@ func TestStartPaymentUsesEnabledAlipayProvider(t *testing.T) {
 	}
 }
 
-func TestStartPaymentFallsBackToMockWithoutAlipayAccount(t *testing.T) {
+func TestStartPaymentRejectsUnavailableAlipayAccount(t *testing.T) {
 	ctx := context.Background()
-	client := enttest.Open(t, dialect.SQLite, "file:payment_provider_mock_fallback?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, dialect.SQLite, "file:payment_provider_unavailable?mode=memory&cache=shared&_fk=1")
 	defer client.Close()
 
 	createEnabledApp(t, client, "snsgo")
@@ -100,23 +101,17 @@ func TestStartPaymentFallsBackToMockWithoutAlipayAccount(t *testing.T) {
 	channels := channelrepo.New(client)
 	paymentService := paymentsvc.New(
 		paymentsvc.WithChannelRepository(channels),
-		paymentsvc.WithMockFallback(true),
+		paymentsvc.WithProvider(&fakeProvider{channel: "alipay"}),
 	)
 
-	result, err := paymentService.StartPayment(ctx, paymentsvc.StartPaymentInput{
+	_, err := paymentService.StartPayment(ctx, paymentsvc.StartPaymentInput{
 		Order:     order,
 		PayMethod: "alipay",
 		Channel:   "alipay",
 		ReturnURL: "https://merchant.example.com/return",
 	})
-	if err != nil {
-		t.Fatalf("StartPayment() error = %v", err)
-	}
-	if result.ProviderOrderNo != "mock_"+order.GatewayOrderNo {
-		t.Fatalf("ProviderOrderNo = %q, want mock fallback", result.ProviderOrderNo)
-	}
-	if result.PayURL == "" {
-		t.Fatal("PayURL is empty")
+	if !errors.Is(err, paymentsvc.ErrProviderUnavailable) {
+		t.Fatalf("StartPayment() error = %v, want ErrProviderUnavailable", err)
 	}
 }
 

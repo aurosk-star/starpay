@@ -28,6 +28,10 @@ type Tx struct {
 	Role *RoleClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// WebhookDelivery is the client for interacting with the WebhookDelivery builders.
+	WebhookDelivery *WebhookDeliveryClient
+	// WebhookEvent is the client for interacting with the WebhookEvent builders.
+	WebhookEvent *WebhookEventClient
 
 	// lazily loaded.
 	client     *Client
@@ -167,6 +171,8 @@ func (tx *Tx) init() {
 	tx.RefreshToken = NewRefreshTokenClient(tx.config)
 	tx.Role = NewRoleClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.WebhookDelivery = NewWebhookDeliveryClient(tx.config)
+	tx.WebhookEvent = NewWebhookEventClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

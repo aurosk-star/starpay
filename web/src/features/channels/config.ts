@@ -12,6 +12,9 @@ export type ChannelConfig = {
   server_url?: string;
   product_code?: string;
   mode?: string;
+  enable_page_pay?: string;
+  enable_wap_pay?: string;
+  enable_qr_pay?: string;
   client_id?: string;
   client_secret?: string;
   webhook_id?: string;
@@ -36,7 +39,9 @@ export const emptyChannelConfig: Record<PaymentChannel, ChannelConfig> = {
     alipay_public_key: "",
     server_url: "",
     product_code: "FAST_INSTANT_TRADE_PAY",
-    mode: "page",
+    enable_page_pay: "true",
+    enable_wap_pay: "true",
+    enable_qr_pay: "true",
   },
   paypal: {
     client_id: "",

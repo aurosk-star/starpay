@@ -15,6 +15,7 @@ export type PaymentOrder = {
   channel?: string;
   pay_method?: string;
   channel_trade_no?: string;
+  return_url?: string;
   status: PaymentOrderStatus;
   expires_at?: string | null;
   paid_at?: string | null;

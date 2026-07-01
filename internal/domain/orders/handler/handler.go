@@ -53,8 +53,8 @@ func (h Handler) ListOrders(ctx *gin.Context) {
 		Channel:         ctx.Query("channel"),
 		Currency:        ctx.Query("currency"),
 		MerchantOrderNo: ctx.Query("merchant_order_no"),
-		Page:            intQuery(ctx, "page", 1),
-		PageSize:        intQuery(ctx, "page_size", 20),
+		Page:            httpx.IntQuery(ctx, "page", 1),
+		PageSize:        httpx.IntQuery(ctx, "page_size", 20),
 	})
 	if err != nil {
 		httpx.JSONError(ctx, http.StatusInternalServerError, "list_orders_failed", err.Error())
@@ -157,14 +157,6 @@ func (h Handler) CloseOrder(ctx *gin.Context) {
 
 func parseID(ctx *gin.Context) (int, error) {
 	return strconv.Atoi(ctx.Param("id"))
-}
-
-func intQuery(ctx *gin.Context, key string, fallback int) int {
-	value, err := strconv.Atoi(ctx.Query(key))
-	if err != nil {
-		return fallback
-	}
-	return value
 }
 
 func serializeOrder(order *ent.PaymentOrder) gin.H {

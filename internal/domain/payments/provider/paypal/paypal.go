@@ -2,6 +2,7 @@ package paypal
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,6 +17,7 @@ import (
 type paypalClient interface {
 	CreateOrder(ctx context.Context, body gopay.BodyMap) (*gopaypaypal.CreateOrderRsp, error)
 	OrderCapture(ctx context.Context, orderID string, body gopay.BodyMap) (*gopaypaypal.OrderCaptureRsp, error)
+	VerifyWebhookSignature(ctx context.Context, body gopay.BodyMap) (*gopaypaypal.VerifyWebhookResponse, error)
 }
 
 type clientFactory func(Config) (paypalClient, error)
@@ -143,8 +145,103 @@ func (p Provider) CapturePayment(ctx context.Context, req provider.CapturePaymen
 	}, nil
 }
 
+func (p Provider) ParseNotify(ctx context.Context, req provider.NotifyRequest) (*provider.NotifyResult, error) {
+	cfg, err := ParseConfig(req.ChannelAccount.Config, req.ChannelAccount.Env)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(cfg.WebhookID) == "" {
+		return nil, fmt.Errorf("paypal webhook signature verification requires webhook_id")
+	}
+	client, err := p.newClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+	var event paypalWebhookEvent
+	if err := json.Unmarshal(req.RawBody, &event); err != nil {
+		return nil, err
+	}
+	verifyBody := gopay.BodyMap{}
+	verifyBody.Set("auth_algo", headerValue(req.Header, "Paypal-Auth-Algo")).
+		Set("cert_url", headerValue(req.Header, "Paypal-Cert-Url")).
+		Set("transmission_id", headerValue(req.Header, "Paypal-Transmission-Id")).
+		Set("transmission_sig", headerValue(req.Header, "Paypal-Transmission-Sig")).
+		Set("transmission_time", headerValue(req.Header, "Paypal-Transmission-Time")).
+		Set("webhook_id", cfg.WebhookID)
+	var rawEvent any
+	if err := json.Unmarshal(req.RawBody, &rawEvent); err != nil {
+		return nil, err
+	}
+	verifyBody.Set("webhook_event", rawEvent)
+	verifyRsp, err := client.VerifyWebhookSignature(ctx, verifyBody)
+	if err != nil {
+		return nil, err
+	}
+	if verifyRsp == nil || !strings.EqualFold(strings.TrimSpace(verifyRsp.VerificationStatus), "SUCCESS") {
+		return nil, fmt.Errorf("paypal webhook signature verification failed")
+	}
+	gatewayOrderNo := strings.TrimSpace(event.Resource.CustomID)
+	if gatewayOrderNo == "" {
+		gatewayOrderNo = strings.TrimSpace(event.Resource.InvoiceID)
+	}
+	status := normalizeWebhookStatus(event.EventType, event.Resource.Status)
+	return &provider.NotifyResult{
+		Channel:        "paypal",
+		GatewayOrderNo: gatewayOrderNo,
+		ChannelTradeNo: strings.TrimSpace(event.Resource.ID),
+		Status:         status,
+		Raw: map[string]any{
+			"event_id":     event.ID,
+			"event_type":   event.EventType,
+			"resource_id":  event.Resource.ID,
+			"resource_raw": event.Resource,
+		},
+	}, nil
+}
+
 func newGopayClient(cfg Config) (paypalClient, error) {
 	return gopaypaypal.NewClient(cfg.ClientID, cfg.ClientSecret, cfg.IsProd)
+}
+
+type paypalWebhookEvent struct {
+	ID        string                `json:"id"`
+	EventType string                `json:"event_type"`
+	Resource  paypalWebhookResource `json:"resource"`
+}
+
+type paypalWebhookResource struct {
+	ID        string `json:"id"`
+	CustomID  string `json:"custom_id"`
+	InvoiceID string `json:"invoice_id"`
+	Status    string `json:"status"`
+}
+
+func normalizeWebhookStatus(eventType string, resourceStatus string) string {
+	normalizedEventType := strings.ToUpper(strings.TrimSpace(eventType))
+	normalizedStatus := strings.ToUpper(strings.TrimSpace(resourceStatus))
+	if strings.Contains(normalizedEventType, "COMPLETED") ||
+		strings.Contains(normalizedEventType, "APPROVED") ||
+		normalizedStatus == "COMPLETED" ||
+		normalizedStatus == "APPROVED" {
+		return "paid"
+	}
+	if strings.Contains(normalizedEventType, "VOIDED") ||
+		strings.Contains(normalizedEventType, "CANCELLED") ||
+		normalizedStatus == "VOIDED" ||
+		normalizedStatus == "CANCELLED" {
+		return "closed"
+	}
+	return "pending"
+}
+
+func headerValue(headers map[string][]string, key string) string {
+	for currentKey, values := range headers {
+		if !strings.EqualFold(currentKey, key) || len(values) == 0 {
+			continue
+		}
+		return strings.TrimSpace(values[0])
+	}
+	return ""
 }
 
 func cancelURL(returnURL string) string {

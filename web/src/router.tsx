@@ -7,10 +7,12 @@ import {
   channelsRoute,
 } from "./routes/channels";
 import { gatewayConfigRoute } from "./routes/config";
-import { checkoutRoute, mockPayRoute } from "./routes/checkout";
+import { checkoutRoute } from "./routes/checkout";
 import { indexRoute } from "./routes/index";
-import { ordersRoute } from "./routes/orders";
+import { orderDetailRoute, ordersRoute } from "./routes/orders";
 import { rootRoute } from "./routes/root";
+import { webhooksRoute } from "./routes/webhooks";
+import { webhookDetailRoute } from "./routes/webhook-detail";
 import { testPayRoute } from "./routes/test-pay";
 import { usersRoute } from "./routes/users";
 
@@ -19,9 +21,11 @@ const routeTree = rootRoute.addChildren([
   usersRoute,
   appsRoute,
   ordersRoute,
+  orderDetailRoute,
+  webhooksRoute,
+  webhookDetailRoute,
   testPayRoute,
   checkoutRoute,
-  mockPayRoute,
   channelsRoute,
   channelCreateRoute,
   channelEditRoute,

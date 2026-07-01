@@ -216,6 +216,109 @@ var (
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 	}
+	// WebhookDeliveriesColumns holds the columns for the "webhook_deliveries" table.
+	WebhookDeliveriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "delivery_no", Type: field.TypeString, Unique: true},
+		{Name: "event_id", Type: field.TypeInt},
+		{Name: "app_id", Type: field.TypeString},
+		{Name: "event_type", Type: field.TypeString},
+		{Name: "gateway_order_no", Type: field.TypeString},
+		{Name: "target_url", Type: field.TypeString},
+		{Name: "status", Type: field.TypeString, Default: "pending"},
+		{Name: "attempt_count", Type: field.TypeInt, Default: 0},
+		{Name: "next_attempt_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_attempt_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_status_code", Type: field.TypeInt, Nullable: true},
+		{Name: "last_response_body", Type: field.TypeString, Nullable: true},
+		{Name: "last_error", Type: field.TypeString, Nullable: true},
+		{Name: "succeeded_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// WebhookDeliveriesTable holds the schema information for the "webhook_deliveries" table.
+	WebhookDeliveriesTable = &schema.Table{
+		Name:       "webhook_deliveries",
+		Columns:    WebhookDeliveriesColumns,
+		PrimaryKey: []*schema.Column{WebhookDeliveriesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "webhookdelivery_delivery_no",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookDeliveriesColumns[1]},
+			},
+			{
+				Name:    "webhookdelivery_event_id",
+				Unique:  true,
+				Columns: []*schema.Column{WebhookDeliveriesColumns[2]},
+			},
+			{
+				Name:    "webhookdelivery_app_id",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookDeliveriesColumns[3]},
+			},
+			{
+				Name:    "webhookdelivery_status",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookDeliveriesColumns[7]},
+			},
+			{
+				Name:    "webhookdelivery_next_attempt_at",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookDeliveriesColumns[9]},
+			},
+			{
+				Name:    "webhookdelivery_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookDeliveriesColumns[15]},
+			},
+		},
+	}
+	// WebhookEventsColumns holds the columns for the "webhook_events" table.
+	WebhookEventsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "event_id", Type: field.TypeString, Unique: true},
+		{Name: "event_type", Type: field.TypeString},
+		{Name: "app_id", Type: field.TypeString},
+		{Name: "gateway_order_no", Type: field.TypeString},
+		{Name: "payment_order_id", Type: field.TypeInt, Nullable: true},
+		{Name: "payload", Type: field.TypeJSON, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// WebhookEventsTable holds the schema information for the "webhook_events" table.
+	WebhookEventsTable = &schema.Table{
+		Name:       "webhook_events",
+		Columns:    WebhookEventsColumns,
+		PrimaryKey: []*schema.Column{WebhookEventsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "webhookevent_event_type_gateway_order_no",
+				Unique:  true,
+				Columns: []*schema.Column{WebhookEventsColumns[2], WebhookEventsColumns[4]},
+			},
+			{
+				Name:    "webhookevent_event_id",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookEventsColumns[1]},
+			},
+			{
+				Name:    "webhookevent_app_id",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookEventsColumns[3]},
+			},
+			{
+				Name:    "webhookevent_gateway_order_no",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookEventsColumns[4]},
+			},
+			{
+				Name:    "webhookevent_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookEventsColumns[7]},
+			},
+		},
+	}
 	// UserRolesColumns holds the columns for the "user_roles" table.
 	UserRolesColumns = []*schema.Column{
 		{Name: "user_id", Type: field.TypeInt},
@@ -251,6 +354,8 @@ var (
 		RefreshTokensTable,
 		RolesTable,
 		UsersTable,
+		WebhookDeliveriesTable,
+		WebhookEventsTable,
 		UserRolesTable,
 	}
 )

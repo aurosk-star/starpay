@@ -29,6 +29,9 @@ import (
 	userhandler "payment-gateway/internal/domain/users/handler"
 	userrouter "payment-gateway/internal/domain/users/router"
 	usersvc "payment-gateway/internal/domain/users/service"
+	webhookhandler "payment-gateway/internal/domain/webhooks/handler"
+	webhookrouter "payment-gateway/internal/domain/webhooks/router"
+	webhooksvc "payment-gateway/internal/domain/webhooks/service"
 	"payment-gateway/internal/platform/config"
 	"payment-gateway/internal/platform/httpx"
 	"payment-gateway/internal/platform/rbac"
@@ -53,14 +56,22 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 	configService := configsvc.New(client)
 	configHandler := confighandler.New(configService)
 	configrouter.Register(router.Group("/v1/admin"), configHandler, userService, enforcer)
-	orderService := ordersvc.New(client)
+	webhookService := webhooksvc.New(client,
+		webhooksvc.WithRedis(redisClient),
+		webhooksvc.WithSecretEncryptionKey(cfg.Auth.AppSecretEncryptionKey),
+	)
+	webhookHandler := webhookhandler.New(webhookService)
+	webhookrouter.Register(router.Group("/v1/admin"), webhookHandler, userService, enforcer)
+	orderService := ordersvc.New(client,
+		ordersvc.WithWebhookService(webhookService),
+		ordersvc.WithDefaultOrderTTL(cfg.Orders.DefaultTTL),
+	)
 	orderHandler := orderhandler.New(orderService)
 	orderrouter.Register(router.Group("/v1/admin"), orderHandler, userService, enforcer)
 	paymentService := paymentsvc.New(
 		paymentsvc.WithChannelRepository(channelrepo.New(client)),
 		paymentsvc.WithProvider(alipayprovider.New()),
 		paymentsvc.WithProvider(paypalprovider.New()),
-		paymentsvc.WithMockFallback(cfg.App.Env == "local"),
 	)
 	paymentrouter.RegisterNotify(router.Group("/v1/channel"), paymenthandler.NewNotify(paymentService, orderService))
 	orderrouter.RegisterCheckout(router.Group("/v1/checkout"), orderhandler.NewCheckout(
@@ -115,6 +126,7 @@ func NewBaseRouter() *gin.Engine {
 	v1.GET("/ping", func(ctx *gin.Context) {
 		httpx.JSONOK(ctx, http.StatusOK, gin.H{"message": "pong"})
 	})
+	webhookrouter.RegisterTest(v1, webhookhandler.NewTestReceiver())
 
 	return router
 }
