@@ -6,10 +6,17 @@ export type ChannelConfig = {
   api_v3_key?: string;
   serial_no?: string;
   private_key?: string;
+  cert?: string;
+  wechat_pay_public_key?: string;
   alipay_public_key?: string;
   server_url?: string;
+  product_code?: string;
+  mode?: string;
   client_id?: string;
   client_secret?: string;
+  webhook_id?: string;
+  brand_name?: string;
+  intent?: string;
 };
 
 export const emptyChannelConfig: Record<PaymentChannel, ChannelConfig> = {
@@ -19,16 +26,24 @@ export const emptyChannelConfig: Record<PaymentChannel, ChannelConfig> = {
     api_v3_key: "",
     serial_no: "",
     private_key: "",
+    cert: "",
+    wechat_pay_public_key: "",
+    mode: "native",
   },
   alipay: {
     app_id: "",
     private_key: "",
     alipay_public_key: "",
     server_url: "",
+    product_code: "FAST_INSTANT_TRADE_PAY",
+    mode: "page",
   },
   paypal: {
     client_id: "",
     client_secret: "",
+    webhook_id: "",
+    brand_name: "",
+    intent: "CAPTURE",
   },
 };
 
@@ -40,6 +55,7 @@ export const sensitiveChannelConfigKeys = new Set([
   "private_key",
   "alipay_public_key",
   "wechat_pay_public_key",
+  "webhook_id",
   "cert",
   "cert_key",
 ]);
@@ -59,5 +75,21 @@ export function normalizeConfig(
 export function buildConfigPayload(config: ChannelConfig) {
   return Object.fromEntries(
     Object.entries(config).filter(([, value]) => String(value ?? "").trim()),
+  );
+}
+
+export function buildChangedConfigPayload(
+  current: ChannelConfig,
+  initial: ChannelConfig,
+) {
+  return Object.fromEntries(
+    Object.entries(current).filter(([key, value]) => {
+      const normalizedValue = String(value ?? "").trim();
+      if (!normalizedValue || normalizedValue === "********") {
+        return false;
+      }
+      const initialValue = String(initial[key as keyof ChannelConfig] ?? "").trim();
+      return normalizedValue !== initialValue;
+    }),
   );
 }

@@ -63,6 +63,7 @@ const emptyForm = {
   appId: "",
   name: "",
   notifyUrl: "",
+  defaultReturnUrl: "",
   allowedIps: "",
   status: "enabled",
 };
@@ -102,6 +103,15 @@ export function AppsPage() {
         cell: ({ row }) => (
           <span className="block max-w-[320px] truncate font-mono text-xs">
             {row.original.notify_url || "-"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "default_return_url",
+        header: t("apps.table.defaultReturnUrl"),
+        cell: ({ row }) => (
+          <span className="block max-w-[320px] truncate font-mono text-xs">
+            {row.original.default_return_url || "-"}
           </span>
         ),
       },
@@ -208,6 +218,7 @@ export function AppsPage() {
       appId: app.app_id,
       name: app.name,
       notifyUrl: app.notify_url || "",
+      defaultReturnUrl: app.default_return_url || "",
       allowedIps: app.allowed_ips.join(", "),
       status: app.status,
     });
@@ -224,6 +235,7 @@ export function AppsPage() {
         app_id: editingApp ? undefined : form.appId,
         name: form.name,
         notify_url: form.notifyUrl || undefined,
+        default_return_url: form.defaultReturnUrl || undefined,
         allowed_ips: form.allowedIps
           .split(/[\n,]/)
           .map((item) => item.trim())
@@ -377,6 +389,21 @@ export function AppsPage() {
                     setForm((current) => ({
                       ...current,
                       notifyUrl: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="default_return_url">
+                  {t("apps.defaultReturnUrl")}
+                </FieldLabel>
+                <Input
+                  id="default_return_url"
+                  value={form.defaultReturnUrl}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      defaultReturnUrl: event.target.value,
                     }))
                   }
                 />

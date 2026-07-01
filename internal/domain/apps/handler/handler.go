@@ -20,11 +20,12 @@ func New(service appsvc.Service) Handler {
 }
 
 type manageAppRequest struct {
-	AppID      string   `json:"app_id"`
-	Name       string   `json:"name" binding:"required"`
-	NotifyURL  string   `json:"notify_url"`
-	AllowedIPs []string `json:"allowed_ips"`
-	Status     string   `json:"status"`
+	AppID            string   `json:"app_id"`
+	Name             string   `json:"name" binding:"required"`
+	NotifyURL        string   `json:"notify_url"`
+	DefaultReturnURL string   `json:"default_return_url"`
+	AllowedIPs       []string `json:"allowed_ips"`
+	Status           string   `json:"status"`
 }
 
 func (h Handler) ListApps(ctx *gin.Context) {
@@ -47,11 +48,12 @@ func (h Handler) CreateApp(ctx *gin.Context) {
 		return
 	}
 	result, err := h.service.CreateApp(ctx.Request.Context(), appsvc.ManageAppInput{
-		AppID:      req.AppID,
-		Name:       req.Name,
-		NotifyURL:  req.NotifyURL,
-		AllowedIPs: req.AllowedIPs,
-		Status:     req.Status,
+		AppID:            req.AppID,
+		Name:             req.Name,
+		NotifyURL:        req.NotifyURL,
+		DefaultReturnURL: req.DefaultReturnURL,
+		AllowedIPs:       req.AllowedIPs,
+		Status:           req.Status,
 	})
 	if err != nil {
 		httpx.JSONError(ctx, http.StatusBadRequest, "create_app_failed", err.Error())
@@ -75,10 +77,11 @@ func (h Handler) UpdateApp(ctx *gin.Context) {
 		return
 	}
 	app, err := h.service.UpdateApp(ctx.Request.Context(), id, appsvc.ManageAppInput{
-		Name:       req.Name,
-		NotifyURL:  req.NotifyURL,
-		AllowedIPs: req.AllowedIPs,
-		Status:     req.Status,
+		Name:             req.Name,
+		NotifyURL:        req.NotifyURL,
+		DefaultReturnURL: req.DefaultReturnURL,
+		AllowedIPs:       req.AllowedIPs,
+		Status:           req.Status,
 	})
 	if err != nil {
 		httpx.JSONError(ctx, http.StatusBadRequest, "update_app_failed", err.Error())
@@ -137,13 +140,14 @@ func parseID(ctx *gin.Context) (int, error) {
 
 func serializeApp(app *ent.App) gin.H {
 	return gin.H{
-		"id":          app.ID,
-		"app_id":      app.AppID,
-		"name":        app.Name,
-		"notify_url":  app.NotifyURL,
-		"allowed_ips": app.AllowedIps,
-		"status":      app.Status,
-		"created_at":  app.CreatedAt,
-		"updated_at":  app.UpdatedAt,
+		"id":                 app.ID,
+		"app_id":             app.AppID,
+		"name":               app.Name,
+		"notify_url":         app.NotifyURL,
+		"default_return_url": app.DefaultReturnURL,
+		"allowed_ips":        app.AllowedIps,
+		"status":             app.Status,
+		"created_at":         app.CreatedAt,
+		"updated_at":         app.UpdatedAt,
 	}
 }

@@ -20,6 +20,7 @@ import {
   RefreshCw,
   ShieldCheck,
   SunMedium,
+  Settings2,
   Webhook,
   Users,
 } from "lucide-react";
@@ -76,11 +77,15 @@ function ShellLayout() {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
+  if (pathname.startsWith("/checkout/")) {
+    return <Outlet />;
+  }
 
   const navItems = [
     { label: t("nav.overview"), icon: Gauge, to: "/" },
     { label: t("nav.users"), icon: Users, to: "/users" },
     { label: t("nav.apps"), icon: Boxes, to: "/apps" },
+    { label: t("nav.gatewayConfig"), icon: Settings2, to: "/config/gateway" },
     { label: t("nav.orders"), icon: ClipboardList, to: "/orders" },
     { label: t("nav.channels"), icon: CreditCard, to: "/channels" },
     { label: t("nav.routing"), icon: GitBranch },

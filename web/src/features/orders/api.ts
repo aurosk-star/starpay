@@ -53,3 +53,10 @@ export function closeOrder(accessToken: string, id: number) {
     accessToken,
   });
 }
+
+export function createTestCheckoutOrder(
+  accessToken: string,
+  payload: ManageOrderPayload,
+) {
+  return createOrder(accessToken, payload);
+}

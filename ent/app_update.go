@@ -111,6 +111,26 @@ func (_u *AppUpdate) ClearNotifyURL() *AppUpdate {
 	return _u
 }
 
+// SetDefaultReturnURL sets the "default_return_url" field.
+func (_u *AppUpdate) SetDefaultReturnURL(v string) *AppUpdate {
+	_u.mutation.SetDefaultReturnURL(v)
+	return _u
+}
+
+// SetNillableDefaultReturnURL sets the "default_return_url" field if the given value is not nil.
+func (_u *AppUpdate) SetNillableDefaultReturnURL(v *string) *AppUpdate {
+	if v != nil {
+		_u.SetDefaultReturnURL(*v)
+	}
+	return _u
+}
+
+// ClearDefaultReturnURL clears the value of the "default_return_url" field.
+func (_u *AppUpdate) ClearDefaultReturnURL() *AppUpdate {
+	_u.mutation.ClearDefaultReturnURL()
+	return _u
+}
+
 // SetAllowedIps sets the "allowed_ips" field.
 func (_u *AppUpdate) SetAllowedIps(v []string) *AppUpdate {
 	_u.mutation.SetAllowedIps(v)
@@ -219,6 +239,12 @@ func (_u *AppUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.NotifyURLCleared() {
 		_spec.ClearField(app.FieldNotifyURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.DefaultReturnURL(); ok {
+		_spec.SetField(app.FieldDefaultReturnURL, field.TypeString, value)
+	}
+	if _u.mutation.DefaultReturnURLCleared() {
+		_spec.ClearField(app.FieldDefaultReturnURL, field.TypeString)
 	}
 	if value, ok := _u.mutation.AllowedIps(); ok {
 		_spec.SetField(app.FieldAllowedIps, field.TypeJSON, value)
@@ -336,6 +362,26 @@ func (_u *AppUpdateOne) SetNillableNotifyURL(v *string) *AppUpdateOne {
 // ClearNotifyURL clears the value of the "notify_url" field.
 func (_u *AppUpdateOne) ClearNotifyURL() *AppUpdateOne {
 	_u.mutation.ClearNotifyURL()
+	return _u
+}
+
+// SetDefaultReturnURL sets the "default_return_url" field.
+func (_u *AppUpdateOne) SetDefaultReturnURL(v string) *AppUpdateOne {
+	_u.mutation.SetDefaultReturnURL(v)
+	return _u
+}
+
+// SetNillableDefaultReturnURL sets the "default_return_url" field if the given value is not nil.
+func (_u *AppUpdateOne) SetNillableDefaultReturnURL(v *string) *AppUpdateOne {
+	if v != nil {
+		_u.SetDefaultReturnURL(*v)
+	}
+	return _u
+}
+
+// ClearDefaultReturnURL clears the value of the "default_return_url" field.
+func (_u *AppUpdateOne) ClearDefaultReturnURL() *AppUpdateOne {
+	_u.mutation.ClearDefaultReturnURL()
 	return _u
 }
 
@@ -477,6 +523,12 @@ func (_u *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 	}
 	if _u.mutation.NotifyURLCleared() {
 		_spec.ClearField(app.FieldNotifyURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.DefaultReturnURL(); ok {
+		_spec.SetField(app.FieldDefaultReturnURL, field.TypeString, value)
+	}
+	if _u.mutation.DefaultReturnURLCleared() {
+		_spec.ClearField(app.FieldDefaultReturnURL, field.TypeString)
 	}
 	if value, ok := _u.mutation.AllowedIps(); ok {
 		_spec.SetField(app.FieldAllowedIps, field.TypeJSON, value)

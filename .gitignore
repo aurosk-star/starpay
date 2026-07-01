@@ -6,6 +6,7 @@
 # Go build/test artifacts
 bin/
 tmp/
+.tmp/
 coverage.out
 *.test
 *.prof
@@ -26,3 +27,4 @@ coverage.out
 
 # Docker/local runtime data
 docker-data/
+.claude/

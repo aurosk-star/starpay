@@ -266,6 +266,26 @@ func (_u *PaymentOrderUpdate) ClearChannelTradeNo() *PaymentOrderUpdate {
 	return _u
 }
 
+// SetReturnURL sets the "return_url" field.
+func (_u *PaymentOrderUpdate) SetReturnURL(v string) *PaymentOrderUpdate {
+	_u.mutation.SetReturnURL(v)
+	return _u
+}
+
+// SetNillableReturnURL sets the "return_url" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableReturnURL(v *string) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetReturnURL(*v)
+	}
+	return _u
+}
+
+// ClearReturnURL clears the value of the "return_url" field.
+func (_u *PaymentOrderUpdate) ClearReturnURL() *PaymentOrderUpdate {
+	_u.mutation.ClearReturnURL()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *PaymentOrderUpdate) SetStatus(v string) *PaymentOrderUpdate {
 	_u.mutation.SetStatus(v)
@@ -473,6 +493,12 @@ func (_u *PaymentOrderUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.ChannelTradeNoCleared() {
 		_spec.ClearField(paymentorder.FieldChannelTradeNo, field.TypeString)
+	}
+	if value, ok := _u.mutation.ReturnURL(); ok {
+		_spec.SetField(paymentorder.FieldReturnURL, field.TypeString, value)
+	}
+	if _u.mutation.ReturnURLCleared() {
+		_spec.ClearField(paymentorder.FieldReturnURL, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeString, value)
@@ -762,6 +788,26 @@ func (_u *PaymentOrderUpdateOne) ClearChannelTradeNo() *PaymentOrderUpdateOne {
 	return _u
 }
 
+// SetReturnURL sets the "return_url" field.
+func (_u *PaymentOrderUpdateOne) SetReturnURL(v string) *PaymentOrderUpdateOne {
+	_u.mutation.SetReturnURL(v)
+	return _u
+}
+
+// SetNillableReturnURL sets the "return_url" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableReturnURL(v *string) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetReturnURL(*v)
+	}
+	return _u
+}
+
+// ClearReturnURL clears the value of the "return_url" field.
+func (_u *PaymentOrderUpdateOne) ClearReturnURL() *PaymentOrderUpdateOne {
+	_u.mutation.ClearReturnURL()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *PaymentOrderUpdateOne) SetStatus(v string) *PaymentOrderUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -999,6 +1045,12 @@ func (_u *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentOrd
 	}
 	if _u.mutation.ChannelTradeNoCleared() {
 		_spec.ClearField(paymentorder.FieldChannelTradeNo, field.TypeString)
+	}
+	if value, ok := _u.mutation.ReturnURL(); ok {
+		_spec.SetField(paymentorder.FieldReturnURL, field.TypeString, value)
+	}
+	if _u.mutation.ReturnURLCleared() {
+		_spec.ClearField(paymentorder.FieldReturnURL, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeString, value)

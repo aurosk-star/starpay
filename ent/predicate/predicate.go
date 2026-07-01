@@ -15,6 +15,9 @@ type CasbinRule func(*sql.Selector)
 // ChannelAccount is the predicate function for channelaccount builders.
 type ChannelAccount func(*sql.Selector)
 
+// GatewayConfig is the predicate function for gatewayconfig builders.
+type GatewayConfig func(*sql.Selector)
+
 // PaymentOrder is the predicate function for paymentorder builders.
 type PaymentOrder func(*sql.Selector)
 

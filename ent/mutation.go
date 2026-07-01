@@ -9,6 +9,7 @@ import (
 	"payment-gateway/ent/app"
 	"payment-gateway/ent/casbinrule"
 	"payment-gateway/ent/channelaccount"
+	"payment-gateway/ent/gatewayconfig"
 	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/predicate"
 	"payment-gateway/ent/refreshtoken"
@@ -33,6 +34,7 @@ const (
 	TypeApp            = "App"
 	TypeCasbinRule     = "CasbinRule"
 	TypeChannelAccount = "ChannelAccount"
+	TypeGatewayConfig  = "GatewayConfig"
 	TypePaymentOrder   = "PaymentOrder"
 	TypeRefreshToken   = "RefreshToken"
 	TypeRole           = "Role"
@@ -50,6 +52,7 @@ type AppMutation struct {
 	app_secret_hash       *string
 	app_secret_ciphertext *string
 	notify_url            *string
+	default_return_url    *string
 	allowed_ips           *[]string
 	appendallowed_ips     []string
 	status                *string
@@ -365,6 +368,55 @@ func (m *AppMutation) ResetNotifyURL() {
 	delete(m.clearedFields, app.FieldNotifyURL)
 }
 
+// SetDefaultReturnURL sets the "default_return_url" field.
+func (m *AppMutation) SetDefaultReturnURL(s string) {
+	m.default_return_url = &s
+}
+
+// DefaultReturnURL returns the value of the "default_return_url" field in the mutation.
+func (m *AppMutation) DefaultReturnURL() (r string, exists bool) {
+	v := m.default_return_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDefaultReturnURL returns the old "default_return_url" field's value of the App entity.
+// If the App object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppMutation) OldDefaultReturnURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDefaultReturnURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDefaultReturnURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDefaultReturnURL: %w", err)
+	}
+	return oldValue.DefaultReturnURL, nil
+}
+
+// ClearDefaultReturnURL clears the value of the "default_return_url" field.
+func (m *AppMutation) ClearDefaultReturnURL() {
+	m.default_return_url = nil
+	m.clearedFields[app.FieldDefaultReturnURL] = struct{}{}
+}
+
+// DefaultReturnURLCleared returns if the "default_return_url" field was cleared in this mutation.
+func (m *AppMutation) DefaultReturnURLCleared() bool {
+	_, ok := m.clearedFields[app.FieldDefaultReturnURL]
+	return ok
+}
+
+// ResetDefaultReturnURL resets all changes to the "default_return_url" field.
+func (m *AppMutation) ResetDefaultReturnURL() {
+	m.default_return_url = nil
+	delete(m.clearedFields, app.FieldDefaultReturnURL)
+}
+
 // SetAllowedIps sets the "allowed_ips" field.
 func (m *AppMutation) SetAllowedIps(s []string) {
 	m.allowed_ips = &s
@@ -572,7 +624,7 @@ func (m *AppMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AppMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.app_id != nil {
 		fields = append(fields, app.FieldAppID)
 	}
@@ -587,6 +639,9 @@ func (m *AppMutation) Fields() []string {
 	}
 	if m.notify_url != nil {
 		fields = append(fields, app.FieldNotifyURL)
+	}
+	if m.default_return_url != nil {
+		fields = append(fields, app.FieldDefaultReturnURL)
 	}
 	if m.allowed_ips != nil {
 		fields = append(fields, app.FieldAllowedIps)
@@ -618,6 +673,8 @@ func (m *AppMutation) Field(name string) (ent.Value, bool) {
 		return m.AppSecretCiphertext()
 	case app.FieldNotifyURL:
 		return m.NotifyURL()
+	case app.FieldDefaultReturnURL:
+		return m.DefaultReturnURL()
 	case app.FieldAllowedIps:
 		return m.AllowedIps()
 	case app.FieldStatus:
@@ -645,6 +702,8 @@ func (m *AppMutation) OldField(ctx context.Context, name string) (ent.Value, err
 		return m.OldAppSecretCiphertext(ctx)
 	case app.FieldNotifyURL:
 		return m.OldNotifyURL(ctx)
+	case app.FieldDefaultReturnURL:
+		return m.OldDefaultReturnURL(ctx)
 	case app.FieldAllowedIps:
 		return m.OldAllowedIps(ctx)
 	case app.FieldStatus:
@@ -696,6 +755,13 @@ func (m *AppMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNotifyURL(v)
+		return nil
+	case app.FieldDefaultReturnURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDefaultReturnURL(v)
 		return nil
 	case app.FieldAllowedIps:
 		v, ok := value.([]string)
@@ -761,6 +827,9 @@ func (m *AppMutation) ClearedFields() []string {
 	if m.FieldCleared(app.FieldNotifyURL) {
 		fields = append(fields, app.FieldNotifyURL)
 	}
+	if m.FieldCleared(app.FieldDefaultReturnURL) {
+		fields = append(fields, app.FieldDefaultReturnURL)
+	}
 	if m.FieldCleared(app.FieldAllowedIps) {
 		fields = append(fields, app.FieldAllowedIps)
 	}
@@ -783,6 +852,9 @@ func (m *AppMutation) ClearField(name string) error {
 		return nil
 	case app.FieldNotifyURL:
 		m.ClearNotifyURL()
+		return nil
+	case app.FieldDefaultReturnURL:
+		m.ClearDefaultReturnURL()
 		return nil
 	case app.FieldAllowedIps:
 		m.ClearAllowedIps()
@@ -809,6 +881,9 @@ func (m *AppMutation) ResetField(name string) error {
 		return nil
 	case app.FieldNotifyURL:
 		m.ResetNotifyURL()
+		return nil
+	case app.FieldDefaultReturnURL:
+		m.ResetDefaultReturnURL()
 		return nil
 	case app.FieldAllowedIps:
 		m.ResetAllowedIps()
@@ -2313,6 +2388,786 @@ func (m *ChannelAccountMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ChannelAccount edge %s", name)
 }
 
+// GatewayConfigMutation represents an operation that mutates the GatewayConfig nodes in the graph.
+type GatewayConfigMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *int
+	gateway_base_url    *string
+	payment_notify_path *string
+	default_currency    *string
+	default_locale      *string
+	request_id_enabled  *bool
+	maintenance_mode    *bool
+	extra               *map[string]interface{}
+	created_at          *time.Time
+	updated_at          *time.Time
+	clearedFields       map[string]struct{}
+	done                bool
+	oldValue            func(context.Context) (*GatewayConfig, error)
+	predicates          []predicate.GatewayConfig
+}
+
+var _ ent.Mutation = (*GatewayConfigMutation)(nil)
+
+// gatewayconfigOption allows management of the mutation configuration using functional options.
+type gatewayconfigOption func(*GatewayConfigMutation)
+
+// newGatewayConfigMutation creates new mutation for the GatewayConfig entity.
+func newGatewayConfigMutation(c config, op Op, opts ...gatewayconfigOption) *GatewayConfigMutation {
+	m := &GatewayConfigMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeGatewayConfig,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withGatewayConfigID sets the ID field of the mutation.
+func withGatewayConfigID(id int) gatewayconfigOption {
+	return func(m *GatewayConfigMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *GatewayConfig
+		)
+		m.oldValue = func(ctx context.Context) (*GatewayConfig, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().GatewayConfig.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withGatewayConfig sets the old GatewayConfig of the mutation.
+func withGatewayConfig(node *GatewayConfig) gatewayconfigOption {
+	return func(m *GatewayConfigMutation) {
+		m.oldValue = func(context.Context) (*GatewayConfig, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m GatewayConfigMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m GatewayConfigMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *GatewayConfigMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *GatewayConfigMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().GatewayConfig.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetGatewayBaseURL sets the "gateway_base_url" field.
+func (m *GatewayConfigMutation) SetGatewayBaseURL(s string) {
+	m.gateway_base_url = &s
+}
+
+// GatewayBaseURL returns the value of the "gateway_base_url" field in the mutation.
+func (m *GatewayConfigMutation) GatewayBaseURL() (r string, exists bool) {
+	v := m.gateway_base_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGatewayBaseURL returns the old "gateway_base_url" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldGatewayBaseURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGatewayBaseURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGatewayBaseURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGatewayBaseURL: %w", err)
+	}
+	return oldValue.GatewayBaseURL, nil
+}
+
+// ResetGatewayBaseURL resets all changes to the "gateway_base_url" field.
+func (m *GatewayConfigMutation) ResetGatewayBaseURL() {
+	m.gateway_base_url = nil
+}
+
+// SetPaymentNotifyPath sets the "payment_notify_path" field.
+func (m *GatewayConfigMutation) SetPaymentNotifyPath(s string) {
+	m.payment_notify_path = &s
+}
+
+// PaymentNotifyPath returns the value of the "payment_notify_path" field in the mutation.
+func (m *GatewayConfigMutation) PaymentNotifyPath() (r string, exists bool) {
+	v := m.payment_notify_path
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPaymentNotifyPath returns the old "payment_notify_path" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldPaymentNotifyPath(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPaymentNotifyPath is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPaymentNotifyPath requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaymentNotifyPath: %w", err)
+	}
+	return oldValue.PaymentNotifyPath, nil
+}
+
+// ResetPaymentNotifyPath resets all changes to the "payment_notify_path" field.
+func (m *GatewayConfigMutation) ResetPaymentNotifyPath() {
+	m.payment_notify_path = nil
+}
+
+// SetDefaultCurrency sets the "default_currency" field.
+func (m *GatewayConfigMutation) SetDefaultCurrency(s string) {
+	m.default_currency = &s
+}
+
+// DefaultCurrency returns the value of the "default_currency" field in the mutation.
+func (m *GatewayConfigMutation) DefaultCurrency() (r string, exists bool) {
+	v := m.default_currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDefaultCurrency returns the old "default_currency" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldDefaultCurrency(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDefaultCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDefaultCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDefaultCurrency: %w", err)
+	}
+	return oldValue.DefaultCurrency, nil
+}
+
+// ResetDefaultCurrency resets all changes to the "default_currency" field.
+func (m *GatewayConfigMutation) ResetDefaultCurrency() {
+	m.default_currency = nil
+}
+
+// SetDefaultLocale sets the "default_locale" field.
+func (m *GatewayConfigMutation) SetDefaultLocale(s string) {
+	m.default_locale = &s
+}
+
+// DefaultLocale returns the value of the "default_locale" field in the mutation.
+func (m *GatewayConfigMutation) DefaultLocale() (r string, exists bool) {
+	v := m.default_locale
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDefaultLocale returns the old "default_locale" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldDefaultLocale(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDefaultLocale is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDefaultLocale requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDefaultLocale: %w", err)
+	}
+	return oldValue.DefaultLocale, nil
+}
+
+// ResetDefaultLocale resets all changes to the "default_locale" field.
+func (m *GatewayConfigMutation) ResetDefaultLocale() {
+	m.default_locale = nil
+}
+
+// SetRequestIDEnabled sets the "request_id_enabled" field.
+func (m *GatewayConfigMutation) SetRequestIDEnabled(b bool) {
+	m.request_id_enabled = &b
+}
+
+// RequestIDEnabled returns the value of the "request_id_enabled" field in the mutation.
+func (m *GatewayConfigMutation) RequestIDEnabled() (r bool, exists bool) {
+	v := m.request_id_enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRequestIDEnabled returns the old "request_id_enabled" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldRequestIDEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRequestIDEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRequestIDEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRequestIDEnabled: %w", err)
+	}
+	return oldValue.RequestIDEnabled, nil
+}
+
+// ResetRequestIDEnabled resets all changes to the "request_id_enabled" field.
+func (m *GatewayConfigMutation) ResetRequestIDEnabled() {
+	m.request_id_enabled = nil
+}
+
+// SetMaintenanceMode sets the "maintenance_mode" field.
+func (m *GatewayConfigMutation) SetMaintenanceMode(b bool) {
+	m.maintenance_mode = &b
+}
+
+// MaintenanceMode returns the value of the "maintenance_mode" field in the mutation.
+func (m *GatewayConfigMutation) MaintenanceMode() (r bool, exists bool) {
+	v := m.maintenance_mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMaintenanceMode returns the old "maintenance_mode" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldMaintenanceMode(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMaintenanceMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMaintenanceMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMaintenanceMode: %w", err)
+	}
+	return oldValue.MaintenanceMode, nil
+}
+
+// ResetMaintenanceMode resets all changes to the "maintenance_mode" field.
+func (m *GatewayConfigMutation) ResetMaintenanceMode() {
+	m.maintenance_mode = nil
+}
+
+// SetExtra sets the "extra" field.
+func (m *GatewayConfigMutation) SetExtra(value map[string]interface{}) {
+	m.extra = &value
+}
+
+// Extra returns the value of the "extra" field in the mutation.
+func (m *GatewayConfigMutation) Extra() (r map[string]interface{}, exists bool) {
+	v := m.extra
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExtra returns the old "extra" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldExtra(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExtra is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExtra requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExtra: %w", err)
+	}
+	return oldValue.Extra, nil
+}
+
+// ClearExtra clears the value of the "extra" field.
+func (m *GatewayConfigMutation) ClearExtra() {
+	m.extra = nil
+	m.clearedFields[gatewayconfig.FieldExtra] = struct{}{}
+}
+
+// ExtraCleared returns if the "extra" field was cleared in this mutation.
+func (m *GatewayConfigMutation) ExtraCleared() bool {
+	_, ok := m.clearedFields[gatewayconfig.FieldExtra]
+	return ok
+}
+
+// ResetExtra resets all changes to the "extra" field.
+func (m *GatewayConfigMutation) ResetExtra() {
+	m.extra = nil
+	delete(m.clearedFields, gatewayconfig.FieldExtra)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *GatewayConfigMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *GatewayConfigMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *GatewayConfigMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *GatewayConfigMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *GatewayConfigMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *GatewayConfigMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the GatewayConfigMutation builder.
+func (m *GatewayConfigMutation) Where(ps ...predicate.GatewayConfig) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the GatewayConfigMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *GatewayConfigMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.GatewayConfig, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *GatewayConfigMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *GatewayConfigMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (GatewayConfig).
+func (m *GatewayConfigMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *GatewayConfigMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.gateway_base_url != nil {
+		fields = append(fields, gatewayconfig.FieldGatewayBaseURL)
+	}
+	if m.payment_notify_path != nil {
+		fields = append(fields, gatewayconfig.FieldPaymentNotifyPath)
+	}
+	if m.default_currency != nil {
+		fields = append(fields, gatewayconfig.FieldDefaultCurrency)
+	}
+	if m.default_locale != nil {
+		fields = append(fields, gatewayconfig.FieldDefaultLocale)
+	}
+	if m.request_id_enabled != nil {
+		fields = append(fields, gatewayconfig.FieldRequestIDEnabled)
+	}
+	if m.maintenance_mode != nil {
+		fields = append(fields, gatewayconfig.FieldMaintenanceMode)
+	}
+	if m.extra != nil {
+		fields = append(fields, gatewayconfig.FieldExtra)
+	}
+	if m.created_at != nil {
+		fields = append(fields, gatewayconfig.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, gatewayconfig.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *GatewayConfigMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case gatewayconfig.FieldGatewayBaseURL:
+		return m.GatewayBaseURL()
+	case gatewayconfig.FieldPaymentNotifyPath:
+		return m.PaymentNotifyPath()
+	case gatewayconfig.FieldDefaultCurrency:
+		return m.DefaultCurrency()
+	case gatewayconfig.FieldDefaultLocale:
+		return m.DefaultLocale()
+	case gatewayconfig.FieldRequestIDEnabled:
+		return m.RequestIDEnabled()
+	case gatewayconfig.FieldMaintenanceMode:
+		return m.MaintenanceMode()
+	case gatewayconfig.FieldExtra:
+		return m.Extra()
+	case gatewayconfig.FieldCreatedAt:
+		return m.CreatedAt()
+	case gatewayconfig.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *GatewayConfigMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case gatewayconfig.FieldGatewayBaseURL:
+		return m.OldGatewayBaseURL(ctx)
+	case gatewayconfig.FieldPaymentNotifyPath:
+		return m.OldPaymentNotifyPath(ctx)
+	case gatewayconfig.FieldDefaultCurrency:
+		return m.OldDefaultCurrency(ctx)
+	case gatewayconfig.FieldDefaultLocale:
+		return m.OldDefaultLocale(ctx)
+	case gatewayconfig.FieldRequestIDEnabled:
+		return m.OldRequestIDEnabled(ctx)
+	case gatewayconfig.FieldMaintenanceMode:
+		return m.OldMaintenanceMode(ctx)
+	case gatewayconfig.FieldExtra:
+		return m.OldExtra(ctx)
+	case gatewayconfig.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case gatewayconfig.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown GatewayConfig field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GatewayConfigMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case gatewayconfig.FieldGatewayBaseURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGatewayBaseURL(v)
+		return nil
+	case gatewayconfig.FieldPaymentNotifyPath:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPaymentNotifyPath(v)
+		return nil
+	case gatewayconfig.FieldDefaultCurrency:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDefaultCurrency(v)
+		return nil
+	case gatewayconfig.FieldDefaultLocale:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDefaultLocale(v)
+		return nil
+	case gatewayconfig.FieldRequestIDEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRequestIDEnabled(v)
+		return nil
+	case gatewayconfig.FieldMaintenanceMode:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMaintenanceMode(v)
+		return nil
+	case gatewayconfig.FieldExtra:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExtra(v)
+		return nil
+	case gatewayconfig.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case gatewayconfig.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown GatewayConfig field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *GatewayConfigMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *GatewayConfigMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GatewayConfigMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown GatewayConfig numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *GatewayConfigMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(gatewayconfig.FieldExtra) {
+		fields = append(fields, gatewayconfig.FieldExtra)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *GatewayConfigMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *GatewayConfigMutation) ClearField(name string) error {
+	switch name {
+	case gatewayconfig.FieldExtra:
+		m.ClearExtra()
+		return nil
+	}
+	return fmt.Errorf("unknown GatewayConfig nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *GatewayConfigMutation) ResetField(name string) error {
+	switch name {
+	case gatewayconfig.FieldGatewayBaseURL:
+		m.ResetGatewayBaseURL()
+		return nil
+	case gatewayconfig.FieldPaymentNotifyPath:
+		m.ResetPaymentNotifyPath()
+		return nil
+	case gatewayconfig.FieldDefaultCurrency:
+		m.ResetDefaultCurrency()
+		return nil
+	case gatewayconfig.FieldDefaultLocale:
+		m.ResetDefaultLocale()
+		return nil
+	case gatewayconfig.FieldRequestIDEnabled:
+		m.ResetRequestIDEnabled()
+		return nil
+	case gatewayconfig.FieldMaintenanceMode:
+		m.ResetMaintenanceMode()
+		return nil
+	case gatewayconfig.FieldExtra:
+		m.ResetExtra()
+		return nil
+	case gatewayconfig.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case gatewayconfig.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown GatewayConfig field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *GatewayConfigMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *GatewayConfigMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *GatewayConfigMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *GatewayConfigMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *GatewayConfigMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *GatewayConfigMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *GatewayConfigMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown GatewayConfig unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *GatewayConfigMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown GatewayConfig edge %s", name)
+}
+
 // PaymentOrderMutation represents an operation that mutates the PaymentOrder nodes in the graph.
 type PaymentOrderMutation struct {
 	config
@@ -2334,6 +3189,7 @@ type PaymentOrderMutation struct {
 	channel              *string
 	pay_method           *string
 	channel_trade_no     *string
+	return_url           *string
 	status               *string
 	expires_at           *time.Time
 	paid_at              *time.Time
@@ -3045,6 +3901,55 @@ func (m *PaymentOrderMutation) ResetChannelTradeNo() {
 	delete(m.clearedFields, paymentorder.FieldChannelTradeNo)
 }
 
+// SetReturnURL sets the "return_url" field.
+func (m *PaymentOrderMutation) SetReturnURL(s string) {
+	m.return_url = &s
+}
+
+// ReturnURL returns the value of the "return_url" field in the mutation.
+func (m *PaymentOrderMutation) ReturnURL() (r string, exists bool) {
+	v := m.return_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReturnURL returns the old "return_url" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldReturnURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReturnURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReturnURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReturnURL: %w", err)
+	}
+	return oldValue.ReturnURL, nil
+}
+
+// ClearReturnURL clears the value of the "return_url" field.
+func (m *PaymentOrderMutation) ClearReturnURL() {
+	m.return_url = nil
+	m.clearedFields[paymentorder.FieldReturnURL] = struct{}{}
+}
+
+// ReturnURLCleared returns if the "return_url" field was cleared in this mutation.
+func (m *PaymentOrderMutation) ReturnURLCleared() bool {
+	_, ok := m.clearedFields[paymentorder.FieldReturnURL]
+	return ok
+}
+
+// ResetReturnURL resets all changes to the "return_url" field.
+func (m *PaymentOrderMutation) ResetReturnURL() {
+	m.return_url = nil
+	delete(m.clearedFields, paymentorder.FieldReturnURL)
+}
+
 // SetStatus sets the "status" field.
 func (m *PaymentOrderMutation) SetStatus(s string) {
 	m.status = &s
@@ -3383,7 +4288,7 @@ func (m *PaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 21)
 	if m.gateway_order_no != nil {
 		fields = append(fields, paymentorder.FieldGatewayOrderNo)
 	}
@@ -3422,6 +4327,9 @@ func (m *PaymentOrderMutation) Fields() []string {
 	}
 	if m.channel_trade_no != nil {
 		fields = append(fields, paymentorder.FieldChannelTradeNo)
+	}
+	if m.return_url != nil {
+		fields = append(fields, paymentorder.FieldReturnURL)
 	}
 	if m.status != nil {
 		fields = append(fields, paymentorder.FieldStatus)
@@ -3478,6 +4386,8 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.PayMethod()
 	case paymentorder.FieldChannelTradeNo:
 		return m.ChannelTradeNo()
+	case paymentorder.FieldReturnURL:
+		return m.ReturnURL()
 	case paymentorder.FieldStatus:
 		return m.Status()
 	case paymentorder.FieldExpiresAt:
@@ -3527,6 +4437,8 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldPayMethod(ctx)
 	case paymentorder.FieldChannelTradeNo:
 		return m.OldChannelTradeNo(ctx)
+	case paymentorder.FieldReturnURL:
+		return m.OldReturnURL(ctx)
 	case paymentorder.FieldStatus:
 		return m.OldStatus(ctx)
 	case paymentorder.FieldExpiresAt:
@@ -3640,6 +4552,13 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetChannelTradeNo(v)
+		return nil
+	case paymentorder.FieldReturnURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReturnURL(v)
 		return nil
 	case paymentorder.FieldStatus:
 		v, ok := value.(string)
@@ -3768,6 +4687,9 @@ func (m *PaymentOrderMutation) ClearedFields() []string {
 	if m.FieldCleared(paymentorder.FieldChannelTradeNo) {
 		fields = append(fields, paymentorder.FieldChannelTradeNo)
 	}
+	if m.FieldCleared(paymentorder.FieldReturnURL) {
+		fields = append(fields, paymentorder.FieldReturnURL)
+	}
 	if m.FieldCleared(paymentorder.FieldExpiresAt) {
 		fields = append(fields, paymentorder.FieldExpiresAt)
 	}
@@ -3814,6 +4736,9 @@ func (m *PaymentOrderMutation) ClearField(name string) error {
 		return nil
 	case paymentorder.FieldChannelTradeNo:
 		m.ClearChannelTradeNo()
+		return nil
+	case paymentorder.FieldReturnURL:
+		m.ClearReturnURL()
 		return nil
 	case paymentorder.FieldExpiresAt:
 		m.ClearExpiresAt()
@@ -3873,6 +4798,9 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case paymentorder.FieldChannelTradeNo:
 		m.ResetChannelTradeNo()
+		return nil
+	case paymentorder.FieldReturnURL:
+		m.ResetReturnURL()
 		return nil
 	case paymentorder.FieldStatus:
 		m.ResetStatus()

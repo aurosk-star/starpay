@@ -39,6 +39,8 @@ const (
 	FieldPayMethod = "pay_method"
 	// FieldChannelTradeNo holds the string denoting the channel_trade_no field in the database.
 	FieldChannelTradeNo = "channel_trade_no"
+	// FieldReturnURL holds the string denoting the return_url field in the database.
+	FieldReturnURL = "return_url"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldExpiresAt holds the string denoting the expires_at field in the database.
@@ -73,6 +75,7 @@ var Columns = []string{
 	FieldChannel,
 	FieldPayMethod,
 	FieldChannelTradeNo,
+	FieldReturnURL,
 	FieldStatus,
 	FieldExpiresAt,
 	FieldPaidAt,
@@ -174,6 +177,11 @@ func ByPayMethod(opts ...sql.OrderTermOption) OrderOption {
 // ByChannelTradeNo orders the results by the channel_trade_no field.
 func ByChannelTradeNo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldChannelTradeNo, opts...).ToFunc()
+}
+
+// ByReturnURL orders the results by the return_url field.
+func ByReturnURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReturnURL, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

@@ -53,6 +53,7 @@ export type ManageOrderPayload = {
   settlement_currency?: string;
   channel?: string;
   pay_method?: string;
+  return_url?: string;
   expires_at?: string;
   metadata?: Record<string, unknown>;
 };

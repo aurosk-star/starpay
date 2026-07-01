@@ -13,6 +13,7 @@ import { router } from "./router";
 
 function App() {
   const { t } = useTranslation();
+  const isPublicCheckout = window.location.pathname.startsWith("/checkout/");
   const accessToken = useAuthStore((state) => state.accessToken);
   const hydrated = useAuthStore((state) => state.hydrated);
   const hydrate = useAuthStore((state) => state.hydrate);
@@ -40,7 +41,7 @@ function App() {
       .finally(() => setAuthChecking(false));
   }, [accessToken, clearSession, hydrated, setSession]);
 
-  if (!hydrated || authChecking) {
+  if ((!hydrated || authChecking) && !isPublicCheckout) {
     return (
       <main className="flex min-h-[100dvh] items-center justify-center bg-background text-sm text-muted-foreground">
         {t("auth.loading")}
@@ -48,7 +49,7 @@ function App() {
     );
   }
 
-  if (!accessToken) {
+  if (!accessToken && !isPublicCheckout) {
     return (
       <ThemeProvider>
         <TooltipProvider>

@@ -18,6 +18,7 @@ func (App) Fields() []ent.Field {
 		field.String("app_secret_hash"),
 		field.String("app_secret_ciphertext").Optional(),
 		field.String("notify_url").Optional(),
+		field.String("default_return_url").Optional(),
 		field.JSON("allowed_ips", []string{}).Optional(),
 		field.String("status").Default("enabled"),
 		field.Time("created_at").Default(time.Now).Immutable(),

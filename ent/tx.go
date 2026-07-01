@@ -18,6 +18,8 @@ type Tx struct {
 	CasbinRule *CasbinRuleClient
 	// ChannelAccount is the client for interacting with the ChannelAccount builders.
 	ChannelAccount *ChannelAccountClient
+	// GatewayConfig is the client for interacting with the GatewayConfig builders.
+	GatewayConfig *GatewayConfigClient
 	// PaymentOrder is the client for interacting with the PaymentOrder builders.
 	PaymentOrder *PaymentOrderClient
 	// RefreshToken is the client for interacting with the RefreshToken builders.
@@ -160,6 +162,7 @@ func (tx *Tx) init() {
 	tx.App = NewAppClient(tx.config)
 	tx.CasbinRule = NewCasbinRuleClient(tx.config)
 	tx.ChannelAccount = NewChannelAccountClient(tx.config)
+	tx.GatewayConfig = NewGatewayConfigClient(tx.config)
 	tx.PaymentOrder = NewPaymentOrderClient(tx.config)
 	tx.RefreshToken = NewRefreshTokenClient(tx.config)
 	tx.Role = NewRoleClient(tx.config)

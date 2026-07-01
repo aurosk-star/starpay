@@ -32,6 +32,7 @@ type manageOrderRequest struct {
 	SettlementCurrency string         `json:"settlement_currency"`
 	Channel            string         `json:"channel"`
 	PayMethod          string         `json:"pay_method"`
+	ReturnURL          string         `json:"return_url"`
 	ExpiresAt          *time.Time     `json:"expires_at"`
 	Metadata           map[string]any `json:"metadata"`
 }
@@ -103,6 +104,7 @@ func (h Handler) CreateOrder(ctx *gin.Context) {
 		SettlementCurrency: req.SettlementCurrency,
 		Channel:            req.Channel,
 		PayMethod:          req.PayMethod,
+		ReturnURL:          req.ReturnURL,
 		ExpiresAt:          req.ExpiresAt,
 		Metadata:           req.Metadata,
 	})
@@ -181,6 +183,7 @@ func serializeOrder(order *ent.PaymentOrder) gin.H {
 		"channel":             order.Channel,
 		"pay_method":          order.PayMethod,
 		"channel_trade_no":    order.ChannelTradeNo,
+		"return_url":          order.ReturnURL,
 		"status":              order.Status,
 		"expires_at":          order.ExpiresAt,
 		"paid_at":             order.PaidAt,
@@ -188,5 +191,23 @@ func serializeOrder(order *ent.PaymentOrder) gin.H {
 		"metadata":            order.Metadata,
 		"created_at":          order.CreatedAt,
 		"updated_at":          order.UpdatedAt,
+	}
+}
+
+func serializeCheckoutOrder(order *ent.PaymentOrder) gin.H {
+	return gin.H{
+		"gateway_order_no":  order.GatewayOrderNo,
+		"merchant_order_no": order.MerchantOrderNo,
+		"business_type":     order.BusinessType,
+		"subject":           order.Subject,
+		"description":       order.Description,
+		"amount":            order.Amount,
+		"currency":          order.Currency,
+		"channel":           order.Channel,
+		"pay_method":        order.PayMethod,
+		"return_url":        order.ReturnURL,
+		"status":            order.Status,
+		"expires_at":        order.ExpiresAt,
+		"created_at":        order.CreatedAt,
 	}
 }

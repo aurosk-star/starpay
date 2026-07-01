@@ -22,11 +22,12 @@ func TestCreateAppHashesSecretAndReturnsPlaintextOnce(t *testing.T) {
 
 	svc := appsvc.New(client, appsvc.WithSecretEncryptionKey(testEncryptionKey))
 	result, err := svc.CreateApp(ctx, appsvc.ManageAppInput{
-		AppID:      "snsgo",
-		Name:       "snsgo",
-		NotifyURL:  "https://snsgo.example.com/payment/webhook",
-		AllowedIPs: []string{"10.0.0.1"},
-		Status:     "enabled",
+		AppID:            "snsgo",
+		Name:             "snsgo",
+		NotifyURL:        "https://snsgo.example.com/payment/webhook",
+		DefaultReturnURL: "https://snsgo.example.com/payment/result",
+		AllowedIPs:       []string{"10.0.0.1"},
+		Status:           "enabled",
 	})
 	if err != nil {
 		t.Fatalf("CreateApp() error = %v", err)
@@ -45,6 +46,12 @@ func TestCreateAppHashesSecretAndReturnsPlaintextOnce(t *testing.T) {
 	}
 	if result.App.AppSecretCiphertext == result.AppSecret {
 		t.Fatal("AppSecretCiphertext stored plaintext secret")
+	}
+	if result.App.NotifyURL != "https://snsgo.example.com/payment/webhook" {
+		t.Fatalf("NotifyURL = %q, want merchant webhook", result.App.NotifyURL)
+	}
+	if result.App.DefaultReturnURL != "https://snsgo.example.com/payment/result" {
+		t.Fatalf("DefaultReturnURL = %q, want browser return URL", result.App.DefaultReturnURL)
 	}
 	secret, err := auth.DecryptSecret(testEncryptionKey, result.App.AppSecretCiphertext)
 	if err != nil {
@@ -69,10 +76,11 @@ func TestUpdateAppChangesMetadataWithoutChangingSecret(t *testing.T) {
 	originalCiphertext := created.App.AppSecretCiphertext
 
 	updated, err := svc.UpdateApp(ctx, created.App.ID, appsvc.ManageAppInput{
-		Name:       "Billing API",
-		NotifyURL:  "https://billing.example.com/webhook",
-		AllowedIPs: []string{"192.168.1.10"},
-		Status:     "disabled",
+		Name:             "Billing API",
+		NotifyURL:        "https://billing.example.com/webhook",
+		DefaultReturnURL: "https://billing.example.com/payments/result",
+		AllowedIPs:       []string{"192.168.1.10"},
+		Status:           "disabled",
 	})
 	if err != nil {
 		t.Fatalf("UpdateApp() error = %v", err)
@@ -85,6 +93,26 @@ func TestUpdateAppChangesMetadataWithoutChangingSecret(t *testing.T) {
 	}
 	if updated.AppSecretCiphertext != originalCiphertext {
 		t.Fatal("UpdateApp changed app secret ciphertext")
+	}
+	if updated.NotifyURL != "https://billing.example.com/webhook" {
+		t.Fatalf("NotifyURL = %q, want merchant webhook", updated.NotifyURL)
+	}
+	if updated.DefaultReturnURL != "https://billing.example.com/payments/result" {
+		t.Fatalf("DefaultReturnURL = %q, want browser return URL", updated.DefaultReturnURL)
+	}
+
+	cleared, err := svc.UpdateApp(ctx, created.App.ID, appsvc.ManageAppInput{
+		Name:             "Billing API",
+		NotifyURL:        "https://billing.example.com/webhook",
+		DefaultReturnURL: "",
+		AllowedIPs:       []string{"192.168.1.10"},
+		Status:           "enabled",
+	})
+	if err != nil {
+		t.Fatalf("UpdateApp() clear default return url error = %v", err)
+	}
+	if cleared.DefaultReturnURL != "" {
+		t.Fatalf("DefaultReturnURL = %q, want cleared", cleared.DefaultReturnURL)
 	}
 }
 

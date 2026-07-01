@@ -44,6 +44,18 @@ func (f ChannelAccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Val
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ChannelAccountMutation", m)
 }
 
+// The GatewayConfigFunc type is an adapter to allow the use of ordinary
+// function as GatewayConfig mutator.
+type GatewayConfigFunc func(context.Context, *ent.GatewayConfigMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GatewayConfigFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GatewayConfigMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GatewayConfigMutation", m)
+}
+
 // The PaymentOrderFunc type is an adapter to allow the use of ordinary
 // function as PaymentOrder mutator.
 type PaymentOrderFunc func(context.Context, *ent.PaymentOrderMutation) (ent.Value, error)

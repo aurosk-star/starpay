@@ -9,6 +9,7 @@ import (
 	"payment-gateway/ent/app"
 	"payment-gateway/ent/casbinrule"
 	"payment-gateway/ent/channelaccount"
+	"payment-gateway/ent/gatewayconfig"
 	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
@@ -82,6 +83,7 @@ func checkColumn(t, c string) error {
 			app.Table:            app.ValidColumn,
 			casbinrule.Table:     casbinrule.ValidColumn,
 			channelaccount.Table: channelaccount.ValidColumn,
+			gatewayconfig.Table:  gatewayconfig.ValidColumn,
 			paymentorder.Table:   paymentorder.ValidColumn,
 			refreshtoken.Table:   refreshtoken.ValidColumn,
 			role.Table:           role.ValidColumn,

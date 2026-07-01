@@ -25,15 +25,17 @@ type CreateAppInput struct {
 	AppSecretHash       string
 	AppSecretCiphertext string
 	NotifyURL           string
+	DefaultReturnURL    string
 	AllowedIPs          []string
 	Status              string
 }
 
 type UpdateAppInput struct {
-	Name       string
-	NotifyURL  string
-	AllowedIPs []string
-	Status     string
+	Name             string
+	NotifyURL        string
+	DefaultReturnURL string
+	AllowedIPs       []string
+	Status           string
 }
 
 func (r Repository) List(ctx context.Context) ([]*ent.App, error) {
@@ -59,6 +61,9 @@ func (r Repository) Create(ctx context.Context, input CreateAppInput) (*ent.App,
 	if input.NotifyURL != "" {
 		create.SetNotifyURL(input.NotifyURL)
 	}
+	if input.DefaultReturnURL != "" {
+		create.SetDefaultReturnURL(input.DefaultReturnURL)
+	}
 	return create.Save(ctx)
 }
 
@@ -71,6 +76,11 @@ func (r Repository) Update(ctx context.Context, id int, input UpdateAppInput) (*
 		update.SetNotifyURL(input.NotifyURL)
 	} else {
 		update.ClearNotifyURL()
+	}
+	if input.DefaultReturnURL != "" {
+		update.SetDefaultReturnURL(input.DefaultReturnURL)
+	} else {
+		update.ClearDefaultReturnURL()
 	}
 	if _, err := update.Save(ctx); err != nil {
 		return nil, err

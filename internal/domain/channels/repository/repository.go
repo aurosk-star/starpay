@@ -15,6 +15,10 @@ func New(client *ent.Client) Repository {
 	return Repository{client: client}
 }
 
+func (r Repository) IsZero() bool {
+	return r.client == nil
+}
+
 type CreateChannelAccountInput struct {
 	Channel string
 	Name    string
@@ -39,6 +43,13 @@ func (r Repository) List(ctx context.Context) ([]*ent.ChannelAccount, error) {
 
 func (r Repository) FindByID(ctx context.Context, id int) (*ent.ChannelAccount, error) {
 	return r.client.ChannelAccount.Get(ctx, id)
+}
+
+func (r Repository) FindEnabledByChannel(ctx context.Context, channel string) (*ent.ChannelAccount, error) {
+	return r.client.ChannelAccount.Query().
+		Where(channelaccount.Channel(channel), channelaccount.Enabled(true)).
+		Order(ent.Desc(channelaccount.FieldCreatedAt)).
+		First(ctx)
 }
 
 func (r Repository) Create(ctx context.Context, input CreateChannelAccountInput) (*ent.ChannelAccount, error) {

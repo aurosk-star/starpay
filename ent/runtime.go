@@ -5,6 +5,7 @@ package ent
 import (
 	"payment-gateway/ent/app"
 	"payment-gateway/ent/channelaccount"
+	"payment-gateway/ent/gatewayconfig"
 	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
@@ -20,15 +21,15 @@ func init() {
 	appFields := schema.App{}.Fields()
 	_ = appFields
 	// appDescStatus is the schema descriptor for status field.
-	appDescStatus := appFields[6].Descriptor()
+	appDescStatus := appFields[7].Descriptor()
 	// app.DefaultStatus holds the default value on creation for the status field.
 	app.DefaultStatus = appDescStatus.Default.(string)
 	// appDescCreatedAt is the schema descriptor for created_at field.
-	appDescCreatedAt := appFields[7].Descriptor()
+	appDescCreatedAt := appFields[8].Descriptor()
 	// app.DefaultCreatedAt holds the default value on creation for the created_at field.
 	app.DefaultCreatedAt = appDescCreatedAt.Default.(func() time.Time)
 	// appDescUpdatedAt is the schema descriptor for updated_at field.
-	appDescUpdatedAt := appFields[8].Descriptor()
+	appDescUpdatedAt := appFields[9].Descriptor()
 	// app.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	app.DefaultUpdatedAt = appDescUpdatedAt.Default.(func() time.Time)
 	// app.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -53,18 +54,54 @@ func init() {
 	channelaccount.DefaultUpdatedAt = channelaccountDescUpdatedAt.Default.(func() time.Time)
 	// channelaccount.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	channelaccount.UpdateDefaultUpdatedAt = channelaccountDescUpdatedAt.UpdateDefault.(func() time.Time)
+	gatewayconfigFields := schema.GatewayConfig{}.Fields()
+	_ = gatewayconfigFields
+	// gatewayconfigDescGatewayBaseURL is the schema descriptor for gateway_base_url field.
+	gatewayconfigDescGatewayBaseURL := gatewayconfigFields[0].Descriptor()
+	// gatewayconfig.DefaultGatewayBaseURL holds the default value on creation for the gateway_base_url field.
+	gatewayconfig.DefaultGatewayBaseURL = gatewayconfigDescGatewayBaseURL.Default.(string)
+	// gatewayconfigDescPaymentNotifyPath is the schema descriptor for payment_notify_path field.
+	gatewayconfigDescPaymentNotifyPath := gatewayconfigFields[1].Descriptor()
+	// gatewayconfig.DefaultPaymentNotifyPath holds the default value on creation for the payment_notify_path field.
+	gatewayconfig.DefaultPaymentNotifyPath = gatewayconfigDescPaymentNotifyPath.Default.(string)
+	// gatewayconfigDescDefaultCurrency is the schema descriptor for default_currency field.
+	gatewayconfigDescDefaultCurrency := gatewayconfigFields[2].Descriptor()
+	// gatewayconfig.DefaultDefaultCurrency holds the default value on creation for the default_currency field.
+	gatewayconfig.DefaultDefaultCurrency = gatewayconfigDescDefaultCurrency.Default.(string)
+	// gatewayconfigDescDefaultLocale is the schema descriptor for default_locale field.
+	gatewayconfigDescDefaultLocale := gatewayconfigFields[3].Descriptor()
+	// gatewayconfig.DefaultDefaultLocale holds the default value on creation for the default_locale field.
+	gatewayconfig.DefaultDefaultLocale = gatewayconfigDescDefaultLocale.Default.(string)
+	// gatewayconfigDescRequestIDEnabled is the schema descriptor for request_id_enabled field.
+	gatewayconfigDescRequestIDEnabled := gatewayconfigFields[4].Descriptor()
+	// gatewayconfig.DefaultRequestIDEnabled holds the default value on creation for the request_id_enabled field.
+	gatewayconfig.DefaultRequestIDEnabled = gatewayconfigDescRequestIDEnabled.Default.(bool)
+	// gatewayconfigDescMaintenanceMode is the schema descriptor for maintenance_mode field.
+	gatewayconfigDescMaintenanceMode := gatewayconfigFields[5].Descriptor()
+	// gatewayconfig.DefaultMaintenanceMode holds the default value on creation for the maintenance_mode field.
+	gatewayconfig.DefaultMaintenanceMode = gatewayconfigDescMaintenanceMode.Default.(bool)
+	// gatewayconfigDescCreatedAt is the schema descriptor for created_at field.
+	gatewayconfigDescCreatedAt := gatewayconfigFields[7].Descriptor()
+	// gatewayconfig.DefaultCreatedAt holds the default value on creation for the created_at field.
+	gatewayconfig.DefaultCreatedAt = gatewayconfigDescCreatedAt.Default.(func() time.Time)
+	// gatewayconfigDescUpdatedAt is the schema descriptor for updated_at field.
+	gatewayconfigDescUpdatedAt := gatewayconfigFields[8].Descriptor()
+	// gatewayconfig.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	gatewayconfig.DefaultUpdatedAt = gatewayconfigDescUpdatedAt.Default.(func() time.Time)
+	// gatewayconfig.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	gatewayconfig.UpdateDefaultUpdatedAt = gatewayconfigDescUpdatedAt.UpdateDefault.(func() time.Time)
 	paymentorderFields := schema.PaymentOrder{}.Fields()
 	_ = paymentorderFields
 	// paymentorderDescStatus is the schema descriptor for status field.
-	paymentorderDescStatus := paymentorderFields[13].Descriptor()
+	paymentorderDescStatus := paymentorderFields[14].Descriptor()
 	// paymentorder.DefaultStatus holds the default value on creation for the status field.
 	paymentorder.DefaultStatus = paymentorderDescStatus.Default.(string)
 	// paymentorderDescCreatedAt is the schema descriptor for created_at field.
-	paymentorderDescCreatedAt := paymentorderFields[18].Descriptor()
+	paymentorderDescCreatedAt := paymentorderFields[19].Descriptor()
 	// paymentorder.DefaultCreatedAt holds the default value on creation for the created_at field.
 	paymentorder.DefaultCreatedAt = paymentorderDescCreatedAt.Default.(func() time.Time)
 	// paymentorderDescUpdatedAt is the schema descriptor for updated_at field.
-	paymentorderDescUpdatedAt := paymentorderFields[19].Descriptor()
+	paymentorderDescUpdatedAt := paymentorderFields[20].Descriptor()
 	// paymentorder.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	paymentorder.DefaultUpdatedAt = paymentorderDescUpdatedAt.Default.(func() time.Time)
 	// paymentorder.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

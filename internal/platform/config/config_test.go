@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestLoadDefaults(t *testing.T) {
 	t.Setenv("APP_NAME", "")
@@ -83,5 +87,71 @@ func TestLoadMySQLDatabaseDSNFromParts(t *testing.T) {
 	}
 	if cfg.Database.DSN != want {
 		t.Fatalf("Database.DSN = %q, want %q", cfg.Database.DSN, want)
+	}
+}
+
+func TestLoadReadsDotEnvFile(t *testing.T) {
+	clearConfigEnv(t)
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte(`
+HTTP_ADDR=:18080
+DB_DRIVER=postgres
+DB_HOST=localhost
+DB_PORT=15434
+DB_NAME=payment_gateway
+DB_USER=payment
+DB_PASSWORD=payment
+DB_SSLMODE=disable
+REDIS_ADDR=localhost:16380
+`), 0o600); err != nil {
+		t.Fatalf("write .env: %v", err)
+	}
+	previousWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("get cwd: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(previousWD); err != nil {
+			t.Fatalf("restore cwd: %v", err)
+		}
+	})
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("chdir temp dir: %v", err)
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.HTTP.Addr != ":18080" {
+		t.Fatalf("HTTP.Addr = %q, want :18080", cfg.HTTP.Addr)
+	}
+	if cfg.Redis.Addr != "localhost:16380" {
+		t.Fatalf("Redis.Addr = %q, want localhost:16380", cfg.Redis.Addr)
+	}
+	wantDSN := "postgres://payment:payment@localhost:15434/payment_gateway?sslmode=disable"
+	if cfg.Database.DSN != wantDSN {
+		t.Fatalf("Database.DSN = %q, want %q", cfg.Database.DSN, wantDSN)
+	}
+}
+
+func clearConfigEnv(t *testing.T) {
+	t.Helper()
+	for _, key := range []string{
+		"APP_NAME",
+		"APP_ENV",
+		"HTTP_ADDR",
+		"DATABASE_URL",
+		"DB_DRIVER",
+		"DB_HOST",
+		"DB_PORT",
+		"DB_NAME",
+		"DB_USER",
+		"DB_PASSWORD",
+		"DB_SSLMODE",
+		"REDIS_ADDR",
+		"APP_SECRET_ENCRYPTION_KEY",
+	} {
+		t.Setenv(key, "")
 	}
 }

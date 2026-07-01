@@ -29,6 +29,7 @@ type CreateOrderInput struct {
 	SettlementCurrency string
 	Channel            string
 	PayMethod          string
+	ReturnURL          string
 	Status             string
 	ExpiresAt          *time.Time
 	Metadata           map[string]any
@@ -81,6 +82,9 @@ func (r Repository) Create(ctx context.Context, input CreateOrderInput) (*ent.Pa
 	if input.PayMethod != "" {
 		create.SetPayMethod(input.PayMethod)
 	}
+	if input.ReturnURL != "" {
+		create.SetReturnURL(input.ReturnURL)
+	}
 	if input.ExpiresAt != nil {
 		create.SetExpiresAt(*input.ExpiresAt)
 	}
@@ -93,6 +97,12 @@ func (r Repository) FindByID(ctx context.Context, id int) (*ent.PaymentOrder, er
 
 func (r Repository) FindByGatewayOrderNo(ctx context.Context, gatewayOrderNo string) (*ent.PaymentOrder, error) {
 	return r.client.PaymentOrder.Query().Where(paymentorder.GatewayOrderNo(gatewayOrderNo)).Only(ctx)
+}
+
+func (r Repository) FindByGatewayOrderNoForApp(ctx context.Context, appID string, gatewayOrderNo string) (*ent.PaymentOrder, error) {
+	return r.client.PaymentOrder.Query().
+		Where(paymentorder.AppID(appID), paymentorder.GatewayOrderNo(gatewayOrderNo)).
+		Only(ctx)
 }
 
 func (r Repository) FindByMerchantOrderNo(ctx context.Context, appID string, merchantOrderNo string) (*ent.PaymentOrder, error) {
@@ -191,6 +201,29 @@ func (r Repository) MarkPaid(ctx context.Context, id int, channelTradeNo string,
 		SetPaidAt(now)
 	if channelTradeNo != "" {
 		update.SetChannelTradeNo(channelTradeNo)
+	}
+	if _, err := update.Save(ctx); err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
+}
+
+func (r Repository) SetChannelTradeNo(ctx context.Context, id int, channelTradeNo string) (*ent.PaymentOrder, error) {
+	if _, err := r.client.PaymentOrder.UpdateOneID(id).
+		SetChannelTradeNo(channelTradeNo).
+		Save(ctx); err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
+}
+
+func (r Repository) SetPaymentSelection(ctx context.Context, id int, channel string, payMethod string) (*ent.PaymentOrder, error) {
+	update := r.client.PaymentOrder.UpdateOneID(id)
+	if channel != "" {
+		update.SetChannel(channel)
+	}
+	if payMethod != "" {
+		update.SetPayMethod(payMethod)
 	}
 	if _, err := update.Save(ctx); err != nil {
 		return nil, err

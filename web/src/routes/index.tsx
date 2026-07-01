@@ -1,4 +1,4 @@
-import { createRoute } from "@tanstack/react-router";
+import { Link, createRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
@@ -187,9 +187,11 @@ function HomePage() {
                   {t("home.headline")}
                 </CardTitle>
               </div>
-              <Button size="sm">
-                {t("home.openOrders")}
-                <ArrowUpRight className="size-4" />
+              <Button asChild size="sm">
+                <Link to="/test-pay">
+                  {t("home.testPayment.button")}
+                  <ArrowUpRight />
+                </Link>
               </Button>
             </div>
           </CardHeader>

@@ -9,26 +9,33 @@ import (
 	"time"
 
 	"payment-gateway/ent"
+	apprepo "payment-gateway/internal/domain/apps/repository"
 	orderrepo "payment-gateway/internal/domain/orders/repository"
+	paymentsvc "payment-gateway/internal/domain/payments/service"
 )
 
 var (
-	ErrAppIDRequired           = errors.New("app_id is required")
-	ErrMerchantOrderNoRequired = errors.New("merchant_order_no is required")
-	ErrSubjectRequired         = errors.New("subject is required")
-	ErrInvalidAmount           = errors.New("amount must be greater than zero")
-	ErrInvalidCurrency         = errors.New("invalid currency")
-	ErrDuplicateOrder          = errors.New("merchant order already exists for app")
-	ErrOrderCannotBeClosed     = errors.New("order cannot be closed in current status")
+	ErrAppIDRequired                 = errors.New("app_id is required")
+	ErrMerchantOrderNoRequired       = errors.New("merchant_order_no is required")
+	ErrSubjectRequired               = errors.New("subject is required")
+	ErrInvalidAmount                 = errors.New("amount must be greater than zero")
+	ErrInvalidCurrency               = errors.New("invalid currency")
+	ErrDuplicateOrder                = errors.New("merchant order already exists for app")
+	ErrIdempotencyConflict           = errors.New("idempotency conflict")
+	ErrOrderCannotBeClosed           = errors.New("order cannot be closed in current status")
+	ErrAppNotFound                   = errors.New("app not found")
+	ErrAppDisabled                   = errors.New("app is disabled")
+	ErrUnsupportedCurrencyForChannel = errors.New("currency is not supported by channel")
 )
 
 type Service struct {
 	orders orderrepo.Repository
+	apps   apprepo.Repository
 	now    func() time.Time
 }
 
 func New(client *ent.Client) Service {
-	return Service{orders: orderrepo.New(client), now: time.Now}
+	return Service{orders: orderrepo.New(client), apps: apprepo.New(client), now: time.Now}
 }
 
 type ManageOrderInput struct {
@@ -43,6 +50,7 @@ type ManageOrderInput struct {
 	SettlementCurrency string
 	Channel            string
 	PayMethod          string
+	ReturnURL          string
 	ExpiresAt          *time.Time
 	Metadata           map[string]any
 }
@@ -54,6 +62,21 @@ type UpdateOrderInput struct {
 	Channel      string
 	PayMethod    string
 	Metadata     map[string]any
+}
+
+type OpenOrderInput struct {
+	MerchantOrderNo  string
+	BusinessType     string
+	Subject          string
+	Description      string
+	Amount           int64
+	Currency         string
+	Channel          string
+	PayMethod        string
+	PreferredChannel string
+	ClientIP         string
+	ReturnURL        string
+	Metadata         map[string]any
 }
 
 type ListOrdersInput struct {
@@ -81,6 +104,17 @@ func (s Service) CreateOrder(ctx context.Context, input ManageOrderInput) (*ent.
 	if existing, err := s.orders.FindByMerchantOrderNo(ctx, normalized.AppID, normalized.MerchantOrderNo); err == nil && existing != nil {
 		return nil, ErrDuplicateOrder
 	}
+	app, err := s.resolveEnabledApp(ctx, normalized.AppID)
+	if err != nil {
+		return nil, err
+	}
+	returnURL := normalized.ReturnURL
+	if returnURL == "" {
+		returnURL = strings.TrimSpace(app.DefaultReturnURL)
+	}
+	if err := validateChannelCurrency(normalized.Channel, normalized.PayMethod, normalized.Currency); err != nil {
+		return nil, err
+	}
 	gatewayOrderNo, err := newGatewayOrderNo(s.now())
 	if err != nil {
 		return nil, err
@@ -98,10 +132,81 @@ func (s Service) CreateOrder(ctx context.Context, input ManageOrderInput) (*ent.
 		SettlementCurrency: normalized.SettlementCurrency,
 		Channel:            normalized.Channel,
 		PayMethod:          normalized.PayMethod,
+		ReturnURL:          returnURL,
 		Status:             "pending",
 		ExpiresAt:          normalized.ExpiresAt,
 		Metadata:           normalized.Metadata,
 	})
+}
+
+func (s Service) CreateOpenOrder(ctx context.Context, appID string, input OpenOrderInput) (*ent.PaymentOrder, bool, error) {
+	normalized, err := normalizeOpenOrderInput(input)
+	if err != nil {
+		return nil, false, err
+	}
+	existing, err := s.orders.FindByMerchantOrderNo(ctx, appID, normalized.MerchantOrderNo)
+	if err == nil {
+		if sameOpenOrder(existing, appID, normalized) {
+			return existing, false, nil
+		}
+		return nil, false, ErrIdempotencyConflict
+	}
+	if !isNotFoundError(err) {
+		return nil, false, err
+	}
+	app, err := s.resolveEnabledApp(ctx, appID)
+	if err != nil {
+		return nil, false, err
+	}
+	returnURL := normalized.ReturnURL
+	if returnURL == "" {
+		returnURL = strings.TrimSpace(app.DefaultReturnURL)
+	}
+	if err := validateChannelCurrency(normalized.Channel, normalized.PayMethod, normalized.Currency); err != nil {
+		return nil, false, err
+	}
+	created, err := s.CreateOrder(ctx, ManageOrderInput{
+		AppID:           appID,
+		MerchantOrderNo: normalized.MerchantOrderNo,
+		BusinessType:    normalized.BusinessType,
+		Subject:         normalized.Subject,
+		Description:     normalized.Description,
+		Amount:          normalized.Amount,
+		Currency:        normalized.Currency,
+		Channel:         normalized.Channel,
+		PayMethod:       normalized.PayMethod,
+		ReturnURL:       returnURL,
+		Metadata:        normalized.Metadata,
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	return created, true, nil
+}
+
+func (s Service) resolveAppDefaultReturnURL(ctx context.Context, appID string) (string, error) {
+	app, err := s.apps.FindByAppID(ctx, appID)
+	if err == nil {
+		return strings.TrimSpace(app.DefaultReturnURL), nil
+	}
+	if isNotFoundError(err) {
+		return "", nil
+	}
+	return "", err
+}
+
+func (s Service) resolveEnabledApp(ctx context.Context, appID string) (*ent.App, error) {
+	app, err := s.apps.FindByAppID(ctx, appID)
+	if err != nil {
+		if isNotFoundError(err) {
+			return nil, ErrAppNotFound
+		}
+		return nil, err
+	}
+	if app.Status != "enabled" {
+		return nil, ErrAppDisabled
+	}
+	return app, nil
 }
 
 func (s Service) ListOrders(ctx context.Context, input ListOrdersInput) (*ListOrdersResult, error) {
@@ -136,6 +241,18 @@ func (s Service) FindOrder(ctx context.Context, id int) (*ent.PaymentOrder, erro
 	return s.orders.FindByID(ctx, id)
 }
 
+func (s Service) FindOrderByGatewayOrderNo(ctx context.Context, gatewayOrderNo string) (*ent.PaymentOrder, error) {
+	return s.orders.FindByGatewayOrderNo(ctx, gatewayOrderNo)
+}
+
+func (s Service) FindOrderByGatewayOrderNoForApp(ctx context.Context, appID string, gatewayOrderNo string) (*ent.PaymentOrder, error) {
+	return s.orders.FindByGatewayOrderNoForApp(ctx, appID, gatewayOrderNo)
+}
+
+func (s Service) FindOrderByMerchantOrderNoForApp(ctx context.Context, appID string, merchantOrderNo string) (*ent.PaymentOrder, error) {
+	return s.orders.FindByMerchantOrderNo(ctx, appID, merchantOrderNo)
+}
+
 func (s Service) UpdateOrder(ctx context.Context, id int, input UpdateOrderInput) (*ent.PaymentOrder, error) {
 	subject := strings.TrimSpace(input.Subject)
 	if subject == "" {
@@ -166,8 +283,27 @@ func (s Service) CloseOrder(ctx context.Context, id int) (*ent.PaymentOrder, err
 	return s.orders.SetStatus(ctx, id, "closed", s.now())
 }
 
+func (s Service) CloseOrderForApp(ctx context.Context, appID string, gatewayOrderNo string) (*ent.PaymentOrder, error) {
+	existing, err := s.orders.FindByGatewayOrderNoForApp(ctx, appID, gatewayOrderNo)
+	if err != nil {
+		return nil, err
+	}
+	if existing.Status != "pending" && existing.Status != "failed" {
+		return nil, ErrOrderCannotBeClosed
+	}
+	return s.orders.SetStatus(ctx, existing.ID, "closed", s.now())
+}
+
 func (s Service) MarkPaid(ctx context.Context, id int, channelTradeNo string) (*ent.PaymentOrder, error) {
 	return s.orders.MarkPaid(ctx, id, strings.TrimSpace(channelTradeNo), s.now())
+}
+
+func (s Service) SetChannelTradeNo(ctx context.Context, id int, channelTradeNo string) (*ent.PaymentOrder, error) {
+	return s.orders.SetChannelTradeNo(ctx, id, strings.TrimSpace(channelTradeNo))
+}
+
+func (s Service) SetPaymentSelection(ctx context.Context, id int, channel string, payMethod string) (*ent.PaymentOrder, error) {
+	return s.orders.SetPaymentSelection(ctx, id, strings.ToLower(strings.TrimSpace(channel)), strings.ToLower(strings.TrimSpace(payMethod)))
 }
 
 func normalizeManageInput(input ManageOrderInput) (ManageOrderInput, error) {
@@ -206,9 +342,59 @@ func normalizeManageInput(input ManageOrderInput) (ManageOrderInput, error) {
 		SettlementCurrency: strings.ToUpper(strings.TrimSpace(input.SettlementCurrency)),
 		Channel:            strings.ToLower(strings.TrimSpace(input.Channel)),
 		PayMethod:          strings.ToLower(strings.TrimSpace(input.PayMethod)),
+		ReturnURL:          strings.TrimSpace(input.ReturnURL),
 		ExpiresAt:          input.ExpiresAt,
 		Metadata:           metadata,
 	}, nil
+}
+
+func normalizeOpenOrderInput(input OpenOrderInput) (OpenOrderInput, error) {
+	merchantOrderNo := strings.TrimSpace(input.MerchantOrderNo)
+	if merchantOrderNo == "" {
+		return OpenOrderInput{}, ErrMerchantOrderNoRequired
+	}
+	subject := strings.TrimSpace(input.Subject)
+	if subject == "" {
+		return OpenOrderInput{}, ErrSubjectRequired
+	}
+	if input.Amount <= 0 {
+		return OpenOrderInput{}, ErrInvalidAmount
+	}
+	currency := strings.ToUpper(strings.TrimSpace(input.Currency))
+	if !supportedCurrency(currency) {
+		return OpenOrderInput{}, ErrInvalidCurrency
+	}
+	return OpenOrderInput{
+		MerchantOrderNo:  merchantOrderNo,
+		BusinessType:     strings.TrimSpace(input.BusinessType),
+		Subject:          subject,
+		Description:      strings.TrimSpace(input.Description),
+		Amount:           input.Amount,
+		Currency:         currency,
+		Channel:          strings.ToLower(strings.TrimSpace(input.Channel)),
+		PayMethod:        strings.ToLower(strings.TrimSpace(input.PayMethod)),
+		PreferredChannel: strings.ToLower(strings.TrimSpace(input.PreferredChannel)),
+		ClientIP:         strings.TrimSpace(input.ClientIP),
+		ReturnURL:        strings.TrimSpace(input.ReturnURL),
+		Metadata:         input.Metadata,
+	}, nil
+}
+
+func sameOpenOrder(existing *ent.PaymentOrder, appID string, input OpenOrderInput) bool {
+	if existing.AppID != appID {
+		return false
+	}
+	return existing.MerchantOrderNo == input.MerchantOrderNo &&
+		existing.Amount == input.Amount &&
+		existing.Currency == input.Currency &&
+		existing.Subject == input.Subject &&
+		existing.BusinessType == input.BusinessType &&
+		existing.PayMethod == input.PayMethod &&
+		existing.Channel == input.Channel
+}
+
+func isNotFoundError(err error) bool {
+	return err != nil && strings.Contains(strings.ToLower(err.Error()), "not found")
 }
 
 func supportedCurrency(currency string) bool {
@@ -218,6 +404,20 @@ func supportedCurrency(currency string) bool {
 	default:
 		return false
 	}
+}
+
+func validateChannelCurrency(channel string, payMethod string, currency string) error {
+	paymentChannel := strings.ToLower(strings.TrimSpace(channel))
+	if paymentChannel == "" {
+		paymentChannel = strings.ToLower(strings.TrimSpace(payMethod))
+	}
+	if paymentChannel == "" {
+		return nil
+	}
+	if !paymentsvc.ChannelSupportsCurrency(paymentChannel, currency) {
+		return ErrUnsupportedCurrencyForChannel
+	}
+	return nil
 }
 
 func newGatewayOrderNo(now time.Time) (string, error) {

@@ -16,6 +16,7 @@ var (
 		{Name: "app_secret_hash", Type: field.TypeString},
 		{Name: "app_secret_ciphertext", Type: field.TypeString, Nullable: true},
 		{Name: "notify_url", Type: field.TypeString, Nullable: true},
+		{Name: "default_return_url", Type: field.TypeString, Nullable: true},
 		{Name: "allowed_ips", Type: field.TypeJSON, Nullable: true},
 		{Name: "status", Type: field.TypeString, Default: "enabled"},
 		{Name: "created_at", Type: field.TypeTime},
@@ -68,6 +69,25 @@ var (
 		Columns:    ChannelAccountsColumns,
 		PrimaryKey: []*schema.Column{ChannelAccountsColumns[0]},
 	}
+	// GatewayConfigsColumns holds the columns for the "gateway_configs" table.
+	GatewayConfigsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "gateway_base_url", Type: field.TypeString, Default: "http://localhost:8080"},
+		{Name: "payment_notify_path", Type: field.TypeString, Default: "/v1/channel/notify"},
+		{Name: "default_currency", Type: field.TypeString, Default: "CNY"},
+		{Name: "default_locale", Type: field.TypeString, Default: "zh-CN"},
+		{Name: "request_id_enabled", Type: field.TypeBool, Default: true},
+		{Name: "maintenance_mode", Type: field.TypeBool, Default: false},
+		{Name: "extra", Type: field.TypeJSON, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// GatewayConfigsTable holds the schema information for the "gateway_configs" table.
+	GatewayConfigsTable = &schema.Table{
+		Name:       "gateway_configs",
+		Columns:    GatewayConfigsColumns,
+		PrimaryKey: []*schema.Column{GatewayConfigsColumns[0]},
+	}
 	// PaymentOrdersColumns holds the columns for the "payment_orders" table.
 	PaymentOrdersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -84,6 +104,7 @@ var (
 		{Name: "channel", Type: field.TypeString, Nullable: true},
 		{Name: "pay_method", Type: field.TypeString, Nullable: true},
 		{Name: "channel_trade_no", Type: field.TypeString, Nullable: true},
+		{Name: "return_url", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeString, Default: "pending"},
 		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "paid_at", Type: field.TypeTime, Nullable: true},
@@ -116,7 +137,7 @@ var (
 			{
 				Name:    "paymentorder_status",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[14]},
+				Columns: []*schema.Column{PaymentOrdersColumns[15]},
 			},
 			{
 				Name:    "paymentorder_channel",
@@ -131,7 +152,7 @@ var (
 			{
 				Name:    "paymentorder_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[19]},
+				Columns: []*schema.Column{PaymentOrdersColumns[20]},
 			},
 		},
 	}
@@ -225,6 +246,7 @@ var (
 		AppsTable,
 		CasbinRulesTable,
 		ChannelAccountsTable,
+		GatewayConfigsTable,
 		PaymentOrdersTable,
 		RefreshTokensTable,
 		RolesTable,

@@ -66,6 +66,20 @@ func (_c *AppCreate) SetNillableNotifyURL(v *string) *AppCreate {
 	return _c
 }
 
+// SetDefaultReturnURL sets the "default_return_url" field.
+func (_c *AppCreate) SetDefaultReturnURL(v string) *AppCreate {
+	_c.mutation.SetDefaultReturnURL(v)
+	return _c
+}
+
+// SetNillableDefaultReturnURL sets the "default_return_url" field if the given value is not nil.
+func (_c *AppCreate) SetNillableDefaultReturnURL(v *string) *AppCreate {
+	if v != nil {
+		_c.SetDefaultReturnURL(*v)
+	}
+	return _c
+}
+
 // SetAllowedIps sets the "allowed_ips" field.
 func (_c *AppCreate) SetAllowedIps(v []string) *AppCreate {
 	_c.mutation.SetAllowedIps(v)
@@ -228,6 +242,10 @@ func (_c *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.NotifyURL(); ok {
 		_spec.SetField(app.FieldNotifyURL, field.TypeString, value)
 		_node.NotifyURL = value
+	}
+	if value, ok := _c.mutation.DefaultReturnURL(); ok {
+		_spec.SetField(app.FieldDefaultReturnURL, field.TypeString, value)
+		_node.DefaultReturnURL = value
 	}
 	if value, ok := _c.mutation.AllowedIps(); ok {
 		_spec.SetField(app.FieldAllowedIps, field.TypeJSON, value)

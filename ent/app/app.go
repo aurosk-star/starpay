@@ -23,6 +23,8 @@ const (
 	FieldAppSecretCiphertext = "app_secret_ciphertext"
 	// FieldNotifyURL holds the string denoting the notify_url field in the database.
 	FieldNotifyURL = "notify_url"
+	// FieldDefaultReturnURL holds the string denoting the default_return_url field in the database.
+	FieldDefaultReturnURL = "default_return_url"
 	// FieldAllowedIps holds the string denoting the allowed_ips field in the database.
 	FieldAllowedIps = "allowed_ips"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -43,6 +45,7 @@ var Columns = []string{
 	FieldAppSecretHash,
 	FieldAppSecretCiphertext,
 	FieldNotifyURL,
+	FieldDefaultReturnURL,
 	FieldAllowedIps,
 	FieldStatus,
 	FieldCreatedAt,
@@ -101,6 +104,11 @@ func ByAppSecretCiphertext(opts ...sql.OrderTermOption) OrderOption {
 // ByNotifyURL orders the results by the notify_url field.
 func ByNotifyURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNotifyURL, opts...).ToFunc()
+}
+
+// ByDefaultReturnURL orders the results by the default_return_url field.
+func ByDefaultReturnURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDefaultReturnURL, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

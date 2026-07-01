@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bufio"
 	"fmt"
 	"net/url"
 	"os"
@@ -48,6 +49,7 @@ type AuthConfig struct {
 }
 
 func Load() (Config, error) {
+	loadDotEnv(".env")
 	return Config{
 		App: AppConfig{
 			Name: env("APP_NAME", "payment-gateway"),
@@ -72,6 +74,44 @@ func Load() (Config, error) {
 			AppSecretEncryptionKey: env("APP_SECRET_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef"),
 		},
 	}, nil
+}
+
+func loadDotEnv(path string) {
+	file, err := os.Open(path)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		key, value, ok := parseDotEnvLine(scanner.Text())
+		if !ok {
+			continue
+		}
+		if os.Getenv(key) != "" {
+			continue
+		}
+		_ = os.Setenv(key, value)
+	}
+}
+
+func parseDotEnvLine(line string) (string, string, bool) {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+		return "", "", false
+	}
+	key, value, ok := strings.Cut(trimmed, "=")
+	if !ok {
+		return "", "", false
+	}
+	key = strings.TrimSpace(key)
+	if key == "" || strings.ContainsAny(key, " \t") {
+		return "", "", false
+	}
+	value = strings.TrimSpace(value)
+	value = strings.Trim(value, `"'`)
+	return key, value, true
 }
 
 func loadDatabaseConfig() DatabaseConfig {

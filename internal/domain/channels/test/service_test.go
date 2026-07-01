@@ -22,11 +22,13 @@ func TestCreateWechatChannelMasksSecrets(t *testing.T) {
 		Name:    "微信支付生产商户号",
 		Env:     "prod",
 		Config: map[string]any{
-			"app_id":      "wx_app_id",
-			"mch_id":      "mch_123",
-			"api_v3_key":  "secret-v3",
-			"serial_no":   "serial-1",
-			"private_key": "pem-private-key",
+			"app_id":                "wx_app_id",
+			"mch_id":                "mch_123",
+			"api_v3_key":            "secret-v3",
+			"serial_no":             "serial-1",
+			"private_key":           "pem-private-key",
+			"cert":                  "merchant-cert",
+			"wechat_pay_public_key": "wechat-public-key",
 		},
 	})
 	if err != nil {
@@ -37,6 +39,12 @@ func TestCreateWechatChannelMasksSecrets(t *testing.T) {
 	}
 	if view.Config["private_key"] != "********" {
 		t.Fatalf("private_key = %#v, want masked", view.Config["private_key"])
+	}
+	if view.Config["cert"] != "********" {
+		t.Fatalf("cert = %#v, want masked", view.Config["cert"])
+	}
+	if view.Config["wechat_pay_public_key"] != "********" {
+		t.Fatalf("wechat_pay_public_key = %#v, want masked", view.Config["wechat_pay_public_key"])
 	}
 }
 
@@ -51,8 +59,8 @@ func TestUpdateAlipayChannelMasksSecrets(t *testing.T) {
 		Name:    "支付宝生产商户号",
 		Env:     "prod",
 		Config: map[string]any{
-			"app_id":              "app-1",
-			"private_key":         "private-key",
+			"app_id":               "app-1",
+			"private_key":          "private-key",
 			"alipay_public_key":    "public-key",
 			"alipay_root_cert_sn":  "root-sn",
 			"alipay_public_key_sn": "public-sn",
@@ -135,6 +143,92 @@ func TestUpdateChannelKeepsExistingSensitiveConfigWhenBlank(t *testing.T) {
 	}
 	if found.Config["app_id"] != "wx_app_updated" {
 		t.Fatalf("stored app_id = %#v, want updated app id", found.Config["app_id"])
+	}
+}
+
+func TestUpdateChannelKeepsExistingSensitiveConfigWhenMasked(t *testing.T) {
+	ctx := context.Background()
+	client := enttest.Open(t, dialect.SQLite, "file:update_keep_masked_sensitive_channel?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	svc := channelsvc.New(client)
+	created, err := svc.CreateChannelAccount(ctx, channelsvc.ManageChannelAccountInput{
+		Channel: "alipay",
+		Name:    "支付宝",
+		Env:     "sandbox",
+		Config: map[string]any{
+			"app_id":            "app_1",
+			"private_key":       "old-private-key",
+			"alipay_public_key": "old-public-key",
+			"server_url":        "https://openapi-sandbox.dl.alipaydev.com",
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateChannelAccount() error = %v", err)
+	}
+
+	view, err := svc.UpdateChannelAccount(ctx, created.ID, channelsvc.ManageChannelAccountInput{
+		Channel: "alipay",
+		Name:    "支付宝更新",
+		Env:     "sandbox",
+		Config: map[string]any{
+			"app_id":            "app_2",
+			"private_key":       "********",
+			"alipay_public_key": "********",
+			"server_url":        "https://openapi-sandbox.dl.alipaydev.com",
+		},
+	})
+	if err != nil {
+		t.Fatalf("UpdateChannelAccount() error = %v", err)
+	}
+	if view.Config["private_key"] != "********" || view.Config["alipay_public_key"] != "********" {
+		t.Fatalf("view config = %#v, want masked sensitive fields", view.Config)
+	}
+
+	found, err := client.ChannelAccount.Get(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("get channel account: %v", err)
+	}
+	if found.Config["private_key"] != "old-private-key" {
+		t.Fatalf("stored private_key = %#v, want old private key", found.Config["private_key"])
+	}
+	if found.Config["alipay_public_key"] != "old-public-key" {
+		t.Fatalf("stored alipay_public_key = %#v, want old public key", found.Config["alipay_public_key"])
+	}
+	if found.Config["app_id"] != "app_2" {
+		t.Fatalf("stored app_id = %#v, want updated app id", found.Config["app_id"])
+	}
+}
+
+func TestCreatePaypalChannelMasksWebhookSecret(t *testing.T) {
+	ctx := context.Background()
+	client := enttest.Open(t, dialect.SQLite, "file:create_paypal_channel?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	svc := channelsvc.New(client)
+	view, err := svc.CreateChannelAccount(ctx, channelsvc.ManageChannelAccountInput{
+		Channel: "paypal",
+		Name:    "PayPal Sandbox",
+		Env:     "sandbox",
+		Config: map[string]any{
+			"client_id":     "client-id",
+			"client_secret": "client-secret",
+			"webhook_id":    "webhook-id",
+			"brand_name":    "Payment Gateway",
+			"intent":        "CAPTURE",
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateChannelAccount() error = %v", err)
+	}
+	if view.Config["client_secret"] != "********" {
+		t.Fatalf("client_secret = %#v, want masked", view.Config["client_secret"])
+	}
+	if view.Config["webhook_id"] != "********" {
+		t.Fatalf("webhook_id = %#v, want masked", view.Config["webhook_id"])
+	}
+	if view.Config["brand_name"] != "Payment Gateway" {
+		t.Fatalf("brand_name = %#v, want plain value", view.Config["brand_name"])
 	}
 }
 

@@ -26,6 +26,10 @@ func New(client *ent.Client) Service {
 	return Service{channels: channelrepo.New(client)}
 }
 
+func (s Service) IsZero() bool {
+	return s.channels.IsZero()
+}
+
 type ManageChannelAccountInput struct {
 	Channel string
 	Name    string
@@ -187,12 +191,17 @@ func mergeSensitiveConfig(existing map[string]any, next map[string]any) map[stri
 		merged[key] = value
 	}
 	for key, value := range next {
-		if isSensitiveConfigKey(key) && strings.TrimSpace(stringValue(value)) == "" {
+		if isSensitiveConfigKey(key) && isUnchangedSensitiveValue(value) {
 			continue
 		}
 		merged[key] = value
 	}
 	return merged
+}
+
+func isUnchangedSensitiveValue(value any) bool {
+	trimmed := strings.TrimSpace(stringValue(value))
+	return trimmed == "" || trimmed == maskedValue
 }
 
 func stringValue(value any) string {
@@ -215,6 +224,7 @@ func isSensitiveConfigKey(key string) bool {
 		"private_key",
 		"alipay_public_key",
 		"wechat_pay_public_key",
+		"webhook_id",
 		"cert",
 		"cert_key":
 		return true

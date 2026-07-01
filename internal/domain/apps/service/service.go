@@ -42,11 +42,12 @@ func New(client *ent.Client, opts ...Option) Service {
 }
 
 type ManageAppInput struct {
-	AppID      string
-	Name       string
-	NotifyURL  string
-	AllowedIPs []string
-	Status     string
+	AppID            string
+	Name             string
+	NotifyURL        string
+	DefaultReturnURL string
+	AllowedIPs       []string
+	Status           string
 }
 
 type AppWithSecret struct {
@@ -77,6 +78,7 @@ func (s Service) CreateApp(ctx context.Context, input ManageAppInput) (*AppWithS
 		AppSecretHash:       hash,
 		AppSecretCiphertext: encryptSecretOrPanic(s.secretEncryptionKey, secret),
 		NotifyURL:           strings.TrimSpace(input.NotifyURL),
+		DefaultReturnURL:    strings.TrimSpace(input.DefaultReturnURL),
 		AllowedIPs:          normalizeAllowedIPs(input.AllowedIPs),
 		Status:              normalizeStatus(input.Status),
 	})
@@ -92,10 +94,11 @@ func (s Service) UpdateApp(ctx context.Context, id int, input ManageAppInput) (*
 		return nil, ErrNameRequired
 	}
 	return s.apps.Update(ctx, id, apprepo.UpdateAppInput{
-		Name:       name,
-		NotifyURL:  strings.TrimSpace(input.NotifyURL),
-		AllowedIPs: normalizeAllowedIPs(input.AllowedIPs),
-		Status:     normalizeStatus(input.Status),
+		Name:             name,
+		NotifyURL:        strings.TrimSpace(input.NotifyURL),
+		DefaultReturnURL: strings.TrimSpace(input.DefaultReturnURL),
+		AllowedIPs:       normalizeAllowedIPs(input.AllowedIPs),
+		Status:           normalizeStatus(input.Status),
 	})
 }
 

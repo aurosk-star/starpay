@@ -44,6 +44,8 @@ type PaymentOrder struct {
 	PayMethod string `json:"pay_method,omitempty"`
 	// ChannelTradeNo holds the value of the "channel_trade_no" field.
 	ChannelTradeNo string `json:"channel_trade_no,omitempty"`
+	// ReturnURL holds the value of the "return_url" field.
+	ReturnURL string `json:"return_url,omitempty"`
 	// Status holds the value of the "status" field.
 	Status string `json:"status,omitempty"`
 	// ExpiresAt holds the value of the "expires_at" field.
@@ -70,7 +72,7 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case paymentorder.FieldID, paymentorder.FieldAmount, paymentorder.FieldSettlementAmount:
 			values[i] = new(sql.NullInt64)
-		case paymentorder.FieldGatewayOrderNo, paymentorder.FieldAppID, paymentorder.FieldMerchantOrderNo, paymentorder.FieldBusinessType, paymentorder.FieldSubject, paymentorder.FieldDescription, paymentorder.FieldCurrency, paymentorder.FieldSettlementCurrency, paymentorder.FieldChannel, paymentorder.FieldPayMethod, paymentorder.FieldChannelTradeNo, paymentorder.FieldStatus:
+		case paymentorder.FieldGatewayOrderNo, paymentorder.FieldAppID, paymentorder.FieldMerchantOrderNo, paymentorder.FieldBusinessType, paymentorder.FieldSubject, paymentorder.FieldDescription, paymentorder.FieldCurrency, paymentorder.FieldSettlementCurrency, paymentorder.FieldChannel, paymentorder.FieldPayMethod, paymentorder.FieldChannelTradeNo, paymentorder.FieldReturnURL, paymentorder.FieldStatus:
 			values[i] = new(sql.NullString)
 		case paymentorder.FieldExpiresAt, paymentorder.FieldPaidAt, paymentorder.FieldClosedAt, paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -172,6 +174,12 @@ func (_m *PaymentOrder) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field channel_trade_no", values[i])
 			} else if value.Valid {
 				_m.ChannelTradeNo = value.String
+			}
+		case paymentorder.FieldReturnURL:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field return_url", values[i])
+			} else if value.Valid {
+				_m.ReturnURL = value.String
 			}
 		case paymentorder.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -294,6 +302,9 @@ func (_m *PaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("channel_trade_no=")
 	builder.WriteString(_m.ChannelTradeNo)
+	builder.WriteString(", ")
+	builder.WriteString("return_url=")
+	builder.WriteString(_m.ReturnURL)
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)

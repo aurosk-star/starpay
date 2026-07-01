@@ -79,6 +79,11 @@ func NotifyURL(v string) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldNotifyURL, v))
 }
 
+// DefaultReturnURL applies equality check predicate on the "default_return_url" field. It's identical to DefaultReturnURLEQ.
+func DefaultReturnURL(v string) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldDefaultReturnURL, v))
+}
+
 // Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
 func Status(v string) predicate.App {
 	return predicate.App(sql.FieldEQ(FieldStatus, v))
@@ -437,6 +442,81 @@ func NotifyURLEqualFold(v string) predicate.App {
 // NotifyURLContainsFold applies the ContainsFold predicate on the "notify_url" field.
 func NotifyURLContainsFold(v string) predicate.App {
 	return predicate.App(sql.FieldContainsFold(FieldNotifyURL, v))
+}
+
+// DefaultReturnURLEQ applies the EQ predicate on the "default_return_url" field.
+func DefaultReturnURLEQ(v string) predicate.App {
+	return predicate.App(sql.FieldEQ(FieldDefaultReturnURL, v))
+}
+
+// DefaultReturnURLNEQ applies the NEQ predicate on the "default_return_url" field.
+func DefaultReturnURLNEQ(v string) predicate.App {
+	return predicate.App(sql.FieldNEQ(FieldDefaultReturnURL, v))
+}
+
+// DefaultReturnURLIn applies the In predicate on the "default_return_url" field.
+func DefaultReturnURLIn(vs ...string) predicate.App {
+	return predicate.App(sql.FieldIn(FieldDefaultReturnURL, vs...))
+}
+
+// DefaultReturnURLNotIn applies the NotIn predicate on the "default_return_url" field.
+func DefaultReturnURLNotIn(vs ...string) predicate.App {
+	return predicate.App(sql.FieldNotIn(FieldDefaultReturnURL, vs...))
+}
+
+// DefaultReturnURLGT applies the GT predicate on the "default_return_url" field.
+func DefaultReturnURLGT(v string) predicate.App {
+	return predicate.App(sql.FieldGT(FieldDefaultReturnURL, v))
+}
+
+// DefaultReturnURLGTE applies the GTE predicate on the "default_return_url" field.
+func DefaultReturnURLGTE(v string) predicate.App {
+	return predicate.App(sql.FieldGTE(FieldDefaultReturnURL, v))
+}
+
+// DefaultReturnURLLT applies the LT predicate on the "default_return_url" field.
+func DefaultReturnURLLT(v string) predicate.App {
+	return predicate.App(sql.FieldLT(FieldDefaultReturnURL, v))
+}
+
+// DefaultReturnURLLTE applies the LTE predicate on the "default_return_url" field.
+func DefaultReturnURLLTE(v string) predicate.App {
+	return predicate.App(sql.FieldLTE(FieldDefaultReturnURL, v))
+}
+
+// DefaultReturnURLContains applies the Contains predicate on the "default_return_url" field.
+func DefaultReturnURLContains(v string) predicate.App {
+	return predicate.App(sql.FieldContains(FieldDefaultReturnURL, v))
+}
+
+// DefaultReturnURLHasPrefix applies the HasPrefix predicate on the "default_return_url" field.
+func DefaultReturnURLHasPrefix(v string) predicate.App {
+	return predicate.App(sql.FieldHasPrefix(FieldDefaultReturnURL, v))
+}
+
+// DefaultReturnURLHasSuffix applies the HasSuffix predicate on the "default_return_url" field.
+func DefaultReturnURLHasSuffix(v string) predicate.App {
+	return predicate.App(sql.FieldHasSuffix(FieldDefaultReturnURL, v))
+}
+
+// DefaultReturnURLIsNil applies the IsNil predicate on the "default_return_url" field.
+func DefaultReturnURLIsNil() predicate.App {
+	return predicate.App(sql.FieldIsNull(FieldDefaultReturnURL))
+}
+
+// DefaultReturnURLNotNil applies the NotNil predicate on the "default_return_url" field.
+func DefaultReturnURLNotNil() predicate.App {
+	return predicate.App(sql.FieldNotNull(FieldDefaultReturnURL))
+}
+
+// DefaultReturnURLEqualFold applies the EqualFold predicate on the "default_return_url" field.
+func DefaultReturnURLEqualFold(v string) predicate.App {
+	return predicate.App(sql.FieldEqualFold(FieldDefaultReturnURL, v))
+}
+
+// DefaultReturnURLContainsFold applies the ContainsFold predicate on the "default_return_url" field.
+func DefaultReturnURLContainsFold(v string) predicate.App {
+	return predicate.App(sql.FieldContainsFold(FieldDefaultReturnURL, v))
 }
 
 // AllowedIpsIsNil applies the IsNil predicate on the "allowed_ips" field.

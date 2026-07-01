@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -11,11 +12,20 @@ import (
 	approuter "payment-gateway/internal/domain/apps/router"
 	appsvc "payment-gateway/internal/domain/apps/service"
 	channelhandler "payment-gateway/internal/domain/channels/handler"
+	channelrepo "payment-gateway/internal/domain/channels/repository"
 	channelrouter "payment-gateway/internal/domain/channels/router"
 	channelsvc "payment-gateway/internal/domain/channels/service"
+	confighandler "payment-gateway/internal/domain/configs/handler"
+	configrouter "payment-gateway/internal/domain/configs/router"
+	configsvc "payment-gateway/internal/domain/configs/service"
 	orderhandler "payment-gateway/internal/domain/orders/handler"
 	orderrouter "payment-gateway/internal/domain/orders/router"
 	ordersvc "payment-gateway/internal/domain/orders/service"
+	paymenthandler "payment-gateway/internal/domain/payments/handler"
+	alipayprovider "payment-gateway/internal/domain/payments/provider/alipay"
+	paypalprovider "payment-gateway/internal/domain/payments/provider/paypal"
+	paymentrouter "payment-gateway/internal/domain/payments/router"
+	paymentsvc "payment-gateway/internal/domain/payments/service"
 	userhandler "payment-gateway/internal/domain/users/handler"
 	userrouter "payment-gateway/internal/domain/users/router"
 	usersvc "payment-gateway/internal/domain/users/service"
@@ -40,9 +50,38 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 	channelService := channelsvc.New(client)
 	channelHandler := channelhandler.New(channelService)
 	channelrouter.Register(router.Group("/v1/admin"), channelHandler, userService, enforcer)
+	configService := configsvc.New(client)
+	configHandler := confighandler.New(configService)
+	configrouter.Register(router.Group("/v1/admin"), configHandler, userService, enforcer)
 	orderService := ordersvc.New(client)
 	orderHandler := orderhandler.New(orderService)
 	orderrouter.Register(router.Group("/v1/admin"), orderHandler, userService, enforcer)
+	paymentService := paymentsvc.New(
+		paymentsvc.WithChannelRepository(channelrepo.New(client)),
+		paymentsvc.WithProvider(alipayprovider.New()),
+		paymentsvc.WithProvider(paypalprovider.New()),
+		paymentsvc.WithMockFallback(cfg.App.Env == "local"),
+	)
+	paymentrouter.RegisterNotify(router.Group("/v1/channel"), paymenthandler.NewNotify(paymentService, orderService))
+	orderrouter.RegisterCheckout(router.Group("/v1/checkout"), orderhandler.NewCheckout(
+		orderService,
+		orderhandler.WithChannelService(channelService),
+		orderhandler.WithPaymentService(paymentService),
+		orderhandler.WithNotifyURLResolver(func(ctx *gin.Context) string {
+			gatewayConfig, err := configService.GetGatewayConfig(ctx.Request.Context())
+			if err != nil {
+				return ""
+			}
+			return strings.TrimRight(gatewayConfig.GatewayBaseURL, "/") + gatewayConfig.PaymentNotifyPath
+		}),
+		orderhandler.WithPaypalReturnURLResolver(func(ctx *gin.Context, gatewayOrderNo string) string {
+			gatewayConfig, err := configService.GetGatewayConfig(ctx.Request.Context())
+			if err != nil {
+				return ""
+			}
+			return strings.TrimRight(gatewayConfig.GatewayBaseURL, "/") + "/v1/checkout/paypal/return?gateway_order_no=" + gatewayOrderNo
+		}),
+	))
 
 	open := router.Group("/v1/open")
 	open.Use(httpx.AppAuthMiddleware(httpx.AppAuthOptions{
@@ -57,6 +96,7 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 			"request_id": ctx.GetString(httpx.ContextRequestID),
 		})
 	})
+	orderrouter.RegisterOpen(open, orderhandler.NewOpen(orderService))
 
 	return router
 }

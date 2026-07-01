@@ -14,6 +14,7 @@ import (
 	"payment-gateway/ent/app"
 	"payment-gateway/ent/casbinrule"
 	"payment-gateway/ent/channelaccount"
+	"payment-gateway/ent/gatewayconfig"
 	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
@@ -36,6 +37,8 @@ type Client struct {
 	CasbinRule *CasbinRuleClient
 	// ChannelAccount is the client for interacting with the ChannelAccount builders.
 	ChannelAccount *ChannelAccountClient
+	// GatewayConfig is the client for interacting with the GatewayConfig builders.
+	GatewayConfig *GatewayConfigClient
 	// PaymentOrder is the client for interacting with the PaymentOrder builders.
 	PaymentOrder *PaymentOrderClient
 	// RefreshToken is the client for interacting with the RefreshToken builders.
@@ -58,6 +61,7 @@ func (c *Client) init() {
 	c.App = NewAppClient(c.config)
 	c.CasbinRule = NewCasbinRuleClient(c.config)
 	c.ChannelAccount = NewChannelAccountClient(c.config)
+	c.GatewayConfig = NewGatewayConfigClient(c.config)
 	c.PaymentOrder = NewPaymentOrderClient(c.config)
 	c.RefreshToken = NewRefreshTokenClient(c.config)
 	c.Role = NewRoleClient(c.config)
@@ -157,6 +161,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		App:            NewAppClient(cfg),
 		CasbinRule:     NewCasbinRuleClient(cfg),
 		ChannelAccount: NewChannelAccountClient(cfg),
+		GatewayConfig:  NewGatewayConfigClient(cfg),
 		PaymentOrder:   NewPaymentOrderClient(cfg),
 		RefreshToken:   NewRefreshTokenClient(cfg),
 		Role:           NewRoleClient(cfg),
@@ -183,6 +188,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		App:            NewAppClient(cfg),
 		CasbinRule:     NewCasbinRuleClient(cfg),
 		ChannelAccount: NewChannelAccountClient(cfg),
+		GatewayConfig:  NewGatewayConfigClient(cfg),
 		PaymentOrder:   NewPaymentOrderClient(cfg),
 		RefreshToken:   NewRefreshTokenClient(cfg),
 		Role:           NewRoleClient(cfg),
@@ -216,8 +222,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.App, c.CasbinRule, c.ChannelAccount, c.PaymentOrder, c.RefreshToken, c.Role,
-		c.User,
+		c.App, c.CasbinRule, c.ChannelAccount, c.GatewayConfig, c.PaymentOrder,
+		c.RefreshToken, c.Role, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -227,8 +233,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.App, c.CasbinRule, c.ChannelAccount, c.PaymentOrder, c.RefreshToken, c.Role,
-		c.User,
+		c.App, c.CasbinRule, c.ChannelAccount, c.GatewayConfig, c.PaymentOrder,
+		c.RefreshToken, c.Role, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -243,6 +249,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.CasbinRule.mutate(ctx, m)
 	case *ChannelAccountMutation:
 		return c.ChannelAccount.mutate(ctx, m)
+	case *GatewayConfigMutation:
+		return c.GatewayConfig.mutate(ctx, m)
 	case *PaymentOrderMutation:
 		return c.PaymentOrder.mutate(ctx, m)
 	case *RefreshTokenMutation:
@@ -652,6 +660,139 @@ func (c *ChannelAccountClient) mutate(ctx context.Context, m *ChannelAccountMuta
 		return (&ChannelAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ChannelAccount mutation op: %q", m.Op())
+	}
+}
+
+// GatewayConfigClient is a client for the GatewayConfig schema.
+type GatewayConfigClient struct {
+	config
+}
+
+// NewGatewayConfigClient returns a client for the GatewayConfig from the given config.
+func NewGatewayConfigClient(c config) *GatewayConfigClient {
+	return &GatewayConfigClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `gatewayconfig.Hooks(f(g(h())))`.
+func (c *GatewayConfigClient) Use(hooks ...Hook) {
+	c.hooks.GatewayConfig = append(c.hooks.GatewayConfig, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `gatewayconfig.Intercept(f(g(h())))`.
+func (c *GatewayConfigClient) Intercept(interceptors ...Interceptor) {
+	c.inters.GatewayConfig = append(c.inters.GatewayConfig, interceptors...)
+}
+
+// Create returns a builder for creating a GatewayConfig entity.
+func (c *GatewayConfigClient) Create() *GatewayConfigCreate {
+	mutation := newGatewayConfigMutation(c.config, OpCreate)
+	return &GatewayConfigCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of GatewayConfig entities.
+func (c *GatewayConfigClient) CreateBulk(builders ...*GatewayConfigCreate) *GatewayConfigCreateBulk {
+	return &GatewayConfigCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GatewayConfigClient) MapCreateBulk(slice any, setFunc func(*GatewayConfigCreate, int)) *GatewayConfigCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GatewayConfigCreateBulk{err: fmt.Errorf("calling to GatewayConfigClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GatewayConfigCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GatewayConfigCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for GatewayConfig.
+func (c *GatewayConfigClient) Update() *GatewayConfigUpdate {
+	mutation := newGatewayConfigMutation(c.config, OpUpdate)
+	return &GatewayConfigUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GatewayConfigClient) UpdateOne(_m *GatewayConfig) *GatewayConfigUpdateOne {
+	mutation := newGatewayConfigMutation(c.config, OpUpdateOne, withGatewayConfig(_m))
+	return &GatewayConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *GatewayConfigClient) UpdateOneID(id int) *GatewayConfigUpdateOne {
+	mutation := newGatewayConfigMutation(c.config, OpUpdateOne, withGatewayConfigID(id))
+	return &GatewayConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for GatewayConfig.
+func (c *GatewayConfigClient) Delete() *GatewayConfigDelete {
+	mutation := newGatewayConfigMutation(c.config, OpDelete)
+	return &GatewayConfigDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GatewayConfigClient) DeleteOne(_m *GatewayConfig) *GatewayConfigDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *GatewayConfigClient) DeleteOneID(id int) *GatewayConfigDeleteOne {
+	builder := c.Delete().Where(gatewayconfig.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &GatewayConfigDeleteOne{builder}
+}
+
+// Query returns a query builder for GatewayConfig.
+func (c *GatewayConfigClient) Query() *GatewayConfigQuery {
+	return &GatewayConfigQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGatewayConfig},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a GatewayConfig entity by its id.
+func (c *GatewayConfigClient) Get(ctx context.Context, id int) (*GatewayConfig, error) {
+	return c.Query().Where(gatewayconfig.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GatewayConfigClient) GetX(ctx context.Context, id int) *GatewayConfig {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *GatewayConfigClient) Hooks() []Hook {
+	return c.hooks.GatewayConfig
+}
+
+// Interceptors returns the client interceptors.
+func (c *GatewayConfigClient) Interceptors() []Interceptor {
+	return c.inters.GatewayConfig
+}
+
+func (c *GatewayConfigClient) mutate(ctx context.Context, m *GatewayConfigMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GatewayConfigCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GatewayConfigUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GatewayConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GatewayConfigDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown GatewayConfig mutation op: %q", m.Op())
 	}
 }
 
@@ -1254,11 +1395,11 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		App, CasbinRule, ChannelAccount, PaymentOrder, RefreshToken, Role,
-		User []ent.Hook
+		App, CasbinRule, ChannelAccount, GatewayConfig, PaymentOrder, RefreshToken,
+		Role, User []ent.Hook
 	}
 	inters struct {
-		App, CasbinRule, ChannelAccount, PaymentOrder, RefreshToken, Role,
-		User []ent.Interceptor
+		App, CasbinRule, ChannelAccount, GatewayConfig, PaymentOrder, RefreshToken,
+		Role, User []ent.Interceptor
 	}
 )

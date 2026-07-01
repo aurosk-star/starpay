@@ -28,6 +28,8 @@ type App struct {
 	AppSecretCiphertext string `json:"app_secret_ciphertext,omitempty"`
 	// NotifyURL holds the value of the "notify_url" field.
 	NotifyURL string `json:"notify_url,omitempty"`
+	// DefaultReturnURL holds the value of the "default_return_url" field.
+	DefaultReturnURL string `json:"default_return_url,omitempty"`
 	// AllowedIps holds the value of the "allowed_ips" field.
 	AllowedIps []string `json:"allowed_ips,omitempty"`
 	// Status holds the value of the "status" field.
@@ -48,7 +50,7 @@ func (*App) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case app.FieldID:
 			values[i] = new(sql.NullInt64)
-		case app.FieldAppID, app.FieldName, app.FieldAppSecretHash, app.FieldAppSecretCiphertext, app.FieldNotifyURL, app.FieldStatus:
+		case app.FieldAppID, app.FieldName, app.FieldAppSecretHash, app.FieldAppSecretCiphertext, app.FieldNotifyURL, app.FieldDefaultReturnURL, app.FieldStatus:
 			values[i] = new(sql.NullString)
 		case app.FieldCreatedAt, app.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -102,6 +104,12 @@ func (_m *App) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field notify_url", values[i])
 			} else if value.Valid {
 				_m.NotifyURL = value.String
+			}
+		case app.FieldDefaultReturnURL:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field default_return_url", values[i])
+			} else if value.Valid {
+				_m.DefaultReturnURL = value.String
 			}
 		case app.FieldAllowedIps:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -179,6 +187,9 @@ func (_m *App) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("notify_url=")
 	builder.WriteString(_m.NotifyURL)
+	builder.WriteString(", ")
+	builder.WriteString("default_return_url=")
+	builder.WriteString(_m.DefaultReturnURL)
 	builder.WriteString(", ")
 	builder.WriteString("allowed_ips=")
 	builder.WriteString(fmt.Sprintf("%v", _m.AllowedIps))

@@ -154,6 +154,20 @@ func (_c *PaymentOrderCreate) SetNillableChannelTradeNo(v *string) *PaymentOrder
 	return _c
 }
 
+// SetReturnURL sets the "return_url" field.
+func (_c *PaymentOrderCreate) SetReturnURL(v string) *PaymentOrderCreate {
+	_c.mutation.SetReturnURL(v)
+	return _c
+}
+
+// SetNillableReturnURL sets the "return_url" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableReturnURL(v *string) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetReturnURL(*v)
+	}
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *PaymentOrderCreate) SetStatus(v string) *PaymentOrderCreate {
 	_c.mutation.SetStatus(v)
@@ -399,6 +413,10 @@ func (_c *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.ChannelTradeNo(); ok {
 		_spec.SetField(paymentorder.FieldChannelTradeNo, field.TypeString, value)
 		_node.ChannelTradeNo = value
+	}
+	if value, ok := _c.mutation.ReturnURL(); ok {
+		_spec.SetField(paymentorder.FieldReturnURL, field.TypeString, value)
+		_node.ReturnURL = value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeString, value)

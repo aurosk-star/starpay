@@ -38,6 +38,7 @@ import {
   updateChannelAccount,
 } from "./api";
 import {
+  buildChangedConfigPayload,
   buildConfigPayload,
   emptyChannelConfig,
   normalizeConfig,
@@ -68,6 +69,9 @@ export function ChannelFormPage({ mode }: { mode: "create" | "edit" }) {
   const params = useParams({ strict: false });
   const channelId = "channelId" in params ? Number(params.channelId) : 0;
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [initialConfig, setInitialConfig] = useState<ChannelConfig>(
+    emptyForm.config,
+  );
   const [loading, setLoading] = useState(mode === "edit");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,16 +82,18 @@ export function ChannelFormPage({ mode }: { mode: "create" | "edit" }) {
     setError(null);
     void getChannelAccount(accessToken, channelId)
       .then((result) => {
+        const config = normalizeConfig(
+          result.channel_account.channel,
+          result.channel_account.config,
+        );
         setForm({
           channel: result.channel_account.channel,
           name: result.channel_account.name,
           env: result.channel_account.env,
           enabled: result.channel_account.enabled,
-          config: normalizeConfig(
-            result.channel_account.channel,
-            result.channel_account.config,
-          ),
+          config,
         });
+        setInitialConfig(config);
       })
       .catch((err) => {
         setError(
@@ -108,11 +114,13 @@ export function ChannelFormPage({ mode }: { mode: "create" | "edit" }) {
   }
 
   function changeChannel(channel: PaymentChannel) {
+    const config = emptyChannelConfig[channel];
     setForm((current) => ({
       ...current,
       channel,
-      config: emptyChannelConfig[channel],
+      config,
     }));
+    setInitialConfig(config);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -126,7 +134,10 @@ export function ChannelFormPage({ mode }: { mode: "create" | "edit" }) {
         name: form.name,
         env: form.env,
         enabled: form.enabled,
-        config: buildConfigPayload(form.config),
+        config:
+          mode === "edit"
+            ? buildChangedConfigPayload(form.config, initialConfig)
+            : buildConfigPayload(form.config),
       };
       if (mode === "edit") {
         await updateChannelAccount(accessToken, channelId, payload);
@@ -360,6 +371,21 @@ function ChannelConfigFields({
           editing={editing}
           onChange={onChange}
         />
+        <ConfigTextarea
+          name="cert"
+          value={config.cert}
+          secret
+          editing={editing}
+          onChange={onChange}
+        />
+        <ConfigTextarea
+          name="wechat_pay_public_key"
+          value={config.wechat_pay_public_key}
+          secret
+          editing={editing}
+          onChange={onChange}
+        />
+        <ConfigInput name="mode" value={config.mode} onChange={onChange} />
       </>
     );
   }
@@ -387,6 +413,12 @@ function ChannelConfigFields({
           value={config.server_url}
           onChange={onChange}
         />
+        <ConfigInput
+          name="product_code"
+          value={config.product_code}
+          onChange={onChange}
+        />
+        <ConfigInput name="mode" value={config.mode} onChange={onChange} />
       </>
     );
   }
@@ -405,6 +437,19 @@ function ChannelConfigFields({
         editing={editing}
         onChange={onChange}
       />
+      <ConfigInput
+        name="webhook_id"
+        value={config.webhook_id}
+        secret
+        editing={editing}
+        onChange={onChange}
+      />
+      <ConfigInput
+        name="brand_name"
+        value={config.brand_name}
+        onChange={onChange}
+      />
+      <ConfigInput name="intent" value={config.intent} onChange={onChange} />
       {editing ? (
         <p className="text-sm text-muted-foreground">
           {t("channels.secretEditHint")}
