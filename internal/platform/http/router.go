@@ -100,6 +100,17 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 			}
 			return strings.TrimRight(gatewayConfig.GatewayBaseURL, "/") + "/v1/checkout/paypal/return?gateway_order_no=" + gatewayOrderNo
 		}),
+		orderhandler.WithResultURLResolver(func(ctx *gin.Context, gatewayOrderNo string, token string) string {
+			gatewayConfig, err := configService.GetGatewayConfig(ctx.Request.Context())
+			if err != nil {
+				return ""
+			}
+			target := strings.TrimRight(gatewayConfig.GatewayBaseURL, "/") + "/checkout/" + url.PathEscape(gatewayOrderNo) + "/result"
+			if strings.TrimSpace(token) == "" {
+				return target
+			}
+			return target + "?token=" + url.QueryEscape(token)
+		}),
 	))
 
 	open := router.Group("/v1/open")

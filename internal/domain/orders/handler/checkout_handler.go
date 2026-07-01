@@ -21,6 +21,7 @@ type CheckoutHandler struct {
 	payments        paymentsvc.Service
 	notifyURL       func(ctx *gin.Context) string
 	paypalReturnURL func(ctx *gin.Context, gatewayOrderNo string) string
+	resultURL       func(ctx *gin.Context, gatewayOrderNo string, token string) string
 }
 
 type CheckoutOption func(*CheckoutHandler)
@@ -46,6 +47,12 @@ func WithNotifyURLResolver(resolver func(ctx *gin.Context) string) CheckoutOptio
 func WithPaypalReturnURLResolver(resolver func(ctx *gin.Context, gatewayOrderNo string) string) CheckoutOption {
 	return func(h *CheckoutHandler) {
 		h.paypalReturnURL = resolver
+	}
+}
+
+func WithResultURLResolver(resolver func(ctx *gin.Context, gatewayOrderNo string, token string) string) CheckoutOption {
+	return func(h *CheckoutHandler) {
+		h.resultURL = resolver
 	}
 }
 
@@ -218,16 +225,11 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 		}
 		payMode = resolvedMode
 	}
-	returnURL := req.ReturnURL
-	if returnURL == "" {
-		returnURL = order.ReturnURL
-	}
+	checkoutToken := checkoutTokenFromRequest(ctx)
+	returnURL := h.resolveResultURL(ctx, order.GatewayOrderNo, checkoutToken)
 	if channel == "paypal" || payMethod == "paypal" {
-		finalReturnURL := strings.TrimSpace(returnURL)
 		returnURL = h.resolvePaypalReturnURL(ctx, order.GatewayOrderNo)
-		if finalReturnURL != "" {
-			returnURL = appendReturnURL(returnURL, finalReturnURL)
-		}
+		returnURL = appendReturnURL(returnURL, h.resolveResultURL(ctx, order.GatewayOrderNo, checkoutToken))
 	}
 	notifyURL := ""
 	if h.notifyURL != nil {
@@ -262,10 +264,7 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 }
 
 func (h CheckoutHandler) authorizeCheckout(ctx *gin.Context) (*ent.PaymentOrder, bool) {
-	token := strings.TrimSpace(ctx.GetHeader(checkoutTokenHeader))
-	if token == "" {
-		token = strings.TrimSpace(ctx.Query("token"))
-	}
+	token := checkoutTokenFromRequest(ctx)
 	order, valid, err := h.service.VerifyCheckoutToken(ctx.Request.Context(), ctx.Param("gateway_order_no"), token)
 	if err != nil {
 		httpx.JSONError(ctx, http.StatusNotFound, "order_not_found", "payment order not found")
@@ -276,6 +275,14 @@ func (h CheckoutHandler) authorizeCheckout(ctx *gin.Context) (*ent.PaymentOrder,
 		return nil, false
 	}
 	return order, true
+}
+
+func checkoutTokenFromRequest(ctx *gin.Context) string {
+	token := strings.TrimSpace(ctx.GetHeader(checkoutTokenHeader))
+	if token == "" {
+		token = strings.TrimSpace(ctx.Query("token"))
+	}
+	return token
 }
 
 func (h CheckoutHandler) resolveAlipayPayMode(ctx *gin.Context, userAgent string) (string, bool, error) {
@@ -381,7 +388,28 @@ func (h CheckoutHandler) resolvePaypalReturnURL(ctx *gin.Context, gatewayOrderNo
 	return paypalReturnURL(ctx, gatewayOrderNo)
 }
 
+func (h CheckoutHandler) resolveResultURL(ctx *gin.Context, gatewayOrderNo string, token string) string {
+	if h.resultURL != nil {
+		if value := strings.TrimSpace(h.resultURL(ctx, gatewayOrderNo, token)); value != "" {
+			return value
+		}
+	}
+	return checkoutResultURL(ctx, gatewayOrderNo, token)
+}
+
 func paypalReturnURL(ctx *gin.Context, gatewayOrderNo string) string {
+	return requestBaseURL(ctx) + "/v1/checkout/paypal/return?gateway_order_no=" + url.QueryEscape(gatewayOrderNo)
+}
+
+func checkoutResultURL(ctx *gin.Context, gatewayOrderNo string, token string) string {
+	target := requestBaseURL(ctx) + "/checkout/" + url.PathEscape(gatewayOrderNo) + "/result"
+	if strings.TrimSpace(token) == "" {
+		return target
+	}
+	return target + "?token=" + url.QueryEscape(token)
+}
+
+func requestBaseURL(ctx *gin.Context) string {
 	scheme := "http"
 	if ctx.Request.TLS != nil {
 		scheme = "https"
@@ -390,7 +418,7 @@ func paypalReturnURL(ctx *gin.Context, gatewayOrderNo string) string {
 		scheme = forwardedProto
 	}
 	host := ctx.Request.Host
-	return scheme + "://" + host + "/v1/checkout/paypal/return?gateway_order_no=" + url.QueryEscape(gatewayOrderNo)
+	return scheme + "://" + host
 }
 
 func appendReturnURL(paypalReturnURL string, finalReturnURL string) string {
@@ -405,10 +433,10 @@ func appendReturnURL(paypalReturnURL string, finalReturnURL string) string {
 }
 
 func paypalFinalReturnURL(ctx *gin.Context, orderReturnURL string) string {
-	if target := strings.TrimSpace(orderReturnURL); target != "" {
+	if target := strings.TrimSpace(ctx.Query("return_url")); target != "" {
 		return target
 	}
-	return strings.TrimSpace(ctx.Query("return_url"))
+	return strings.TrimSpace(orderReturnURL)
 }
 
 func redirectAfterPaypal(ctx *gin.Context, returnURL string, gatewayOrderNo string, status string) {

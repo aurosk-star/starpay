@@ -272,7 +272,7 @@ function QrPreview({ value }: { value: string }) {
   );
 }
 
-function CheckoutShell({ children }: { children: React.ReactNode }) {
+export function CheckoutShell({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   return (
     <main className="min-h-[100dvh] bg-background px-4 py-6 text-foreground md:px-6">

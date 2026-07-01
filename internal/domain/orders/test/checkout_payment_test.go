@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	"entgo.io/ent/dialect"
@@ -624,9 +626,10 @@ func TestCheckoutHandlerUsesGatewayPaypalReturnURL(t *testing.T) {
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
-	wantPaypalReturnURL := "https://sns.itlight.cn/v1/checkout/paypal/return?gateway_order_no=" + order.GatewayOrderNo + "&return_url=https%3A%2F%2Fmerchant.example.com%2Fignored-by-paypal-provider"
-	if provider.req.ReturnURL != wantPaypalReturnURL {
-		t.Fatalf("provider ReturnURL = %q, want gateway paypal return URL", provider.req.ReturnURL)
+	if !strings.HasPrefix(provider.req.ReturnURL, "https://sns.itlight.cn/v1/checkout/paypal/return?") ||
+		!strings.Contains(provider.req.ReturnURL, "gateway_order_no="+order.GatewayOrderNo) ||
+		!strings.Contains(provider.req.ReturnURL, "%2Fcheckout%2F"+order.GatewayOrderNo+"%2Fresult") {
+		t.Fatalf("provider ReturnURL = %q, want gateway paypal return URL with checkout result return_url", provider.req.ReturnURL)
 	}
 	if provider.req.NotifyURL != "https://sns.itlight.cn/v1/channel/notify" {
 		t.Fatalf("provider NotifyURL = %q, want unified notify URL", provider.req.NotifyURL)
@@ -694,9 +697,10 @@ func TestCheckoutHandlerAppendsOrderReturnURLToPaypalReturnURLWhenRequestOmitsIt
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
-	wantPaypalReturnURL := "https://sns.itlight.cn/v1/checkout/paypal/return?gateway_order_no=" + order.GatewayOrderNo + "&return_url=http%3A%2F%2F127.0.0.1%3A3000%2Fapps"
-	if provider.req.ReturnURL != wantPaypalReturnURL {
-		t.Fatalf("provider ReturnURL = %q, want gateway paypal return URL with order return URL", provider.req.ReturnURL)
+	if !strings.HasPrefix(provider.req.ReturnURL, "https://sns.itlight.cn/v1/checkout/paypal/return?") ||
+		!strings.Contains(provider.req.ReturnURL, "gateway_order_no="+order.GatewayOrderNo) ||
+		!strings.Contains(provider.req.ReturnURL, "%2Fcheckout%2F"+order.GatewayOrderNo+"%2Fresult") {
+		t.Fatalf("provider ReturnURL = %q, want gateway paypal return URL with checkout result return_url", provider.req.ReturnURL)
 	}
 }
 
@@ -739,6 +743,56 @@ func TestCheckoutHandlerRedirectsPaypalReturnToFallbackReturnURL(t *testing.T) {
 	want := "https://admin.example.com/checkout/" + order.GatewayOrderNo + "?gateway_order_no=" + order.GatewayOrderNo + "&status=cancelled"
 	if recorder.Header().Get("Location") != want {
 		t.Fatalf("Location = %q, want %q", recorder.Header().Get("Location"), want)
+	}
+}
+
+func TestCheckoutHandlerPaypalReturnPrefersGatewayResultURL(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_paypal_return_prefers_query?mode=memory&cache=shared&_fk=1")
+	t.Cleanup(func() { client.Close() })
+
+	createEnabledApp(t, client, "snsgo")
+
+	orderService := ordersvc.New(client)
+	order, err := orderService.CreateOrder(t.Context(), ordersvc.ManageOrderInput{
+		AppID:           "snsgo",
+		MerchantOrderNo: "biz_paypal_return_prefers_query",
+		Subject:         "Pro 会员",
+		Amount:          9900,
+		Currency:        "USD",
+		PayMethod:       "paypal",
+		Channel:         "paypal",
+		ReturnURL:       "https://merchant.example.com/app-return",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+
+	router := gin.New()
+	checkoutHandler := orderhandler.NewCheckout(orderService, orderhandler.WithPaymentService(paymentsvc.New()))
+	router.GET("/paypal/return", checkoutHandler.CompletePaypalPayment)
+
+	resultURL := "https://pay.example.com/checkout/" + order.GatewayOrderNo + "/result?token=checkout-token"
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/paypal/return?gateway_order_no="+order.GatewayOrderNo+"&cancel=1&return_url="+url.QueryEscape(resultURL),
+		nil,
+	)
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusFound {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	location, err := url.Parse(recorder.Header().Get("Location"))
+	if err != nil {
+		t.Fatalf("parse Location: %v", err)
+	}
+	if location.Scheme+"://"+location.Host+location.Path != "https://pay.example.com/checkout/"+order.GatewayOrderNo+"/result" ||
+		location.Query().Get("token") != "checkout-token" ||
+		location.Query().Get("gateway_order_no") != order.GatewayOrderNo ||
+		location.Query().Get("status") != "cancelled" {
+		t.Fatalf("Location = %q, want gateway result URL with token and status", recorder.Header().Get("Location"))
 	}
 }
 

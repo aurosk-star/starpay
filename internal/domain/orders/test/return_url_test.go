@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"entgo.io/ent/dialect"
@@ -131,7 +132,7 @@ func TestCheckoutPaymentUsesPersistedOrderReturnURL(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if provider.req.ReturnURL != "https://snsgo.example.com/order-return" {
-		t.Fatalf("provider ReturnURL = %q, want persisted order return URL", provider.req.ReturnURL)
+	if !strings.Contains(provider.req.ReturnURL, "/checkout/"+order.GatewayOrderNo+"/result?token=") {
+		t.Fatalf("provider ReturnURL = %q, want gateway checkout result URL", provider.req.ReturnURL)
 	}
 }

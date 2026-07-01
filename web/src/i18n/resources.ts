@@ -445,6 +445,15 @@ export const resources = {
         paymentQrHint: "请使用支付宝扫码完成支付。",
         invalidLink: "收银台链接无效或已过期。",
         openPaymentPage: "手动打开支付页",
+        result: {
+          paidTitle: "支付已完成",
+          failedTitle: "支付未完成",
+          processingTitle: "支付结果确认中",
+          redirectHint: "{{seconds}} 秒后返回商户页面。",
+          noReturnUrl: "商户未配置返回地址，请关闭页面或返回商户应用。",
+          returnNow: "立即返回商户",
+          loadFailed: "加载支付结果失败。",
+        },
         statuses: {
           pending: "待支付",
           paid: "已支付",
@@ -959,6 +968,16 @@ export const resources = {
         paymentQrHint: "Scan the QR code with Alipay to complete payment.",
         invalidLink: "The checkout link is invalid or expired.",
         openPaymentPage: "Open payment page",
+        result: {
+          paidTitle: "Payment completed",
+          failedTitle: "Payment not completed",
+          processingTitle: "Confirming payment result",
+          redirectHint: "Returning to the merchant in {{seconds}} seconds.",
+          noReturnUrl:
+            "The merchant did not configure a return URL. You may close this page or return to the merchant app.",
+          returnNow: "Return to merchant",
+          loadFailed: "Failed to load payment result.",
+        },
         statuses: {
           pending: "Pending",
           paid: "Paid",

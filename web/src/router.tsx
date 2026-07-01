@@ -7,7 +7,7 @@ import {
   channelsRoute,
 } from "./routes/channels";
 import { gatewayConfigRoute } from "./routes/config";
-import { checkoutRoute } from "./routes/checkout";
+import { checkoutResultRoute, checkoutRoute } from "./routes/checkout";
 import { indexRoute } from "./routes/index";
 import { orderDetailRoute, ordersRoute } from "./routes/orders";
 import { rootRoute } from "./routes/root";
@@ -26,6 +26,7 @@ const routeTree = rootRoute.addChildren([
   webhookDetailRoute,
   testPayRoute,
   checkoutRoute,
+  checkoutResultRoute,
   channelsRoute,
   channelCreateRoute,
   channelEditRoute,

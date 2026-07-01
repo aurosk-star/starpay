@@ -10,6 +10,7 @@ export type CheckoutOrder = {
   currency: string;
   channel?: string;
   pay_method?: string;
+  return_url?: string;
   status: CheckoutOrderStatus;
   expires_at?: string | null;
   created_at: string;
