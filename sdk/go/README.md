@@ -1,0 +1,73 @@
+# Pay Gateway Go SDK
+
+## 安装
+
+第三方 Go 服务直接引入：
+
+```bash
+go get codeup.aliyun.com/h-star/pay-gateway.git/sdk/go
+```
+
+如果仓库是私有的，需要先配置 Go 私有模块：
+
+```bash
+go env -w GOPRIVATE=codeup.aliyun.com/h-star/*
+```
+
+然后确保当前机器可以通过 SSH 或 HTTPS 访问 Codeup 仓库。
+
+## 创建客户端
+
+```go
+client, err := paygateway.NewClient(paygateway.Config{
+    BaseURL:   "https://pay.example.com",
+    AppID:     "snsgo",
+    AppSecret: "your_app_secret",
+})
+```
+
+## 创建订单
+
+```go
+result, err := client.CreateOrder(ctx, paygateway.CreateOrderRequest{
+    MerchantOrderNo: "snsgo_order_123",
+    Amount:          9900,
+    Currency:        "CNY",
+    Subject:         "Pro 会员",
+    Channel:         "alipay",
+    PayMethod:       "alipay",
+    ReturnURL:       "https://snsgo.example.com/payment/result",
+    Metadata: map[string]any{
+        "user_id": "123",
+    },
+})
+```
+
+## 发起支付
+
+```go
+payment, err := client.StartPayment(ctx, result.Order.GatewayOrderNo, paygateway.StartPaymentRequest{
+    Channel:   "alipay",
+    PayMethod: "alipay",
+    ReturnURL: "https://snsgo.example.com/payment/result",
+})
+```
+
+## Webhook 验签
+
+```go
+event, err := paygateway.ParseWebhookRequest(r, "your_app_secret")
+if err != nil {
+    http.Error(w, "invalid signature", http.StatusUnauthorized)
+    return
+}
+
+switch event.EventType {
+case "payment.succeeded":
+    // 发放权益
+case "order.expired":
+    // 标记本地订单超时
+}
+
+w.WriteHeader(http.StatusOK)
+```

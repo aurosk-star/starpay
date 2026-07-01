@@ -349,3 +349,23 @@ signature = HMAC-SHA256(app_secret, timestamp + "." + raw_body)
 5. 验证业务 webhook
 
 测试支付页面可用于联调，生产环境请改为真实业务返回页。
+
+## 16. Go SDK
+
+业务服务可以直接引入 Go SDK：
+
+```bash
+go get codeup.aliyun.com/h-star/pay-gateway.git/sdk/go
+```
+
+私有仓库环境需要配置：
+
+```bash
+go env -w GOPRIVATE=codeup.aliyun.com/h-star/*
+```
+
+SDK 文档见：
+
+```text
+sdk/go/README.md
+```
