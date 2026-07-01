@@ -22,7 +22,7 @@ import (
 )
 
 func TestCheckoutHandlerListsOnlyEnabledPaymentMethods(t *testing.T) {
-	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods")
+	router, created, orderService, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods")
 	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
 		Channel: "alipay",
 		Name:    "支付宝沙箱",
@@ -46,7 +46,7 @@ func TestCheckoutHandlerListsOnlyEnabledPaymentMethods(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil))
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, created, http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil))
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
@@ -67,7 +67,7 @@ func TestCheckoutHandlerListsOnlyEnabledPaymentMethods(t *testing.T) {
 }
 
 func TestCheckoutHandlerUsesMobileAlipayWapCapabilityFromUserAgent(t *testing.T) {
-	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_mobile_wap")
+	router, created, orderService, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_mobile_wap")
 	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
 		Channel: "alipay",
 		Name:    "支付宝沙箱",
@@ -86,6 +86,7 @@ func TestCheckoutHandlerUsesMobileAlipayWapCapabilityFromUserAgent(t *testing.T)
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148")
+	req.Header.Set("X-Checkout-Token", checkoutTokenForOrder(t, orderService, created))
 	router.ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
@@ -102,7 +103,7 @@ func TestCheckoutHandlerUsesMobileAlipayWapCapabilityFromUserAgent(t *testing.T)
 }
 
 func TestCheckoutHandlerFallsBackToAlipayQRCodeOnMobileWhenWapDisabled(t *testing.T) {
-	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_mobile_qr_fallback")
+	router, created, orderService, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_mobile_qr_fallback")
 	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
 		Channel: "alipay",
 		Name:    "支付宝沙箱",
@@ -122,6 +123,7 @@ func TestCheckoutHandlerFallsBackToAlipayQRCodeOnMobileWhenWapDisabled(t *testin
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Mobile Safari/537.36")
+	req.Header.Set("X-Checkout-Token", checkoutTokenForOrder(t, orderService, created))
 	router.ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
@@ -191,6 +193,7 @@ func TestCheckoutHandlerPassesAlipayQRModeWhenMobileWapDisabled(t *testing.T) {
 		"pay_method": "alipay",
 		"channel":    "alipay",
 	})
+	req.Header.Set("X-Checkout-Token", checkoutTokenForOrder(t, orderService, order))
 	req.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148")
 	router.ServeHTTP(recorder, req)
 
@@ -203,7 +206,7 @@ func TestCheckoutHandlerPassesAlipayQRModeWhenMobileWapDisabled(t *testing.T) {
 }
 
 func TestCheckoutHandlerHidesMethodsWhenNoChannelEnabled(t *testing.T) {
-	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_empty")
+	router, created, orderService, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_empty")
 	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
 		Channel: "paypal",
 		Name:    "PayPal 禁用",
@@ -215,7 +218,7 @@ func TestCheckoutHandlerHidesMethodsWhenNoChannelEnabled(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil))
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, created, http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil))
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
@@ -273,7 +276,7 @@ func TestCheckoutHandlerHidesUnsupportedCurrencyMethods(t *testing.T) {
 	router.GET("/orders/:gateway_order_no/methods", checkoutHandler.ListPaymentMethods)
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil))
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, created, http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil))
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
@@ -293,7 +296,7 @@ func TestCheckoutHandlerHidesUnsupportedCurrencyMethods(t *testing.T) {
 }
 
 func TestCheckoutHandlerReturnsLockedMethodState(t *testing.T) {
-	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_locked_state")
+	router, created, orderService, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_locked_state")
 	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
 		Channel: "alipay",
 		Name:    "支付宝沙箱",
@@ -305,7 +308,7 @@ func TestCheckoutHandlerReturnsLockedMethodState(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil))
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, created, http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil))
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
@@ -325,7 +328,7 @@ func TestCheckoutHandlerReturnsLockedMethodState(t *testing.T) {
 }
 
 func TestCheckoutHandlerLockedOrderShowsOnlyPersistedMethod(t *testing.T) {
-	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_locked")
+	router, created, orderService, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_locked")
 	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
 		Channel: "alipay",
 		Name:    "支付宝沙箱",
@@ -346,7 +349,7 @@ func TestCheckoutHandlerLockedOrderShowsOnlyPersistedMethod(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil))
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, created, http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil))
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
@@ -366,7 +369,7 @@ func TestCheckoutHandlerLockedOrderShowsOnlyPersistedMethod(t *testing.T) {
 }
 
 func TestCheckoutHandlerStartsPaymentThroughPaymentService(t *testing.T) {
-	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_pay")
+	router, created, orderService, channelService := newCheckoutPaymentTestRouter(t, "checkout_pay")
 	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
 		Channel: "alipay",
 		Name:    "支付宝沙箱",
@@ -383,7 +386,7 @@ func TestCheckoutHandlerStartsPaymentThroughPaymentService(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, jsonRequest(http.MethodPost, "/orders/"+created.GatewayOrderNo+"/pay", body))
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, created, http.MethodPost, "/orders/"+created.GatewayOrderNo+"/pay", body))
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
@@ -448,7 +451,7 @@ func TestCheckoutHandlerPersistsSelectedMethodWhenOrderHasNoMethod(t *testing.T)
 	router.POST("/orders/:gateway_order_no/pay", checkoutHandler.StartPayment)
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, jsonRequest(http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, order, http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
 		"pay_method": "paypal",
 		"channel":    "paypal",
 	}))
@@ -466,7 +469,7 @@ func TestCheckoutHandlerPersistsSelectedMethodWhenOrderHasNoMethod(t *testing.T)
 }
 
 func TestCheckoutHandlerUsesLockedMethodWhenRequestOmitsMethod(t *testing.T) {
-	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_locked_pay_empty_request")
+	router, created, orderService, channelService := newCheckoutPaymentTestRouter(t, "checkout_locked_pay_empty_request")
 	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
 		Channel: "alipay",
 		Name:    "支付宝沙箱",
@@ -478,7 +481,7 @@ func TestCheckoutHandlerUsesLockedMethodWhenRequestOmitsMethod(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, jsonRequest(http.MethodPost, "/orders/"+created.GatewayOrderNo+"/pay", map[string]any{}))
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, created, http.MethodPost, "/orders/"+created.GatewayOrderNo+"/pay", map[string]any{}))
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
@@ -486,7 +489,7 @@ func TestCheckoutHandlerUsesLockedMethodWhenRequestOmitsMethod(t *testing.T) {
 }
 
 func TestCheckoutHandlerRejectsMismatchedMethodForLockedOrder(t *testing.T) {
-	router, created, _, channelService := newCheckoutPaymentTestRouter(t, "checkout_locked_pay_mismatch")
+	router, created, orderService, channelService := newCheckoutPaymentTestRouter(t, "checkout_locked_pay_mismatch")
 	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
 		Channel: "alipay",
 		Name:    "支付宝沙箱",
@@ -498,7 +501,7 @@ func TestCheckoutHandlerRejectsMismatchedMethodForLockedOrder(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, jsonRequest(http.MethodPost, "/orders/"+created.GatewayOrderNo+"/pay", map[string]any{
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, created, http.MethodPost, "/orders/"+created.GatewayOrderNo+"/pay", map[string]any{
 		"pay_method": "wechat",
 		"channel":    "wechat",
 	}))
@@ -546,7 +549,7 @@ func TestCheckoutHandlerRejectsUnsupportedCurrencyAtPaymentStart(t *testing.T) {
 	router.POST("/orders/:gateway_order_no/pay", checkoutHandler.StartPayment)
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, jsonRequest(http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, order, http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
 		"pay_method": "alipay",
 		"channel":    "alipay",
 	}))
@@ -612,7 +615,7 @@ func TestCheckoutHandlerUsesGatewayPaypalReturnURL(t *testing.T) {
 	router.POST("/orders/:gateway_order_no/pay", checkoutHandler.StartPayment)
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, jsonRequest(http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, order, http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
 		"pay_method": "paypal",
 		"channel":    "paypal",
 		"return_url": "https://merchant.example.com/ignored-by-paypal-provider",
@@ -683,7 +686,7 @@ func TestCheckoutHandlerAppendsOrderReturnURLToPaypalReturnURLWhenRequestOmitsIt
 	router.POST("/orders/:gateway_order_no/pay", checkoutHandler.StartPayment)
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, jsonRequest(http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, order, http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
 		"pay_method": "paypal",
 		"channel":    "paypal",
 	}))
@@ -786,6 +789,25 @@ func decodeCheckoutMethods(t *testing.T, recorder *httptest.ResponseRecorder) []
 	}
 	data := response["data"].(map[string]any)
 	return data["methods"].([]any)
+}
+
+func checkoutRequest(t *testing.T, service ordersvc.Service, order *ent.PaymentOrder, method string, path string, body map[string]any) *http.Request {
+	t.Helper()
+	req := jsonRequest(method, path, body)
+	req.Header.Set("X-Checkout-Token", checkoutTokenForOrder(t, service, order))
+	return req
+}
+
+func checkoutTokenForOrder(t *testing.T, service ordersvc.Service, order *ent.PaymentOrder) string {
+	t.Helper()
+	token, err := ordersvc.NewCheckoutToken()
+	if err != nil {
+		t.Fatalf("NewCheckoutToken() error = %v", err)
+	}
+	if _, err := service.SetCheckoutTokenHash(t.Context(), order.ID, ordersvc.HashCheckoutToken(token)); err != nil {
+		t.Fatalf("SetCheckoutTokenHash() error = %v", err)
+	}
+	return token
 }
 
 type checkoutFakeProvider struct {

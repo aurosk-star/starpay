@@ -28,7 +28,7 @@ func TestClientCreateOrderSignsRequestAndDecodesResponse(t *testing.T) {
 			t.Fatalf("request body = %#v, want order request", input)
 		}
 		writer.Header().Set("Content-Type", "application/json")
-		_, _ = writer.Write([]byte(`{"code":"ok","message":"ok","data":{"created":true,"order":{"gateway_order_no":"pay_001","merchant_order_no":"biz_001","subject":"Pro","amount":9900,"currency":"CNY","status":"pending"},"payment":{"status":"pending"}},"error":null}`))
+		_, _ = writer.Write([]byte(`{"code":"ok","message":"ok","data":{"created":true,"order":{"gateway_order_no":"pay_001","merchant_order_no":"biz_001","subject":"Pro","amount":9900,"currency":"CNY","status":"pending"},"payment":{"status":"pending","pay_url":"https://pay.example.com/checkout/pay_001?token=abc"}},"error":null}`))
 	}))
 	defer server.Close()
 
@@ -50,6 +50,9 @@ func TestClientCreateOrderSignsRequestAndDecodesResponse(t *testing.T) {
 	}
 	if !result.Created || result.Order.GatewayOrderNo != "pay_001" {
 		t.Fatalf("result = %#v, want created order", result)
+	}
+	if result.Payment.PayURL != "https://pay.example.com/checkout/pay_001?token=abc" {
+		t.Fatalf("payment.pay_url = %q, want checkout url", result.Payment.PayURL)
 	}
 }
 

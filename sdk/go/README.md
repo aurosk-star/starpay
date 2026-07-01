@@ -43,15 +43,13 @@ result, err := client.CreateOrder(ctx, paygateway.CreateOrderRequest{
 })
 ```
 
-## 发起支付
+创建成功后，将用户跳转到网关收银台：
 
 ```go
-payment, err := client.StartPayment(ctx, result.Order.GatewayOrderNo, paygateway.StartPaymentRequest{
-    Channel:   "alipay",
-    PayMethod: "alipay",
-    ReturnURL: "https://snsgo.example.com/payment/result",
-})
+http.Redirect(w, r, result.Payment.PayURL, http.StatusFound)
 ```
+
+业务方不需要直接发起支付。真实支付宝、PayPal、微信等通道支付由网关收银台内部完成。
 
 ## Webhook 验签
 

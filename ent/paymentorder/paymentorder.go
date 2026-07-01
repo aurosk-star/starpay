@@ -41,6 +41,8 @@ const (
 	FieldChannelTradeNo = "channel_trade_no"
 	// FieldReturnURL holds the string denoting the return_url field in the database.
 	FieldReturnURL = "return_url"
+	// FieldCheckoutTokenHash holds the string denoting the checkout_token_hash field in the database.
+	FieldCheckoutTokenHash = "checkout_token_hash"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldExpiresAt holds the string denoting the expires_at field in the database.
@@ -76,6 +78,7 @@ var Columns = []string{
 	FieldPayMethod,
 	FieldChannelTradeNo,
 	FieldReturnURL,
+	FieldCheckoutTokenHash,
 	FieldStatus,
 	FieldExpiresAt,
 	FieldPaidAt,
@@ -182,6 +185,11 @@ func ByChannelTradeNo(opts ...sql.OrderTermOption) OrderOption {
 // ByReturnURL orders the results by the return_url field.
 func ByReturnURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReturnURL, opts...).ToFunc()
+}
+
+// ByCheckoutTokenHash orders the results by the checkout_token_hash field.
+func ByCheckoutTokenHash(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCheckoutTokenHash, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

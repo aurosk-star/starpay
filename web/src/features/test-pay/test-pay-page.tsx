@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { AlertCircle, ArrowRight, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -89,7 +88,6 @@ function defaultForm(t: (key: string) => string): TestPayForm {
 
 export function TestPayPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const accessToken = useAuthStore((state) => state.accessToken);
   const [form, setForm] = useState<TestPayForm>(() => defaultForm(t));
   const [apps, setApps] = useState<GatewayApp[]>([]);
@@ -195,10 +193,11 @@ export function TestPayPage() {
         metadata,
       });
       toast.success(t("testPay.created"));
-      await navigate({
-        to: "/checkout/$gatewayOrderNo",
-        params: { gatewayOrderNo: result.order.gateway_order_no },
-      });
+      if (result.payment?.pay_url) {
+        window.open(result.payment.pay_url, "_blank", "noopener,noreferrer");
+      } else {
+        throw new Error(t("testPay.errors.missingPayUrl"));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t("testPay.errors.failed"));
     } finally {

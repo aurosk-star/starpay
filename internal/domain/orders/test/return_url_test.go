@@ -120,7 +120,7 @@ func TestCheckoutPaymentUsesPersistedOrderReturnURL(t *testing.T) {
 	router.POST("/orders/:gateway_order_no/pay", checkoutHandler.StartPayment)
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, jsonRequest(http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
+	router.ServeHTTP(recorder, checkoutRequest(t, svc, order, http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
 		"pay_method": "alipay",
 		"channel":    "alipay",
 	}))

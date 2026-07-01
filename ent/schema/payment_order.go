@@ -28,6 +28,7 @@ func (PaymentOrder) Fields() []ent.Field {
 		field.String("pay_method").Optional(),
 		field.String("channel_trade_no").Optional(),
 		field.String("return_url").Optional(),
+		field.String("checkout_token_hash").Optional(),
 		field.String("status").Default("pending"),
 		field.Time("expires_at").Optional().Nillable(),
 		field.Time("paid_at").Optional().Nillable(),

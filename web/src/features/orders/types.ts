@@ -67,3 +67,11 @@ export type UpdateOrderPayload = {
   pay_method?: string;
   metadata?: Record<string, unknown>;
 };
+
+export type CreateOrderResponse = {
+  order: PaymentOrder;
+  payment?: {
+    status: string;
+    pay_url?: string;
+  };
+};

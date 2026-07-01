@@ -70,23 +70,6 @@ type CreateOrderResult struct {
 	Order   Order `json:"order"`
 	Payment struct {
 		Status string `json:"status"`
+		PayURL string `json:"pay_url,omitempty"`
 	} `json:"payment"`
-}
-
-type StartPaymentRequest struct {
-	PayMethod string `json:"pay_method,omitempty"`
-	Channel   string `json:"channel,omitempty"`
-	ClientIP  string `json:"client_ip,omitempty"`
-	ReturnURL string `json:"return_url,omitempty"`
-}
-
-type PaymentResult struct {
-	Status          string         `json:"status"`
-	Channel         string         `json:"channel"`
-	PayMethod       string         `json:"pay_method"`
-	ProviderOrderNo string         `json:"provider_order_no"`
-	PayURL          string         `json:"pay_url,omitempty"`
-	QRCode          string         `json:"qr_code,omitempty"`
-	FormHTML        string         `json:"form_html,omitempty"`
-	Raw             map[string]any `json:"raw,omitempty"`
 }

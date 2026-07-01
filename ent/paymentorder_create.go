@@ -168,6 +168,20 @@ func (_c *PaymentOrderCreate) SetNillableReturnURL(v *string) *PaymentOrderCreat
 	return _c
 }
 
+// SetCheckoutTokenHash sets the "checkout_token_hash" field.
+func (_c *PaymentOrderCreate) SetCheckoutTokenHash(v string) *PaymentOrderCreate {
+	_c.mutation.SetCheckoutTokenHash(v)
+	return _c
+}
+
+// SetNillableCheckoutTokenHash sets the "checkout_token_hash" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableCheckoutTokenHash(v *string) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetCheckoutTokenHash(*v)
+	}
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *PaymentOrderCreate) SetStatus(v string) *PaymentOrderCreate {
 	_c.mutation.SetStatus(v)
@@ -417,6 +431,10 @@ func (_c *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.ReturnURL(); ok {
 		_spec.SetField(paymentorder.FieldReturnURL, field.TypeString, value)
 		_node.ReturnURL = value
+	}
+	if value, ok := _c.mutation.CheckoutTokenHash(); ok {
+		_spec.SetField(paymentorder.FieldCheckoutTokenHash, field.TypeString, value)
+		_node.CheckoutTokenHash = value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeString, value)

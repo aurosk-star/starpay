@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"payment-gateway/ent"
 	channelsvc "payment-gateway/internal/domain/channels/service"
 	ordersvc "payment-gateway/internal/domain/orders/service"
 	paymentsvc "payment-gateway/internal/domain/payments/service"
@@ -64,10 +65,11 @@ type checkoutPayRequest struct {
 	ReturnURL string `json:"return_url"`
 }
 
+const checkoutTokenHeader = "X-Checkout-Token"
+
 func (h CheckoutHandler) GetOrder(ctx *gin.Context) {
-	order, err := h.service.FindOrderByGatewayOrderNo(ctx.Request.Context(), ctx.Param("gateway_order_no"))
-	if err != nil {
-		httpx.JSONError(ctx, http.StatusNotFound, "order_not_found", "payment order not found")
+	order, ok := h.authorizeCheckout(ctx)
+	if !ok {
 		return
 	}
 	httpx.JSONOK(ctx, http.StatusOK, gin.H{
@@ -77,9 +79,8 @@ func (h CheckoutHandler) GetOrder(ctx *gin.Context) {
 }
 
 func (h CheckoutHandler) ListPaymentMethods(ctx *gin.Context) {
-	order, err := h.service.FindOrderByGatewayOrderNo(ctx.Request.Context(), ctx.Param("gateway_order_no"))
-	if err != nil {
-		httpx.JSONError(ctx, http.StatusNotFound, "order_not_found", "payment order not found")
+	order, ok := h.authorizeCheckout(ctx)
+	if !ok {
 		return
 	}
 	methods := []gin.H{}
@@ -162,9 +163,8 @@ func paymentMethodLabel(channel string) string {
 }
 
 func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
-	order, err := h.service.FindOrderByGatewayOrderNo(ctx.Request.Context(), ctx.Param("gateway_order_no"))
-	if err != nil {
-		httpx.JSONError(ctx, http.StatusNotFound, "order_not_found", "payment order not found")
+	order, ok := h.authorizeCheckout(ctx)
+	if !ok {
 		return
 	}
 	var req checkoutPayRequest
@@ -259,6 +259,23 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 		}
 	}
 	httpx.JSONOK(ctx, http.StatusOK, gin.H{"payment": payment})
+}
+
+func (h CheckoutHandler) authorizeCheckout(ctx *gin.Context) (*ent.PaymentOrder, bool) {
+	token := strings.TrimSpace(ctx.GetHeader(checkoutTokenHeader))
+	if token == "" {
+		token = strings.TrimSpace(ctx.Query("token"))
+	}
+	order, valid, err := h.service.VerifyCheckoutToken(ctx.Request.Context(), ctx.Param("gateway_order_no"), token)
+	if err != nil {
+		httpx.JSONError(ctx, http.StatusNotFound, "order_not_found", "payment order not found")
+		return nil, false
+	}
+	if !valid {
+		httpx.JSONError(ctx, http.StatusUnauthorized, "checkout_token_invalid", "invalid checkout token")
+		return nil, false
+	}
+	return order, true
 }
 
 func (h CheckoutHandler) resolveAlipayPayMode(ctx *gin.Context, userAgent string) (string, bool, error) {

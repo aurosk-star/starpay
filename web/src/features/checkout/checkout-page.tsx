@@ -36,6 +36,10 @@ type CheckoutPageProps = {
 
 export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
   const { t } = useTranslation();
+  const checkoutToken = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("token")?.trim() ?? "";
+  }, []);
   const [orderData, setOrderData] = useState<CheckoutOrderResponse | null>(null);
   const [methods, setMethods] = useState<CheckoutPaymentMethod[]>([]);
   const [methodsLocked, setMethodsLocked] = useState(false);
@@ -50,9 +54,16 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
     let alive = true;
     setLoading(true);
     setError(null);
+    if (!checkoutToken) {
+      setLoading(false);
+      setError(t("checkout.invalidLink"));
+      return () => {
+        alive = false;
+      };
+    }
     Promise.all([
-      getCheckoutOrder(gatewayOrderNo),
-      listCheckoutMethods(gatewayOrderNo),
+      getCheckoutOrder(gatewayOrderNo, checkoutToken),
+      listCheckoutMethods(gatewayOrderNo, checkoutToken),
     ])
       .then(([orderResult, methodResult]) => {
         if (!alive) return;
@@ -76,7 +87,7 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
     return () => {
       alive = false;
     };
-  }, [gatewayOrderNo, t]);
+  }, [checkoutToken, gatewayOrderNo, t]);
 
   const selectedMethod = useMemo(
     () =>
@@ -91,7 +102,7 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
     setPaying(true);
     setError(null);
     try {
-      const result = await startCheckoutPayment(gatewayOrderNo, {
+      const result = await startCheckoutPayment(gatewayOrderNo, checkoutToken, {
         pay_method: methodsLocked ? undefined : selectedMethod.pay_method,
         channel: methodsLocked ? undefined : selectedMethod.channel,
       });
@@ -159,9 +170,13 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <CreditCard />
-              {t("checkout.selectMethod")}
+              {methodsLocked ? t("checkout.paymentMethod") : t("checkout.selectMethod")}
             </CardTitle>
-            <CardDescription>{t("checkout.selectMethodHint")}</CardDescription>
+            <CardDescription>
+              {methodsLocked
+                ? t("checkout.lockedMethodDescription")
+                : t("checkout.selectMethodHint")}
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {methodsLocked && selectedMethod ? (
@@ -172,7 +187,10 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
                     {t("checkout.lockedMethodHint")}
                   </p>
                 </div>
-                <Badge variant="secondary">{selectedMethod.channel}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{t("checkout.lockedMethod")}</Badge>
+                  <Badge variant="outline">{selectedMethod.channel}</Badge>
+                </div>
               </div>
             ) : methods.length > 0 ? (
               methods.map((method) => (

@@ -3,6 +3,7 @@ import { apiRequest } from "@/lib/api";
 import type {
   ListOrdersParams,
   ListOrdersResponse,
+  CreateOrderResponse,
   ManageOrderPayload,
   PaymentOrder,
   UpdateOrderPayload,
@@ -28,7 +29,7 @@ export function getOrder(accessToken: string, id: number) {
 }
 
 export function createOrder(accessToken: string, payload: ManageOrderPayload) {
-  return apiRequest<{ order: PaymentOrder }>("/v1/admin/orders", {
+  return apiRequest<CreateOrderResponse>("/v1/admin/orders", {
     method: "POST",
     accessToken,
     body: JSON.stringify(payload),

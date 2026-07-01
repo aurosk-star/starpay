@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -66,7 +67,14 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 		ordersvc.WithWebhookService(webhookService),
 		ordersvc.WithDefaultOrderTTL(cfg.Orders.DefaultTTL),
 	)
-	orderHandler := orderhandler.New(orderService)
+	checkoutURLResolver := func(ctx *gin.Context, gatewayOrderNo string, token string) string {
+		gatewayConfig, err := configService.GetGatewayConfig(ctx.Request.Context())
+		if err != nil {
+			return ""
+		}
+		return strings.TrimRight(gatewayConfig.GatewayBaseURL, "/") + "/checkout/" + url.PathEscape(gatewayOrderNo) + "?token=" + url.QueryEscape(token)
+	}
+	orderHandler := orderhandler.New(orderService, orderhandler.WithAdminCheckoutURLResolver(checkoutURLResolver))
 	orderrouter.Register(router.Group("/v1/admin"), orderHandler, userService, enforcer)
 	paymentService := paymentsvc.New(
 		paymentsvc.WithChannelRepository(channelrepo.New(client)),
@@ -107,7 +115,7 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 			"request_id": ctx.GetString(httpx.ContextRequestID),
 		})
 	})
-	orderrouter.RegisterOpen(open, orderhandler.NewOpen(orderService))
+	orderrouter.RegisterOpen(open, orderhandler.NewOpen(orderService, orderhandler.WithCheckoutURLResolver(checkoutURLResolver)))
 
 	return router
 }

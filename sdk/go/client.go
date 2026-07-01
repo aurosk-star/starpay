@@ -95,16 +95,6 @@ func (c *Client) CloseOrder(ctx context.Context, gatewayOrderNo string) (*Order,
 	return &data.Order, nil
 }
 
-func (c *Client) StartPayment(ctx context.Context, gatewayOrderNo string, input StartPaymentRequest) (*PaymentResult, error) {
-	data, err := requestJSON[struct {
-		Payment PaymentResult `json:"payment"`
-	}](c, ctx, http.MethodPost, "/v1/checkout/orders/"+url.PathEscape(gatewayOrderNo)+"/pay", input)
-	if err != nil {
-		return nil, err
-	}
-	return &data.Payment, nil
-}
-
 func (c *Client) signedURL(path string) (string, error) {
 	parsed, err := url.Parse(c.baseURL + path)
 	if err != nil {

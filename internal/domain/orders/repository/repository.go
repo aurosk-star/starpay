@@ -30,6 +30,7 @@ type CreateOrderInput struct {
 	Channel            string
 	PayMethod          string
 	ReturnURL          string
+	CheckoutTokenHash  string
 	Status             string
 	ExpiresAt          *time.Time
 	Metadata           map[string]any
@@ -84,6 +85,9 @@ func (r Repository) Create(ctx context.Context, input CreateOrderInput) (*ent.Pa
 	}
 	if input.ReturnURL != "" {
 		create.SetReturnURL(input.ReturnURL)
+	}
+	if input.CheckoutTokenHash != "" {
+		create.SetCheckoutTokenHash(input.CheckoutTokenHash)
 	}
 	if input.ExpiresAt != nil {
 		create.SetExpiresAt(*input.ExpiresAt)
@@ -261,6 +265,15 @@ func (r Repository) SetPaymentSelection(ctx context.Context, id int, channel str
 		update.SetPayMethod(payMethod)
 	}
 	if _, err := update.Save(ctx); err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
+}
+
+func (r Repository) SetCheckoutTokenHash(ctx context.Context, id int, tokenHash string) (*ent.PaymentOrder, error) {
+	if _, err := r.client.PaymentOrder.UpdateOneID(id).
+		SetCheckoutTokenHash(tokenHash).
+		Save(ctx); err != nil {
 		return nil, err
 	}
 	return r.FindByID(ctx, id)

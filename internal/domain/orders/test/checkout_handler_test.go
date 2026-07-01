@@ -23,7 +23,7 @@ func TestCheckoutHandlerReturnsPublicOrderView(t *testing.T) {
 	createEnabledApp(t, client, "snsgo")
 
 	svc := ordersvc.New(client)
-	created, err := svc.CreateOrder(t.Context(), ordersvc.ManageOrderInput{
+	createdResult, err := svc.CreateOrderWithCheckoutToken(t.Context(), ordersvc.ManageOrderInput{
 		AppID:           "snsgo",
 		MerchantOrderNo: "biz_checkout_001",
 		Subject:         "Pro 会员",
@@ -38,13 +38,16 @@ func TestCheckoutHandlerReturnsPublicOrderView(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOrder() error = %v", err)
 	}
+	created := createdResult.Order
 
 	router := gin.New()
 	checkoutHandler := orderhandler.NewCheckout(svc)
 	router.GET("/orders/:gateway_order_no", checkoutHandler.GetOrder)
 
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo, nil))
+	req := httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo, nil)
+	req.Header.Set("X-Checkout-Token", createdResult.CheckoutToken)
+	router.ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
@@ -72,5 +75,36 @@ func TestCheckoutHandlerReturnsPublicOrderView(t *testing.T) {
 	}
 	if data["title"] != "Pro 会员" {
 		t.Fatalf("title = %#v, want subject", data["title"])
+	}
+}
+
+func TestCheckoutHandlerRejectsMissingCheckoutToken(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_order_token_required?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	createEnabledApp(t, client, "snsgo")
+
+	svc := ordersvc.New(client)
+	created, err := svc.CreateOrder(t.Context(), ordersvc.ManageOrderInput{
+		AppID:           "snsgo",
+		MerchantOrderNo: "biz_checkout_token_required",
+		Subject:         "Pro 会员",
+		Amount:          9900,
+		Currency:        "CNY",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+
+	router := gin.New()
+	checkoutHandler := orderhandler.NewCheckout(svc)
+	router.GET("/orders/:gateway_order_no", checkoutHandler.GetOrder)
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo, nil))
+
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
 }

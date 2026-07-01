@@ -3,6 +3,8 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -11,11 +13,29 @@ import (
 )
 
 type OpenHandler struct {
-	service ordersvc.Service
+	service     ordersvc.Service
+	checkoutURL func(ctx *gin.Context, gatewayOrderNo string, token string) string
 }
 
-func NewOpen(service ordersvc.Service) OpenHandler {
-	return OpenHandler{service: service}
+type OpenOption func(*OpenHandler)
+
+func WithCheckoutURLResolver(resolver func(ctx *gin.Context, gatewayOrderNo string, token string) string) OpenOption {
+	return func(h *OpenHandler) {
+		h.checkoutURL = resolver
+	}
+}
+
+func NewOpen(service ordersvc.Service, options ...OpenOption) OpenHandler {
+	handler := OpenHandler{
+		service: service,
+		checkoutURL: func(ctx *gin.Context, gatewayOrderNo string, token string) string {
+			return "http://localhost:8080/checkout/" + url.PathEscape(gatewayOrderNo) + "?token=" + url.QueryEscape(token)
+		},
+	}
+	for _, opt := range options {
+		opt(&handler)
+	}
+	return handler
 }
 
 type openOrderRequest struct {
@@ -44,7 +64,7 @@ func (h OpenHandler) CreateOrder(ctx *gin.Context) {
 		httpx.JSONError(ctx, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	order, created, err := h.service.CreateOpenOrder(ctx.Request.Context(), appID, ordersvc.OpenOrderInput{
+	result, created, err := h.service.CreateOpenOrderWithCheckoutToken(ctx.Request.Context(), appID, ordersvc.OpenOrderInput{
 		MerchantOrderNo:  req.MerchantOrderNo,
 		BusinessType:     req.BusinessType,
 		Subject:          req.Subject,
@@ -66,10 +86,14 @@ func (h OpenHandler) CreateOrder(ctx *gin.Context) {
 		httpx.JSONError(ctx, status, "create_order_failed", err.Error())
 		return
 	}
+	order := result.Order
 	httpx.JSONOK(ctx, http.StatusCreated, gin.H{
 		"created": created,
 		"order":   serializeOrder(order),
-		"payment": gin.H{"status": "pending"},
+		"payment": gin.H{
+			"status":  "pending",
+			"pay_url": strings.TrimSpace(h.checkoutURL(ctx, order.GatewayOrderNo, result.CheckoutToken)),
+		},
 	})
 }
 

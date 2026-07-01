@@ -124,6 +124,11 @@ func ReturnURL(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldReturnURL, v))
 }
 
+// CheckoutTokenHash applies equality check predicate on the "checkout_token_hash" field. It's identical to CheckoutTokenHashEQ.
+func CheckoutTokenHash(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldCheckoutTokenHash, v))
+}
+
 // Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
 func Status(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldStatus, v))
@@ -1092,6 +1097,81 @@ func ReturnURLEqualFold(v string) predicate.PaymentOrder {
 // ReturnURLContainsFold applies the ContainsFold predicate on the "return_url" field.
 func ReturnURLContainsFold(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldContainsFold(FieldReturnURL, v))
+}
+
+// CheckoutTokenHashEQ applies the EQ predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashEQ(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldCheckoutTokenHash, v))
+}
+
+// CheckoutTokenHashNEQ applies the NEQ predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashNEQ(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNEQ(FieldCheckoutTokenHash, v))
+}
+
+// CheckoutTokenHashIn applies the In predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashIn(vs ...string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIn(FieldCheckoutTokenHash, vs...))
+}
+
+// CheckoutTokenHashNotIn applies the NotIn predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashNotIn(vs ...string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotIn(FieldCheckoutTokenHash, vs...))
+}
+
+// CheckoutTokenHashGT applies the GT predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashGT(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGT(FieldCheckoutTokenHash, v))
+}
+
+// CheckoutTokenHashGTE applies the GTE predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashGTE(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGTE(FieldCheckoutTokenHash, v))
+}
+
+// CheckoutTokenHashLT applies the LT predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashLT(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLT(FieldCheckoutTokenHash, v))
+}
+
+// CheckoutTokenHashLTE applies the LTE predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashLTE(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLTE(FieldCheckoutTokenHash, v))
+}
+
+// CheckoutTokenHashContains applies the Contains predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashContains(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldContains(FieldCheckoutTokenHash, v))
+}
+
+// CheckoutTokenHashHasPrefix applies the HasPrefix predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashHasPrefix(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldHasPrefix(FieldCheckoutTokenHash, v))
+}
+
+// CheckoutTokenHashHasSuffix applies the HasSuffix predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashHasSuffix(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldHasSuffix(FieldCheckoutTokenHash, v))
+}
+
+// CheckoutTokenHashIsNil applies the IsNil predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashIsNil() predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIsNull(FieldCheckoutTokenHash))
+}
+
+// CheckoutTokenHashNotNil applies the NotNil predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashNotNil() predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotNull(FieldCheckoutTokenHash))
+}
+
+// CheckoutTokenHashEqualFold applies the EqualFold predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashEqualFold(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEqualFold(FieldCheckoutTokenHash, v))
+}
+
+// CheckoutTokenHashContainsFold applies the ContainsFold predicate on the "checkout_token_hash" field.
+func CheckoutTokenHashContainsFold(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldContainsFold(FieldCheckoutTokenHash, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

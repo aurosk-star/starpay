@@ -133,6 +133,31 @@ POST /v1/open/orders?app_id={app_id}&request_id={request_id}&timestamp={timestam
 - `data.order.channel`
 - `data.order.pay_method`
 - `data.payment.status`
+- `data.payment.pay_url`：网关收银台地址，业务方应将用户跳转到该地址完成支付。
+
+响应示例：
+
+```json
+{
+  "code": "ok",
+  "message": "ok",
+  "data": {
+    "created": true,
+    "order": {
+      "gateway_order_no": "pay_20260702_xxx",
+      "merchant_order_no": "snsgo_membership_123",
+      "amount": 9900,
+      "currency": "CNY",
+      "status": "pending"
+    },
+    "payment": {
+      "status": "pending",
+      "pay_url": "https://pay.example.com/checkout/pay_20260702_xxx?token=checkout_token"
+    }
+  },
+  "error": null
+}
+```
 
 ## 5. 查询订单
 
@@ -157,6 +182,20 @@ POST /v1/open/orders/{gateway_order_no}/close?app_id={app_id}&request_id={reques
 仅 `pending` 和 `failed` 订单可关闭。
 
 ## 7. 收银台支付
+
+业务方标准接入不需要直接调用本节接口。业务方只需要把用户跳转到创建订单返回的 `data.payment.pay_url`。
+
+以下接口由网关收银台页面内部使用，必须携带收银台令牌：
+
+```text
+X-Checkout-Token: checkout_token
+```
+
+### 读取收银台订单
+
+```text
+GET /v1/checkout/orders/{gateway_order_no}
+```
 
 ### 获取支付方式
 
@@ -183,6 +222,8 @@ POST /v1/checkout/orders/{gateway_order_no}/pay
 
 说明：
 
+- 这些接口不是业务方服务端接口。
+- 收银台令牌来自创建订单返回的 `payment.pay_url` 查询参数。
 - 若订单已锁定渠道，前端不应再显示渠道选择。
 - 若订单已过期，支付会被拒绝。
 - 若未传 `return_url`，网关按订单或应用默认地址处理。

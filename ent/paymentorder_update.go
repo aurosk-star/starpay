@@ -286,6 +286,26 @@ func (_u *PaymentOrderUpdate) ClearReturnURL() *PaymentOrderUpdate {
 	return _u
 }
 
+// SetCheckoutTokenHash sets the "checkout_token_hash" field.
+func (_u *PaymentOrderUpdate) SetCheckoutTokenHash(v string) *PaymentOrderUpdate {
+	_u.mutation.SetCheckoutTokenHash(v)
+	return _u
+}
+
+// SetNillableCheckoutTokenHash sets the "checkout_token_hash" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableCheckoutTokenHash(v *string) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetCheckoutTokenHash(*v)
+	}
+	return _u
+}
+
+// ClearCheckoutTokenHash clears the value of the "checkout_token_hash" field.
+func (_u *PaymentOrderUpdate) ClearCheckoutTokenHash() *PaymentOrderUpdate {
+	_u.mutation.ClearCheckoutTokenHash()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *PaymentOrderUpdate) SetStatus(v string) *PaymentOrderUpdate {
 	_u.mutation.SetStatus(v)
@@ -499,6 +519,12 @@ func (_u *PaymentOrderUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.ReturnURLCleared() {
 		_spec.ClearField(paymentorder.FieldReturnURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.CheckoutTokenHash(); ok {
+		_spec.SetField(paymentorder.FieldCheckoutTokenHash, field.TypeString, value)
+	}
+	if _u.mutation.CheckoutTokenHashCleared() {
+		_spec.ClearField(paymentorder.FieldCheckoutTokenHash, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeString, value)
@@ -808,6 +834,26 @@ func (_u *PaymentOrderUpdateOne) ClearReturnURL() *PaymentOrderUpdateOne {
 	return _u
 }
 
+// SetCheckoutTokenHash sets the "checkout_token_hash" field.
+func (_u *PaymentOrderUpdateOne) SetCheckoutTokenHash(v string) *PaymentOrderUpdateOne {
+	_u.mutation.SetCheckoutTokenHash(v)
+	return _u
+}
+
+// SetNillableCheckoutTokenHash sets the "checkout_token_hash" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableCheckoutTokenHash(v *string) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetCheckoutTokenHash(*v)
+	}
+	return _u
+}
+
+// ClearCheckoutTokenHash clears the value of the "checkout_token_hash" field.
+func (_u *PaymentOrderUpdateOne) ClearCheckoutTokenHash() *PaymentOrderUpdateOne {
+	_u.mutation.ClearCheckoutTokenHash()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *PaymentOrderUpdateOne) SetStatus(v string) *PaymentOrderUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -1051,6 +1097,12 @@ func (_u *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentOrd
 	}
 	if _u.mutation.ReturnURLCleared() {
 		_spec.ClearField(paymentorder.FieldReturnURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.CheckoutTokenHash(); ok {
+		_spec.SetField(paymentorder.FieldCheckoutTokenHash, field.TypeString, value)
+	}
+	if _u.mutation.CheckoutTokenHashCleared() {
+		_spec.ClearField(paymentorder.FieldCheckoutTokenHash, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeString, value)

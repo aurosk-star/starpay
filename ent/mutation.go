@@ -3194,6 +3194,7 @@ type PaymentOrderMutation struct {
 	pay_method           *string
 	channel_trade_no     *string
 	return_url           *string
+	checkout_token_hash  *string
 	status               *string
 	expires_at           *time.Time
 	paid_at              *time.Time
@@ -3954,6 +3955,55 @@ func (m *PaymentOrderMutation) ResetReturnURL() {
 	delete(m.clearedFields, paymentorder.FieldReturnURL)
 }
 
+// SetCheckoutTokenHash sets the "checkout_token_hash" field.
+func (m *PaymentOrderMutation) SetCheckoutTokenHash(s string) {
+	m.checkout_token_hash = &s
+}
+
+// CheckoutTokenHash returns the value of the "checkout_token_hash" field in the mutation.
+func (m *PaymentOrderMutation) CheckoutTokenHash() (r string, exists bool) {
+	v := m.checkout_token_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCheckoutTokenHash returns the old "checkout_token_hash" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldCheckoutTokenHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCheckoutTokenHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCheckoutTokenHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCheckoutTokenHash: %w", err)
+	}
+	return oldValue.CheckoutTokenHash, nil
+}
+
+// ClearCheckoutTokenHash clears the value of the "checkout_token_hash" field.
+func (m *PaymentOrderMutation) ClearCheckoutTokenHash() {
+	m.checkout_token_hash = nil
+	m.clearedFields[paymentorder.FieldCheckoutTokenHash] = struct{}{}
+}
+
+// CheckoutTokenHashCleared returns if the "checkout_token_hash" field was cleared in this mutation.
+func (m *PaymentOrderMutation) CheckoutTokenHashCleared() bool {
+	_, ok := m.clearedFields[paymentorder.FieldCheckoutTokenHash]
+	return ok
+}
+
+// ResetCheckoutTokenHash resets all changes to the "checkout_token_hash" field.
+func (m *PaymentOrderMutation) ResetCheckoutTokenHash() {
+	m.checkout_token_hash = nil
+	delete(m.clearedFields, paymentorder.FieldCheckoutTokenHash)
+}
+
 // SetStatus sets the "status" field.
 func (m *PaymentOrderMutation) SetStatus(s string) {
 	m.status = &s
@@ -4292,7 +4342,7 @@ func (m *PaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 21)
+	fields := make([]string, 0, 22)
 	if m.gateway_order_no != nil {
 		fields = append(fields, paymentorder.FieldGatewayOrderNo)
 	}
@@ -4334,6 +4384,9 @@ func (m *PaymentOrderMutation) Fields() []string {
 	}
 	if m.return_url != nil {
 		fields = append(fields, paymentorder.FieldReturnURL)
+	}
+	if m.checkout_token_hash != nil {
+		fields = append(fields, paymentorder.FieldCheckoutTokenHash)
 	}
 	if m.status != nil {
 		fields = append(fields, paymentorder.FieldStatus)
@@ -4392,6 +4445,8 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.ChannelTradeNo()
 	case paymentorder.FieldReturnURL:
 		return m.ReturnURL()
+	case paymentorder.FieldCheckoutTokenHash:
+		return m.CheckoutTokenHash()
 	case paymentorder.FieldStatus:
 		return m.Status()
 	case paymentorder.FieldExpiresAt:
@@ -4443,6 +4498,8 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldChannelTradeNo(ctx)
 	case paymentorder.FieldReturnURL:
 		return m.OldReturnURL(ctx)
+	case paymentorder.FieldCheckoutTokenHash:
+		return m.OldCheckoutTokenHash(ctx)
 	case paymentorder.FieldStatus:
 		return m.OldStatus(ctx)
 	case paymentorder.FieldExpiresAt:
@@ -4563,6 +4620,13 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetReturnURL(v)
+		return nil
+	case paymentorder.FieldCheckoutTokenHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCheckoutTokenHash(v)
 		return nil
 	case paymentorder.FieldStatus:
 		v, ok := value.(string)
@@ -4694,6 +4758,9 @@ func (m *PaymentOrderMutation) ClearedFields() []string {
 	if m.FieldCleared(paymentorder.FieldReturnURL) {
 		fields = append(fields, paymentorder.FieldReturnURL)
 	}
+	if m.FieldCleared(paymentorder.FieldCheckoutTokenHash) {
+		fields = append(fields, paymentorder.FieldCheckoutTokenHash)
+	}
 	if m.FieldCleared(paymentorder.FieldExpiresAt) {
 		fields = append(fields, paymentorder.FieldExpiresAt)
 	}
@@ -4743,6 +4810,9 @@ func (m *PaymentOrderMutation) ClearField(name string) error {
 		return nil
 	case paymentorder.FieldReturnURL:
 		m.ClearReturnURL()
+		return nil
+	case paymentorder.FieldCheckoutTokenHash:
+		m.ClearCheckoutTokenHash()
 		return nil
 	case paymentorder.FieldExpiresAt:
 		m.ClearExpiresAt()
@@ -4805,6 +4875,9 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case paymentorder.FieldReturnURL:
 		m.ResetReturnURL()
+		return nil
+	case paymentorder.FieldCheckoutTokenHash:
+		m.ResetCheckoutTokenHash()
 		return nil
 	case paymentorder.FieldStatus:
 		m.ResetStatus()

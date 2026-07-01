@@ -105,6 +105,7 @@ var (
 		{Name: "pay_method", Type: field.TypeString, Nullable: true},
 		{Name: "channel_trade_no", Type: field.TypeString, Nullable: true},
 		{Name: "return_url", Type: field.TypeString, Nullable: true},
+		{Name: "checkout_token_hash", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeString, Default: "pending"},
 		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "paid_at", Type: field.TypeTime, Nullable: true},
@@ -137,7 +138,7 @@ var (
 			{
 				Name:    "paymentorder_status",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[15]},
+				Columns: []*schema.Column{PaymentOrdersColumns[16]},
 			},
 			{
 				Name:    "paymentorder_channel",
@@ -152,7 +153,7 @@ var (
 			{
 				Name:    "paymentorder_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[20]},
+				Columns: []*schema.Column{PaymentOrdersColumns[21]},
 			},
 		},
 	}

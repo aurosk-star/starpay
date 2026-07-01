@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"entgo.io/ent/dialect"
@@ -45,6 +46,14 @@ func TestOpenOrderHandlerCreatesOrderFromContextApp(t *testing.T) {
 	}
 	if data["created"] != true {
 		t.Fatalf("created = %#v, want true", data["created"])
+	}
+	payment := data["payment"].(map[string]any)
+	payURL, _ := payment["pay_url"].(string)
+	if payment["status"] != "pending" || payURL == "" {
+		t.Fatalf("payment = %#v, want pending with pay_url", payment)
+	}
+	if !strings.HasPrefix(payURL, "http://localhost:8080/checkout/"+order["gateway_order_no"].(string)+"?token=") {
+		t.Fatalf("payment.pay_url = %q, want checkout url with token", payURL)
 	}
 }
 

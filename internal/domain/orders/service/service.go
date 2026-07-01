@@ -3,7 +3,10 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base32"
+	"encoding/hex"
 	"errors"
 	"strings"
 	"time"
@@ -137,7 +140,20 @@ type ListOrdersResult struct {
 	PageSize int                 `json:"page_size"`
 }
 
+type CreatedOrder struct {
+	Order         *ent.PaymentOrder
+	CheckoutToken string
+}
+
 func (s Service) CreateOrder(ctx context.Context, input ManageOrderInput) (*ent.PaymentOrder, error) {
+	result, err := s.CreateOrderWithCheckoutToken(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	return result.Order, nil
+}
+
+func (s Service) CreateOrderWithCheckoutToken(ctx context.Context, input ManageOrderInput) (*CreatedOrder, error) {
 	normalized, err := normalizeManageInput(input)
 	if err != nil {
 		return nil, err
@@ -164,7 +180,11 @@ func (s Service) CreateOrder(ctx context.Context, input ManageOrderInput) (*ent.
 	if err != nil {
 		return nil, err
 	}
-	return s.orders.Create(ctx, orderrepo.CreateOrderInput{
+	checkoutToken, err := NewCheckoutToken()
+	if err != nil {
+		return nil, err
+	}
+	order, err := s.orders.Create(ctx, orderrepo.CreateOrderInput{
 		GatewayOrderNo:     gatewayOrderNo,
 		AppID:              normalized.AppID,
 		MerchantOrderNo:    normalized.MerchantOrderNo,
@@ -178,13 +198,26 @@ func (s Service) CreateOrder(ctx context.Context, input ManageOrderInput) (*ent.
 		Channel:            normalized.Channel,
 		PayMethod:          normalized.PayMethod,
 		ReturnURL:          returnURL,
+		CheckoutTokenHash:  HashCheckoutToken(checkoutToken),
 		Status:             "pending",
 		ExpiresAt:          expiresAt,
 		Metadata:           normalized.Metadata,
 	})
+	if err != nil {
+		return nil, err
+	}
+	return &CreatedOrder{Order: order, CheckoutToken: checkoutToken}, nil
 }
 
 func (s Service) CreateOpenOrder(ctx context.Context, appID string, input OpenOrderInput) (*ent.PaymentOrder, bool, error) {
+	result, created, err := s.CreateOpenOrderWithCheckoutToken(ctx, appID, input)
+	if err != nil {
+		return nil, false, err
+	}
+	return result.Order, created, nil
+}
+
+func (s Service) CreateOpenOrderWithCheckoutToken(ctx context.Context, appID string, input OpenOrderInput) (*CreatedOrder, bool, error) {
 	normalized, err := normalizeOpenOrderInput(input)
 	if err != nil {
 		return nil, false, err
@@ -192,7 +225,15 @@ func (s Service) CreateOpenOrder(ctx context.Context, appID string, input OpenOr
 	existing, err := s.orders.FindByMerchantOrderNo(ctx, appID, normalized.MerchantOrderNo)
 	if err == nil {
 		if sameOpenOrder(existing, appID, normalized) {
-			return existing, false, nil
+			token, err := NewCheckoutToken()
+			if err != nil {
+				return nil, false, err
+			}
+			updated, err := s.orders.SetCheckoutTokenHash(ctx, existing.ID, HashCheckoutToken(token))
+			if err != nil {
+				return nil, false, err
+			}
+			return &CreatedOrder{Order: updated, CheckoutToken: token}, false, nil
 		}
 		return nil, false, ErrIdempotencyConflict
 	}
@@ -210,7 +251,7 @@ func (s Service) CreateOpenOrder(ctx context.Context, appID string, input OpenOr
 	if err := validateChannelCurrency(normalized.Channel, normalized.PayMethod, normalized.Currency); err != nil {
 		return nil, false, err
 	}
-	created, err := s.CreateOrder(ctx, ManageOrderInput{
+	created, err := s.CreateOrderWithCheckoutToken(ctx, ManageOrderInput{
 		AppID:           appID,
 		MerchantOrderNo: normalized.MerchantOrderNo,
 		BusinessType:    normalized.BusinessType,
@@ -227,6 +268,21 @@ func (s Service) CreateOpenOrder(ctx context.Context, appID string, input OpenOr
 		return nil, false, err
 	}
 	return created, true, nil
+}
+
+func (s Service) VerifyCheckoutToken(ctx context.Context, gatewayOrderNo string, token string) (*ent.PaymentOrder, bool, error) {
+	order, err := s.FindOrderByGatewayOrderNo(ctx, gatewayOrderNo)
+	if err != nil {
+		return nil, false, err
+	}
+	if strings.TrimSpace(token) == "" || order.CheckoutTokenHash == "" {
+		return order, false, nil
+	}
+	return order, constantTimeStringEqual(order.CheckoutTokenHash, HashCheckoutToken(token)), nil
+}
+
+func (s Service) SetCheckoutTokenHash(ctx context.Context, id int, tokenHash string) (*ent.PaymentOrder, error) {
+	return s.orders.SetCheckoutTokenHash(ctx, id, tokenHash)
 }
 
 func (s Service) resolveAppDefaultReturnURL(ctx context.Context, appID string) (string, error) {
@@ -541,4 +597,24 @@ func newGatewayOrderNo(now time.Time) (string, error) {
 	}
 	suffix := strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(raw))
 	return "pay_" + now.UTC().Format("20060102") + "_" + suffix, nil
+}
+
+func NewCheckoutToken() (string, error) {
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	return strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(raw)), nil
+}
+
+func HashCheckoutToken(token string) string {
+	sum := sha256.Sum256([]byte(strings.TrimSpace(token)))
+	return hex.EncodeToString(sum[:])
+}
+
+func constantTimeStringEqual(left string, right string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(left), []byte(right)) == 1
 }

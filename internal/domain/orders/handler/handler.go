@@ -2,7 +2,9 @@ package handler
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,11 +15,29 @@ import (
 )
 
 type Handler struct {
-	service ordersvc.Service
+	service     ordersvc.Service
+	checkoutURL func(ctx *gin.Context, gatewayOrderNo string, token string) string
 }
 
-func New(service ordersvc.Service) Handler {
-	return Handler{service: service}
+type Option func(*Handler)
+
+func WithAdminCheckoutURLResolver(resolver func(ctx *gin.Context, gatewayOrderNo string, token string) string) Option {
+	return func(h *Handler) {
+		h.checkoutURL = resolver
+	}
+}
+
+func New(service ordersvc.Service, options ...Option) Handler {
+	handler := Handler{
+		service: service,
+		checkoutURL: func(ctx *gin.Context, gatewayOrderNo string, token string) string {
+			return "http://localhost:8080/checkout/" + url.PathEscape(gatewayOrderNo) + "?token=" + url.QueryEscape(token)
+		},
+	}
+	for _, opt := range options {
+		opt(&handler)
+	}
+	return handler
 }
 
 type manageOrderRequest struct {
@@ -92,7 +112,7 @@ func (h Handler) CreateOrder(ctx *gin.Context) {
 		httpx.JSONError(ctx, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	order, err := h.service.CreateOrder(ctx.Request.Context(), ordersvc.ManageOrderInput{
+	result, err := h.service.CreateOrderWithCheckoutToken(ctx.Request.Context(), ordersvc.ManageOrderInput{
 		AppID:              req.AppID,
 		MerchantOrderNo:    req.MerchantOrderNo,
 		BusinessType:       req.BusinessType,
@@ -112,7 +132,14 @@ func (h Handler) CreateOrder(ctx *gin.Context) {
 		httpx.JSONError(ctx, http.StatusBadRequest, "create_order_failed", err.Error())
 		return
 	}
-	httpx.JSONOK(ctx, http.StatusCreated, gin.H{"order": serializeOrder(order)})
+	order := result.Order
+	httpx.JSONOK(ctx, http.StatusCreated, gin.H{
+		"order": serializeOrder(order),
+		"payment": gin.H{
+			"status":  "pending",
+			"pay_url": strings.TrimSpace(h.checkoutURL(ctx, order.GatewayOrderNo, result.CheckoutToken)),
+		},
+	})
 }
 
 func (h Handler) UpdateOrder(ctx *gin.Context) {

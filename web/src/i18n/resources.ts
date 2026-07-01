@@ -424,8 +424,11 @@ export const resources = {
         merchantOrderNo: "商户订单号",
         currency: "币种",
         status: "订单状态",
+        paymentMethod: "支付方式",
         selectMethod: "选择支付方式",
         selectMethodHint: "请选择可用方式继续支付。",
+        lockedMethod: "已指定",
+        lockedMethodDescription: "商户已指定本次订单的支付方式。",
         lockedMethodHint: "该订单已由业务方指定支付方式。",
         lockedMethodUnavailable: "指定支付方式不可用",
         lockedMethodUnavailableHint:
@@ -440,6 +443,7 @@ export const resources = {
         paymentStarted: "支付已发起",
         paymentRedirecting: "正在打开支付页。",
         paymentQrHint: "请使用支付宝扫码完成支付。",
+        invalidLink: "收银台链接无效或已过期。",
         openPaymentPage: "手动打开支付页",
         statuses: {
           pending: "待支付",
@@ -499,6 +503,7 @@ export const resources = {
           unsupportedCurrency: "当前支付通道不支持所选币种。",
           invalidAmount: "请输入大于 0 的金额。",
           invalidMetadata: "元数据必须是 JSON 对象。",
+          missingPayUrl: "创建订单响应缺少收银台地址。",
         },
       },
       shell: {
@@ -932,8 +937,12 @@ export const resources = {
         merchantOrderNo: "Merchant order",
         currency: "Currency",
         status: "Status",
+        paymentMethod: "Payment method",
         selectMethod: "Select payment method",
         selectMethodHint: "Choose an available method to continue.",
+        lockedMethod: "Locked",
+        lockedMethodDescription:
+          "The merchant has specified the payment method for this order.",
         lockedMethodHint: "This order already has a merchant-specified method.",
         lockedMethodUnavailable: "Specified payment method unavailable",
         lockedMethodUnavailableHint:
@@ -948,6 +957,7 @@ export const resources = {
         paymentStarted: "Payment started",
         paymentRedirecting: "Opening the payment page.",
         paymentQrHint: "Scan the QR code with Alipay to complete payment.",
+        invalidLink: "The checkout link is invalid or expired.",
         openPaymentPage: "Open payment page",
         statuses: {
           pending: "Pending",
@@ -1010,6 +1020,7 @@ export const resources = {
             "The selected payment channel does not support this currency.",
           invalidAmount: "Enter an amount greater than 0.",
           invalidMetadata: "Metadata must be a JSON object.",
+          missingPayUrl: "The create order response did not include a checkout URL.",
         },
       },
       home: {
