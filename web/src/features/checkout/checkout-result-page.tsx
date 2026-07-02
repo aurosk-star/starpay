@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { formatMinorAmount } from "@/lib/money";
 
 import { getCheckoutOrder } from "./api";
@@ -30,6 +31,7 @@ export function CheckoutResultPage({
 }: CheckoutResultPageProps) {
   useCheckoutLanguage();
   const { t } = useTranslation();
+  useDocumentTitle(t("checkout.paidTitle"));
   const checkoutToken = useMemo(() => {
     if (typeof window === "undefined") return "";
     return (

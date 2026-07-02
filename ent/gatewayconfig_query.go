@@ -262,12 +262,12 @@ func (_q *GatewayConfigQuery) Clone() *GatewayConfigQuery {
 // Example:
 //
 //	var v []struct {
-//		GatewayBaseURL string `json:"gateway_base_url,omitempty"`
+//		SiteName string `json:"site_name,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.GatewayConfig.Query().
-//		GroupBy(gatewayconfig.FieldGatewayBaseURL).
+//		GroupBy(gatewayconfig.FieldSiteName).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *GatewayConfigQuery) GroupBy(field string, fields ...string) *GatewayConfigGroupBy {
@@ -285,11 +285,11 @@ func (_q *GatewayConfigQuery) GroupBy(field string, fields ...string) *GatewayCo
 // Example:
 //
 //	var v []struct {
-//		GatewayBaseURL string `json:"gateway_base_url,omitempty"`
+//		SiteName string `json:"site_name,omitempty"`
 //	}
 //
 //	client.GatewayConfig.Query().
-//		Select(gatewayconfig.FieldGatewayBaseURL).
+//		Select(gatewayconfig.FieldSiteName).
 //		Scan(ctx, &v)
 func (_q *GatewayConfigQuery) Select(fields ...string) *GatewayConfigSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

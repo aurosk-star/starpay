@@ -352,6 +352,7 @@ export const resources = {
         notSaved: "尚未保存",
         updatedAt: "最后更新：{{time}}",
         fields: {
+          siteName: "站点名称",
           gatewayBaseUrl: "网关公网地址",
           paymentNotifyPath: "统一异步通知路径",
           defaultCurrency: "默认币种",
@@ -987,6 +988,7 @@ export const resources = {
         notSaved: "Not saved yet",
         updatedAt: "Updated at: {{time}}",
         fields: {
+          siteName: "Site name",
           gatewayBaseUrl: "Gateway public base URL",
           paymentNotifyPath: "Unified notify path",
           defaultCurrency: "Default currency",

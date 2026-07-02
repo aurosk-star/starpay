@@ -16,6 +16,7 @@ func New(client *ent.Client) Repository {
 }
 
 type UpdateGatewayConfigInput struct {
+	SiteName          string
 	GatewayBaseURL    string
 	PaymentNotifyPath string
 	DefaultCurrency   string
@@ -37,6 +38,7 @@ func (r Repository) CreateDefault(ctx context.Context) (*ent.GatewayConfig, erro
 
 func (r Repository) Update(ctx context.Context, id int, input UpdateGatewayConfigInput) (*ent.GatewayConfig, error) {
 	if _, err := r.client.GatewayConfig.UpdateOneID(id).
+		SetSiteName(input.SiteName).
 		SetGatewayBaseURL(input.GatewayBaseURL).
 		SetPaymentNotifyPath(input.PaymentNotifyPath).
 		SetDefaultCurrency(input.DefaultCurrency).

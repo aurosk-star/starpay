@@ -19,6 +19,7 @@ func New(service configsvc.Service) Handler {
 }
 
 type updateGatewayConfigRequest struct {
+	SiteName          string         `json:"site_name"`
 	GatewayBaseURL    string         `json:"gateway_base_url"`
 	PaymentNotifyPath string         `json:"payment_notify_path"`
 	DefaultCurrency   string         `json:"default_currency"`
@@ -37,6 +38,18 @@ func (h Handler) GetGatewayConfig(ctx *gin.Context) {
 	httpx.JSONOK(ctx, http.StatusOK, gin.H{"gateway_config": serializeGatewayConfig(cfg)})
 }
 
+func (h Handler) GetPublicSiteConfig(ctx *gin.Context) {
+	cfg, err := h.service.GetGatewayConfig(ctx.Request.Context())
+	if err != nil {
+		httpx.JSONError(ctx, http.StatusInternalServerError, "get_site_config_failed", err.Error())
+		return
+	}
+	httpx.JSONOK(ctx, http.StatusOK, gin.H{"site_config": gin.H{
+		"site_name":      cfg.SiteName,
+		"default_locale": cfg.DefaultLocale,
+	}})
+}
+
 func (h Handler) UpdateGatewayConfig(ctx *gin.Context) {
 	var req updateGatewayConfigRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -44,6 +57,7 @@ func (h Handler) UpdateGatewayConfig(ctx *gin.Context) {
 		return
 	}
 	cfg, err := h.service.UpdateGatewayConfig(ctx.Request.Context(), configsvc.UpdateGatewayConfigInput{
+		SiteName:          req.SiteName,
 		GatewayBaseURL:    req.GatewayBaseURL,
 		PaymentNotifyPath: req.PaymentNotifyPath,
 		DefaultCurrency:   req.DefaultCurrency,
@@ -66,6 +80,7 @@ func (h Handler) UpdateGatewayConfig(ctx *gin.Context) {
 func serializeGatewayConfig(cfg *ent.GatewayConfig) gin.H {
 	return gin.H{
 		"id":                  cfg.ID,
+		"site_name":           cfg.SiteName,
 		"gateway_base_url":    cfg.GatewayBaseURL,
 		"payment_notify_path": cfg.PaymentNotifyPath,
 		"default_currency":    cfg.DefaultCurrency,

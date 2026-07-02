@@ -20,6 +20,20 @@ type GatewayConfigCreate struct {
 	hooks    []Hook
 }
 
+// SetSiteName sets the "site_name" field.
+func (_c *GatewayConfigCreate) SetSiteName(v string) *GatewayConfigCreate {
+	_c.mutation.SetSiteName(v)
+	return _c
+}
+
+// SetNillableSiteName sets the "site_name" field if the given value is not nil.
+func (_c *GatewayConfigCreate) SetNillableSiteName(v *string) *GatewayConfigCreate {
+	if v != nil {
+		_c.SetSiteName(*v)
+	}
+	return _c
+}
+
 // SetGatewayBaseURL sets the "gateway_base_url" field.
 func (_c *GatewayConfigCreate) SetGatewayBaseURL(v string) *GatewayConfigCreate {
 	_c.mutation.SetGatewayBaseURL(v)
@@ -173,6 +187,10 @@ func (_c *GatewayConfigCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *GatewayConfigCreate) defaults() {
+	if _, ok := _c.mutation.SiteName(); !ok {
+		v := gatewayconfig.DefaultSiteName
+		_c.mutation.SetSiteName(v)
+	}
 	if _, ok := _c.mutation.GatewayBaseURL(); !ok {
 		v := gatewayconfig.DefaultGatewayBaseURL
 		_c.mutation.SetGatewayBaseURL(v)
@@ -209,6 +227,9 @@ func (_c *GatewayConfigCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *GatewayConfigCreate) check() error {
+	if _, ok := _c.mutation.SiteName(); !ok {
+		return &ValidationError{Name: "site_name", err: errors.New(`ent: missing required field "GatewayConfig.site_name"`)}
+	}
 	if _, ok := _c.mutation.GatewayBaseURL(); !ok {
 		return &ValidationError{Name: "gateway_base_url", err: errors.New(`ent: missing required field "GatewayConfig.gateway_base_url"`)}
 	}
@@ -259,6 +280,10 @@ func (_c *GatewayConfigCreate) createSpec() (*GatewayConfig, *sqlgraph.CreateSpe
 		_node = &GatewayConfig{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(gatewayconfig.Table, sqlgraph.NewFieldSpec(gatewayconfig.FieldID, field.TypeInt))
 	)
+	if value, ok := _c.mutation.SiteName(); ok {
+		_spec.SetField(gatewayconfig.FieldSiteName, field.TypeString, value)
+		_node.SiteName = value
+	}
 	if value, ok := _c.mutation.GatewayBaseURL(); ok {
 		_spec.SetField(gatewayconfig.FieldGatewayBaseURL, field.TypeString, value)
 		_node.GatewayBaseURL = value

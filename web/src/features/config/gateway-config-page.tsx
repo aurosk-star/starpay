@@ -19,9 +19,11 @@ import { useAuthStore } from "@/features/auth/store";
 import { APIError } from "@/lib/api";
 
 import { getGatewayConfig, updateGatewayConfig } from "./api";
+import { setCachedSiteName } from "./site-config";
 import type { GatewayConfig, UpdateGatewayConfigPayload } from "./types";
 
 type FormState = {
+  siteName: string;
   gatewayBaseUrl: string;
   paymentNotifyPath: string;
   defaultCurrency: string;
@@ -32,6 +34,7 @@ type FormState = {
 };
 
 const emptyForm: FormState = {
+  siteName: "",
   gatewayBaseUrl: "",
   paymentNotifyPath: "",
   defaultCurrency: "",
@@ -75,6 +78,7 @@ export function GatewayConfigPage() {
     try {
       const extra = parseExtra(form.extra);
       const payload: UpdateGatewayConfigPayload = {
+        site_name: form.siteName,
         gateway_base_url: form.gatewayBaseUrl,
         payment_notify_path: form.paymentNotifyPath,
         default_currency: form.defaultCurrency,
@@ -86,6 +90,7 @@ export function GatewayConfigPage() {
       const result = await updateGatewayConfig(accessToken, payload);
       setConfig(result.gateway_config);
       setForm(toForm(result.gateway_config));
+      setCachedSiteName(result.gateway_config.site_name);
       setSaved(true);
     } catch (err) {
       setError(err instanceof APIError ? err.message : t("config.saveFailed"));
@@ -133,6 +138,22 @@ export function GatewayConfigPage() {
           ) : (
             <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
               <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="site_name">
+                    {t("config.fields.siteName")}
+                  </FieldLabel>
+                  <Input
+                    id="site_name"
+                    value={form.siteName}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        siteName: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </Field>
                 <Field>
                   <FieldLabel htmlFor="gateway_base_url">
                     {t("config.fields.gatewayBaseUrl")}
@@ -264,6 +285,7 @@ export function GatewayConfigPage() {
 
 function toForm(config: GatewayConfig): FormState {
   return {
+    siteName: config.site_name,
     gatewayBaseUrl: config.gateway_base_url,
     paymentNotifyPath: config.payment_notify_path,
     defaultCurrency: config.default_currency,

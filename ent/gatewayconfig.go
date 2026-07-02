@@ -18,6 +18,8 @@ type GatewayConfig struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// SiteName holds the value of the "site_name" field.
+	SiteName string `json:"site_name,omitempty"`
 	// GatewayBaseURL holds the value of the "gateway_base_url" field.
 	GatewayBaseURL string `json:"gateway_base_url,omitempty"`
 	// PaymentNotifyPath holds the value of the "payment_notify_path" field.
@@ -50,7 +52,7 @@ func (*GatewayConfig) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case gatewayconfig.FieldID:
 			values[i] = new(sql.NullInt64)
-		case gatewayconfig.FieldGatewayBaseURL, gatewayconfig.FieldPaymentNotifyPath, gatewayconfig.FieldDefaultCurrency, gatewayconfig.FieldDefaultLocale:
+		case gatewayconfig.FieldSiteName, gatewayconfig.FieldGatewayBaseURL, gatewayconfig.FieldPaymentNotifyPath, gatewayconfig.FieldDefaultCurrency, gatewayconfig.FieldDefaultLocale:
 			values[i] = new(sql.NullString)
 		case gatewayconfig.FieldCreatedAt, gatewayconfig.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -75,6 +77,12 @@ func (_m *GatewayConfig) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
+		case gatewayconfig.FieldSiteName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field site_name", values[i])
+			} else if value.Valid {
+				_m.SiteName = value.String
+			}
 		case gatewayconfig.FieldGatewayBaseURL:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field gateway_base_url", values[i])
@@ -167,6 +175,9 @@ func (_m *GatewayConfig) String() string {
 	var builder strings.Builder
 	builder.WriteString("GatewayConfig(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("site_name=")
+	builder.WriteString(_m.SiteName)
+	builder.WriteString(", ")
 	builder.WriteString("gateway_base_url=")
 	builder.WriteString(_m.GatewayBaseURL)
 	builder.WriteString(", ")

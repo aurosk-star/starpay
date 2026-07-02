@@ -28,6 +28,9 @@ func TestGatewayConfigReturnsDefaultsOnFirstRead(t *testing.T) {
 	if cfg.PaymentNotifyPath != "/v1/channel/notify" {
 		t.Fatalf("PaymentNotifyPath = %q, want default", cfg.PaymentNotifyPath)
 	}
+	if cfg.SiteName != "starpay-支付网关" {
+		t.Fatalf("SiteName = %q, want default", cfg.SiteName)
+	}
 	if !cfg.RequestIDEnabled {
 		t.Fatal("RequestIDEnabled = false, want true")
 	}
@@ -44,6 +47,7 @@ func TestGatewayConfigUpdateNormalizesValues(t *testing.T) {
 	svc := configsvc.New(client)
 	cfg, err := svc.UpdateGatewayConfig(ctx, configsvc.UpdateGatewayConfigInput{
 		GatewayBaseURL:    " https://pay.example.com/ ",
+		SiteName:          " 绘星支付中心 ",
 		PaymentNotifyPath: "v1/channel/notify",
 		DefaultCurrency:   " usd ",
 		DefaultLocale:     " en-US ",
@@ -58,6 +62,9 @@ func TestGatewayConfigUpdateNormalizesValues(t *testing.T) {
 	}
 	if cfg.GatewayBaseURL != "https://pay.example.com" {
 		t.Fatalf("GatewayBaseURL = %q, want normalized", cfg.GatewayBaseURL)
+	}
+	if cfg.SiteName != "绘星支付中心" {
+		t.Fatalf("SiteName = %q, want trimmed", cfg.SiteName)
 	}
 	if cfg.PaymentNotifyPath != "/v1/channel/notify" {
 		t.Fatalf("PaymentNotifyPath = %q, want leading slash", cfg.PaymentNotifyPath)

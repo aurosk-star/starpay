@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	DefaultSiteName          = "starpay-支付网关"
 	DefaultGatewayBaseURL    = "http://localhost:8080"
 	DefaultPaymentNotifyPath = "/v1/channel/notify"
 	DefaultCurrency          = "CNY"
@@ -28,6 +29,7 @@ func New(client *ent.Client) Service {
 }
 
 type UpdateGatewayConfigInput struct {
+	SiteName          string
 	GatewayBaseURL    string
 	PaymentNotifyPath string
 	DefaultCurrency   string
@@ -62,6 +64,7 @@ func (s Service) UpdateGatewayConfig(ctx context.Context, input UpdateGatewayCon
 		return nil, err
 	}
 	return s.configs.Update(ctx, current.ID, configrepo.UpdateGatewayConfigInput{
+		SiteName:          normalized.SiteName,
 		GatewayBaseURL:    normalized.GatewayBaseURL,
 		PaymentNotifyPath: normalized.PaymentNotifyPath,
 		DefaultCurrency:   normalized.DefaultCurrency,
@@ -95,7 +98,13 @@ func normalizeInput(input UpdateGatewayConfigInput) (UpdateGatewayConfigInput, e
 	if extra == nil {
 		extra = map[string]any{}
 	}
+
+	siteName := strings.TrimSpace(input.SiteName)
+	if siteName == "" {
+		siteName = DefaultSiteName
+	}
 	return UpdateGatewayConfigInput{
+		SiteName:          siteName,
 		GatewayBaseURL:    baseURL,
 		PaymentNotifyPath: normalizePath(input.PaymentNotifyPath, DefaultPaymentNotifyPath),
 		DefaultCurrency:   currency,

@@ -58,36 +58,40 @@ func init() {
 	channelaccount.UpdateDefaultUpdatedAt = channelaccountDescUpdatedAt.UpdateDefault.(func() time.Time)
 	gatewayconfigFields := schema.GatewayConfig{}.Fields()
 	_ = gatewayconfigFields
+	// gatewayconfigDescSiteName is the schema descriptor for site_name field.
+	gatewayconfigDescSiteName := gatewayconfigFields[0].Descriptor()
+	// gatewayconfig.DefaultSiteName holds the default value on creation for the site_name field.
+	gatewayconfig.DefaultSiteName = gatewayconfigDescSiteName.Default.(string)
 	// gatewayconfigDescGatewayBaseURL is the schema descriptor for gateway_base_url field.
-	gatewayconfigDescGatewayBaseURL := gatewayconfigFields[0].Descriptor()
+	gatewayconfigDescGatewayBaseURL := gatewayconfigFields[1].Descriptor()
 	// gatewayconfig.DefaultGatewayBaseURL holds the default value on creation for the gateway_base_url field.
 	gatewayconfig.DefaultGatewayBaseURL = gatewayconfigDescGatewayBaseURL.Default.(string)
 	// gatewayconfigDescPaymentNotifyPath is the schema descriptor for payment_notify_path field.
-	gatewayconfigDescPaymentNotifyPath := gatewayconfigFields[1].Descriptor()
+	gatewayconfigDescPaymentNotifyPath := gatewayconfigFields[2].Descriptor()
 	// gatewayconfig.DefaultPaymentNotifyPath holds the default value on creation for the payment_notify_path field.
 	gatewayconfig.DefaultPaymentNotifyPath = gatewayconfigDescPaymentNotifyPath.Default.(string)
 	// gatewayconfigDescDefaultCurrency is the schema descriptor for default_currency field.
-	gatewayconfigDescDefaultCurrency := gatewayconfigFields[2].Descriptor()
+	gatewayconfigDescDefaultCurrency := gatewayconfigFields[3].Descriptor()
 	// gatewayconfig.DefaultDefaultCurrency holds the default value on creation for the default_currency field.
 	gatewayconfig.DefaultDefaultCurrency = gatewayconfigDescDefaultCurrency.Default.(string)
 	// gatewayconfigDescDefaultLocale is the schema descriptor for default_locale field.
-	gatewayconfigDescDefaultLocale := gatewayconfigFields[3].Descriptor()
+	gatewayconfigDescDefaultLocale := gatewayconfigFields[4].Descriptor()
 	// gatewayconfig.DefaultDefaultLocale holds the default value on creation for the default_locale field.
 	gatewayconfig.DefaultDefaultLocale = gatewayconfigDescDefaultLocale.Default.(string)
 	// gatewayconfigDescRequestIDEnabled is the schema descriptor for request_id_enabled field.
-	gatewayconfigDescRequestIDEnabled := gatewayconfigFields[4].Descriptor()
+	gatewayconfigDescRequestIDEnabled := gatewayconfigFields[5].Descriptor()
 	// gatewayconfig.DefaultRequestIDEnabled holds the default value on creation for the request_id_enabled field.
 	gatewayconfig.DefaultRequestIDEnabled = gatewayconfigDescRequestIDEnabled.Default.(bool)
 	// gatewayconfigDescMaintenanceMode is the schema descriptor for maintenance_mode field.
-	gatewayconfigDescMaintenanceMode := gatewayconfigFields[5].Descriptor()
+	gatewayconfigDescMaintenanceMode := gatewayconfigFields[6].Descriptor()
 	// gatewayconfig.DefaultMaintenanceMode holds the default value on creation for the maintenance_mode field.
 	gatewayconfig.DefaultMaintenanceMode = gatewayconfigDescMaintenanceMode.Default.(bool)
 	// gatewayconfigDescCreatedAt is the schema descriptor for created_at field.
-	gatewayconfigDescCreatedAt := gatewayconfigFields[7].Descriptor()
+	gatewayconfigDescCreatedAt := gatewayconfigFields[8].Descriptor()
 	// gatewayconfig.DefaultCreatedAt holds the default value on creation for the created_at field.
 	gatewayconfig.DefaultCreatedAt = gatewayconfigDescCreatedAt.Default.(func() time.Time)
 	// gatewayconfigDescUpdatedAt is the schema descriptor for updated_at field.
-	gatewayconfigDescUpdatedAt := gatewayconfigFields[8].Descriptor()
+	gatewayconfigDescUpdatedAt := gatewayconfigFields[9].Descriptor()
 	// gatewayconfig.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	gatewayconfig.DefaultUpdatedAt = gatewayconfigDescUpdatedAt.Default.(func() time.Time)
 	// gatewayconfig.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

@@ -69,6 +69,7 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 	configService := configsvc.New(client)
 	configHandler := confighandler.New(configService)
 	configrouter.Register(router.Group("/v1/admin"), configHandler, userService, enforcer)
+	router.GET("/v1/public/site-config", configHandler.GetPublicSiteConfig)
 	webhookService := webhooksvc.New(client,
 		webhooksvc.WithRedis(redisClient),
 		webhooksvc.WithSecretEncryptionKey(cfg.Auth.AppSecretEncryptionKey),

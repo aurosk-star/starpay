@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
 import { formatMinorAmount } from "@/lib/money";
 
@@ -43,6 +44,7 @@ type CheckoutPageProps = {
 export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
   useCheckoutLanguage();
   const { t } = useTranslation();
+  useDocumentTitle(t("checkout.title"));
   const checkoutToken = useMemo(() => {
     if (typeof window === "undefined") return "";
     return (

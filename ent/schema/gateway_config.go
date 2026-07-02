@@ -13,6 +13,7 @@ type GatewayConfig struct {
 
 func (GatewayConfig) Fields() []ent.Field {
 	return []ent.Field{
+		field.String("site_name").Default("starpay-支付网关"),
 		field.String("gateway_base_url").Default("http://localhost:8080"),
 		field.String("payment_notify_path").Default("/v1/channel/notify"),
 		field.String("default_currency").Default("CNY"),

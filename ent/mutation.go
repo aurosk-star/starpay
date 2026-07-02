@@ -2398,6 +2398,7 @@ type GatewayConfigMutation struct {
 	op                  Op
 	typ                 string
 	id                  *int
+	site_name           *string
 	gateway_base_url    *string
 	payment_notify_path *string
 	default_currency    *string
@@ -2509,6 +2510,42 @@ func (m *GatewayConfigMutation) IDs(ctx context.Context) ([]int, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetSiteName sets the "site_name" field.
+func (m *GatewayConfigMutation) SetSiteName(s string) {
+	m.site_name = &s
+}
+
+// SiteName returns the value of the "site_name" field in the mutation.
+func (m *GatewayConfigMutation) SiteName() (r string, exists bool) {
+	v := m.site_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSiteName returns the old "site_name" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldSiteName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSiteName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSiteName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSiteName: %w", err)
+	}
+	return oldValue.SiteName, nil
+}
+
+// ResetSiteName resets all changes to the "site_name" field.
+func (m *GatewayConfigMutation) ResetSiteName() {
+	m.site_name = nil
 }
 
 // SetGatewayBaseURL sets the "gateway_base_url" field.
@@ -2882,7 +2919,10 @@ func (m *GatewayConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GatewayConfigMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
+	if m.site_name != nil {
+		fields = append(fields, gatewayconfig.FieldSiteName)
+	}
 	if m.gateway_base_url != nil {
 		fields = append(fields, gatewayconfig.FieldGatewayBaseURL)
 	}
@@ -2918,6 +2958,8 @@ func (m *GatewayConfigMutation) Fields() []string {
 // schema.
 func (m *GatewayConfigMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case gatewayconfig.FieldSiteName:
+		return m.SiteName()
 	case gatewayconfig.FieldGatewayBaseURL:
 		return m.GatewayBaseURL()
 	case gatewayconfig.FieldPaymentNotifyPath:
@@ -2945,6 +2987,8 @@ func (m *GatewayConfigMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *GatewayConfigMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case gatewayconfig.FieldSiteName:
+		return m.OldSiteName(ctx)
 	case gatewayconfig.FieldGatewayBaseURL:
 		return m.OldGatewayBaseURL(ctx)
 	case gatewayconfig.FieldPaymentNotifyPath:
@@ -2972,6 +3016,13 @@ func (m *GatewayConfigMutation) OldField(ctx context.Context, name string) (ent.
 // type.
 func (m *GatewayConfigMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case gatewayconfig.FieldSiteName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSiteName(v)
+		return nil
 	case gatewayconfig.FieldGatewayBaseURL:
 		v, ok := value.(string)
 		if !ok {
@@ -3093,6 +3144,9 @@ func (m *GatewayConfigMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *GatewayConfigMutation) ResetField(name string) error {
 	switch name {
+	case gatewayconfig.FieldSiteName:
+		m.ResetSiteName()
+		return nil
 	case gatewayconfig.FieldGatewayBaseURL:
 		m.ResetGatewayBaseURL()
 		return nil

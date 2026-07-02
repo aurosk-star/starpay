@@ -1,5 +1,6 @@
 export type GatewayConfig = {
   id: number;
+  site_name: string;
   gateway_base_url: string;
   payment_notify_path: string;
   default_currency: string;
@@ -12,6 +13,7 @@ export type GatewayConfig = {
 };
 
 export type UpdateGatewayConfigPayload = {
+  site_name: string;
   gateway_base_url: string;
   payment_notify_path: string;
   default_currency: string;
@@ -19,4 +21,9 @@ export type UpdateGatewayConfigPayload = {
   request_id_enabled: boolean;
   maintenance_mode: boolean;
   extra: Record<string, unknown>;
+};
+
+export type PublicSiteConfig = {
+  site_name: string;
+  default_locale: string;
 };

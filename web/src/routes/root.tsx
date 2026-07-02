@@ -63,6 +63,7 @@ import {
 } from "@/components/ui/sidebar";
 import { logout } from "@/features/auth/api";
 import { useAuthStore } from "@/features/auth/store";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 export const rootRoute = createRootRoute({
   component: ShellLayout,
@@ -77,6 +78,7 @@ function ShellLayout() {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
+  useDocumentTitle(getPageTitle(pathname, t));
   if (pathname.startsWith("/checkout/")) {
     return <Outlet />;
   }
@@ -183,6 +185,24 @@ function ShellLayout() {
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+function getPageTitle(pathname: string, t: ReturnType<typeof useTranslation>["t"]) {
+  if (pathname === "/") return t("nav.overview");
+  if (pathname === "/users") return t("users.title");
+  if (pathname === "/apps") return t("apps.title");
+  if (pathname === "/orders") return t("orders.title");
+  if (pathname.startsWith("/orders/")) return t("orders.detailTitle");
+  if (pathname === "/webhooks") return t("webhooks.title");
+  if (pathname.startsWith("/webhooks/")) return t("webhooks.detailTitle");
+  if (pathname === "/test-pay") return t("testPay.title");
+  if (pathname.startsWith("/channels")) return t("channels.title");
+  if (pathname === "/config/gateway") return t("config.title");
+  if (pathname.startsWith("/checkout/") && pathname.endsWith("/result")) {
+    return t("checkout.paidTitle");
+  }
+  if (pathname.startsWith("/checkout/")) return t("checkout.title");
+  return undefined;
 }
 
 function AppSidebar({

@@ -72,6 +72,7 @@ var (
 	// GatewayConfigsColumns holds the columns for the "gateway_configs" table.
 	GatewayConfigsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "site_name", Type: field.TypeString, Default: "starpay-支付网关"},
 		{Name: "gateway_base_url", Type: field.TypeString, Default: "http://localhost:8080"},
 		{Name: "payment_notify_path", Type: field.TypeString, Default: "/v1/channel/notify"},
 		{Name: "default_currency", Type: field.TypeString, Default: "CNY"},

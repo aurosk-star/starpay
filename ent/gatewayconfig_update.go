@@ -28,6 +28,20 @@ func (_u *GatewayConfigUpdate) Where(ps ...predicate.GatewayConfig) *GatewayConf
 	return _u
 }
 
+// SetSiteName sets the "site_name" field.
+func (_u *GatewayConfigUpdate) SetSiteName(v string) *GatewayConfigUpdate {
+	_u.mutation.SetSiteName(v)
+	return _u
+}
+
+// SetNillableSiteName sets the "site_name" field if the given value is not nil.
+func (_u *GatewayConfigUpdate) SetNillableSiteName(v *string) *GatewayConfigUpdate {
+	if v != nil {
+		_u.SetSiteName(*v)
+	}
+	return _u
+}
+
 // SetGatewayBaseURL sets the "gateway_base_url" field.
 func (_u *GatewayConfigUpdate) SetGatewayBaseURL(v string) *GatewayConfigUpdate {
 	_u.mutation.SetGatewayBaseURL(v)
@@ -180,6 +194,9 @@ func (_u *GatewayConfigUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			}
 		}
 	}
+	if value, ok := _u.mutation.SiteName(); ok {
+		_spec.SetField(gatewayconfig.FieldSiteName, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.GatewayBaseURL(); ok {
 		_spec.SetField(gatewayconfig.FieldGatewayBaseURL, field.TypeString, value)
 	}
@@ -225,6 +242,20 @@ type GatewayConfigUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *GatewayConfigMutation
+}
+
+// SetSiteName sets the "site_name" field.
+func (_u *GatewayConfigUpdateOne) SetSiteName(v string) *GatewayConfigUpdateOne {
+	_u.mutation.SetSiteName(v)
+	return _u
+}
+
+// SetNillableSiteName sets the "site_name" field if the given value is not nil.
+func (_u *GatewayConfigUpdateOne) SetNillableSiteName(v *string) *GatewayConfigUpdateOne {
+	if v != nil {
+		_u.SetSiteName(*v)
+	}
+	return _u
 }
 
 // SetGatewayBaseURL sets the "gateway_base_url" field.
@@ -408,6 +439,9 @@ func (_u *GatewayConfigUpdateOne) sqlSave(ctx context.Context) (_node *GatewayCo
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.SiteName(); ok {
+		_spec.SetField(gatewayconfig.FieldSiteName, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.GatewayBaseURL(); ok {
 		_spec.SetField(gatewayconfig.FieldGatewayBaseURL, field.TypeString, value)

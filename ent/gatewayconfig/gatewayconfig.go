@@ -13,6 +13,8 @@ const (
 	Label = "gateway_config"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldSiteName holds the string denoting the site_name field in the database.
+	FieldSiteName = "site_name"
 	// FieldGatewayBaseURL holds the string denoting the gateway_base_url field in the database.
 	FieldGatewayBaseURL = "gateway_base_url"
 	// FieldPaymentNotifyPath holds the string denoting the payment_notify_path field in the database.
@@ -38,6 +40,7 @@ const (
 // Columns holds all SQL columns for gatewayconfig fields.
 var Columns = []string{
 	FieldID,
+	FieldSiteName,
 	FieldGatewayBaseURL,
 	FieldPaymentNotifyPath,
 	FieldDefaultCurrency,
@@ -60,6 +63,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultSiteName holds the default value on creation for the "site_name" field.
+	DefaultSiteName string
 	// DefaultGatewayBaseURL holds the default value on creation for the "gateway_base_url" field.
 	DefaultGatewayBaseURL string
 	// DefaultPaymentNotifyPath holds the default value on creation for the "payment_notify_path" field.
@@ -86,6 +91,11 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// BySiteName orders the results by the site_name field.
+func BySiteName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSiteName, opts...).ToFunc()
 }
 
 // ByGatewayBaseURL orders the results by the gateway_base_url field.

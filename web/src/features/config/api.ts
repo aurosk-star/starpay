@@ -1,6 +1,14 @@
 import { apiRequest } from "@/lib/api";
 
-import type { GatewayConfig, UpdateGatewayConfigPayload } from "./types";
+import type {
+  GatewayConfig,
+  PublicSiteConfig,
+  UpdateGatewayConfigPayload,
+} from "./types";
+
+export function getPublicSiteConfig() {
+  return apiRequest<{ site_config: PublicSiteConfig }>("/v1/public/site-config");
+}
 
 export function getGatewayConfig(accessToken: string) {
   return apiRequest<{ gateway_config: GatewayConfig }>(

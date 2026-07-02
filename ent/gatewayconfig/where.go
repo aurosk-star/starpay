@@ -54,6 +54,11 @@ func IDLTE(id int) predicate.GatewayConfig {
 	return predicate.GatewayConfig(sql.FieldLTE(FieldID, id))
 }
 
+// SiteName applies equality check predicate on the "site_name" field. It's identical to SiteNameEQ.
+func SiteName(v string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldSiteName, v))
+}
+
 // GatewayBaseURL applies equality check predicate on the "gateway_base_url" field. It's identical to GatewayBaseURLEQ.
 func GatewayBaseURL(v string) predicate.GatewayConfig {
 	return predicate.GatewayConfig(sql.FieldEQ(FieldGatewayBaseURL, v))
@@ -92,6 +97,71 @@ func CreatedAt(v time.Time) predicate.GatewayConfig {
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.GatewayConfig {
 	return predicate.GatewayConfig(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// SiteNameEQ applies the EQ predicate on the "site_name" field.
+func SiteNameEQ(v string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldSiteName, v))
+}
+
+// SiteNameNEQ applies the NEQ predicate on the "site_name" field.
+func SiteNameNEQ(v string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNEQ(FieldSiteName, v))
+}
+
+// SiteNameIn applies the In predicate on the "site_name" field.
+func SiteNameIn(vs ...string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldIn(FieldSiteName, vs...))
+}
+
+// SiteNameNotIn applies the NotIn predicate on the "site_name" field.
+func SiteNameNotIn(vs ...string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNotIn(FieldSiteName, vs...))
+}
+
+// SiteNameGT applies the GT predicate on the "site_name" field.
+func SiteNameGT(v string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGT(FieldSiteName, v))
+}
+
+// SiteNameGTE applies the GTE predicate on the "site_name" field.
+func SiteNameGTE(v string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGTE(FieldSiteName, v))
+}
+
+// SiteNameLT applies the LT predicate on the "site_name" field.
+func SiteNameLT(v string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLT(FieldSiteName, v))
+}
+
+// SiteNameLTE applies the LTE predicate on the "site_name" field.
+func SiteNameLTE(v string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLTE(FieldSiteName, v))
+}
+
+// SiteNameContains applies the Contains predicate on the "site_name" field.
+func SiteNameContains(v string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldContains(FieldSiteName, v))
+}
+
+// SiteNameHasPrefix applies the HasPrefix predicate on the "site_name" field.
+func SiteNameHasPrefix(v string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldHasPrefix(FieldSiteName, v))
+}
+
+// SiteNameHasSuffix applies the HasSuffix predicate on the "site_name" field.
+func SiteNameHasSuffix(v string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldHasSuffix(FieldSiteName, v))
+}
+
+// SiteNameEqualFold applies the EqualFold predicate on the "site_name" field.
+func SiteNameEqualFold(v string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEqualFold(FieldSiteName, v))
+}
+
+// SiteNameContainsFold applies the ContainsFold predicate on the "site_name" field.
+func SiteNameContainsFold(v string) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldContainsFold(FieldSiteName, v))
 }
 
 // GatewayBaseURLEQ applies the EQ predicate on the "gateway_base_url" field.
