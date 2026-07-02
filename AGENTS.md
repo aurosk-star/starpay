@@ -27,7 +27,7 @@ Backend code uses Gin, Ent, PostgreSQL, Redis, Casbin, and the global response h
 
 Keep business behavior inside the domain service layer, persistence in repository packages, HTTP parsing/serialization in handlers, and route registration in routers. Store money as integer minor units only. Use explicit status names such as `pending`, `succeeded`, `failed`, `refunded`, `cancelled`, `enabled`, and `disabled`.
 
-Frontend work must use shadcn/ui as the primary component system. Use the configured shadcn preset, default component styles, Tailwind semantic tokens, and `web/src/components/theme-provider.tsx` for light/dark mode. The `d` key toggles color mode. Default UI language is Chinese, and new text must be added to i18n resources.
+Frontend work must use shadcn/ui as the primary component system. Use the configured shadcn preset, default component styles, Tailwind semantic tokens, and `web/src/components/theme-provider.tsx` for light/dark mode. The `d` key toggles color mode. Default fallback language is English, while supported browser languages may be auto-detected. New text must be added to i18n resources.
 
 All frontend data displays must use the reusable Data Table factory in `web/src/components/data-table/`; business pages should not hand-roll table markup.
 

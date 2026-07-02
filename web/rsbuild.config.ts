@@ -17,6 +17,9 @@ export default defineConfig(() => {
         index: "./src/index.tsx",
       },
     },
+    html: {
+      title: "starpay-支付网关",
+    },
     resolve: {
       alias: {
         "@": path.resolve(dirname, "./src"),
