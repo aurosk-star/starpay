@@ -91,6 +91,8 @@ ORDER_EXPIRE_WORKER_CONCURRENCY=2
 docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
 ```
 
+`postgres:latest` 当前可能是 PostgreSQL 18+。该版本官方镜像要求把数据卷挂载到 `/var/lib/postgresql`，项目的生产 Compose 已按该路径配置。不要改回旧路径 `/var/lib/postgresql/data`，否则会出现 `in 18+, these Docker images are configured to store database data...` 的启动错误。
+
 查看状态：
 
 ```bash
@@ -257,6 +259,15 @@ cat backup-2026-07-02.sql | docker exec -i payment-gateway-postgres psql -U paym
 ```
 
 Redis 主要用于队列、缓存和幂等控制，生产建议保留 `redis_data` volume，并根据业务要求配置额外备份。
+
+如果首次部署时 PostgreSQL 因旧 volume 路径初始化失败，且确认没有生产数据，可以清理 volume 后重启：
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml down -v
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+```
+
+如果已经有生产数据，不要执行 `down -v`。应先备份旧库，再按 PostgreSQL 官方升级流程或 dump/restore 迁移。
 
 ## 10. 上线检查清单
 
