@@ -55,6 +55,21 @@ sign = hex(hmac_sha256(app_secret, signing_string))
 
 时间戳支持 Unix 秒或 RFC3339，允许 5 分钟窗口。`request_id` 和 `nonce` 在窗口期内不可重复。
 
+开放 API 默认按 `app_id + HTTP method + route` 限流。默认每个应用每个接口每分钟 120 次，命中限流时返回 `RATE_LIMITED`。
+
+### 2.1 密钥轮换和泄露处理
+
+`app_secret` 只会在应用创建或后台重置密钥时展示一次。业务方应存入自己的密钥管理系统，不应写入代码仓库或前端包。
+
+V1 重置密钥会立即使旧密钥失效。建议流程：
+
+1. 在低峰期由网关管理员重置应用密钥。
+2. 业务方更新服务端配置。
+3. 业务方调用 `/v1/open/ping` 验证新密钥签名。
+4. 验证通过后恢复正常支付请求。
+
+如果怀疑密钥泄露，应先禁用应用或重置密钥，再排查泄露来源。
+
 统一响应格式：
 
 ```json
@@ -70,15 +85,23 @@ sign = hex(hmac_sha256(app_secret, signing_string))
 
 ```json
 {
-  "code": "invalid_signature",
+  "code": "INVALID_SIGNATURE",
   "message": "invalid signature",
   "data": null,
   "error": {
-    "code": "invalid_signature",
-    "message": "invalid signature"
+    "code": "INVALID_SIGNATURE",
+    "message": "invalid signature",
+    "details": {}
   }
 }
 ```
+
+错误响应约定：
+
+- `code` 与 `error.code` 保持一致。
+- 错误码使用稳定的大写蛇形命名，业务逻辑应按 `error.code` 判断，不依赖 `message`。
+- `error.details` 始终是对象；没有结构化信息时为 `{}`。
+- 支付通道错误只会暴露脱敏字段，例如 `provider_error_code`、`provider_error_message`、`provider_request_id`、`retryable`。
 
 ## 3. 订单生命周期
 
@@ -362,11 +385,44 @@ signature = HMAC-SHA256(app_secret, timestamp + "." + raw_body)
 
 ## 13. 常见错误
 
-- 签名缺少 `request_id`
-- `merchant_order_no` 重复但参数不一致
-- 金额单位传成元而不是分
-- 支付方式和币种不匹配
-- 订单已过期仍继续支付
+| 错误码 | HTTP | 场景 | 建议处理 |
+| --- | --- | --- | --- |
+| `INVALID_SIGNATURE` | 401 | 签名错误或缺少签名参数 | 重新按签名规则生成请求 |
+| `TIMESTAMP_EXPIRED` | 401 | 请求时间戳超过允许窗口 | 使用当前时间重新签名 |
+| `REPLAYED_REQUEST` | 401 | `request_id` 或 `nonce` 重复 | 生成新的幂等请求参数 |
+| `APP_NOT_FOUND` | 401 | 应用不存在或凭据无效 | 检查 `app_id` 和密钥 |
+| `APP_DISABLED` | 403 | 应用被禁用 | 联系网关管理员启用应用 |
+| `IP_NOT_ALLOWED` | 403 | 请求来源 IP 不在白名单 | 调整应用 IP 白名单 |
+| `INVALID_REQUEST` | 400 | 请求体格式错误或 JSON 无法解析 | 修正请求体 |
+| `MISSING_REQUIRED_FIELD` | 400 | 缺少必填字段 | 查看 `error.details.field` |
+| `INVALID_AMOUNT` | 400 | 金额非法 | 金额必须为最小货币单位的正整数 |
+| `INVALID_CURRENCY` | 400 | 币种格式非法 | 使用 ISO 币种代码，例如 `CNY` |
+| `CURRENCY_NOT_SUPPORTED` | 400 | 当前通道不支持该币种 | 更换支付通道或币种 |
+| `ORDER_NOT_FOUND` | 404 | 支付订单不存在 | 检查 `gateway_order_no` |
+| `ORDER_EXPIRED` | 409 | 订单已过期 | 创建新订单 |
+| `ORDER_STATUS_NOT_ALLOWED` | 409 | 当前订单状态不允许操作 | 查询订单状态后再处理 |
+| `IDEMPOTENCY_CONFLICT` | 409 | 同一业务单号重复请求参数不一致 | 保持同一 `merchant_order_no` 参数一致 |
+| `CHANNEL_UNAVAILABLE` | 503 | 没有可用支付通道或模式 | 稍后重试或切换通道 |
+| `CHANNEL_CONFIG_INVALID` | 500 | 通道配置缺失或非法 | 检查后台通道账号配置 |
+| `CHANNEL_RESPONSE_ERROR` | 502 | 支付通道返回失败 | 查看 `error.details`，按 `retryable` 判断 |
+| `CHANNEL_TIMEOUT` | 504 | 调用支付通道超时 | 可按幂等逻辑重试 |
+| `RATE_LIMITED` | 429 | 请求频率超限 | 降低请求频率后重试 |
+| `INTERNAL_ERROR` | 500 | 网关内部错误 | 记录请求信息并联系网关管理员 |
+
+命中开放 API 限流时返回：
+
+```json
+{
+  "code": "RATE_LIMITED",
+  "message": "rate limit exceeded",
+  "data": null,
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "rate limit exceeded",
+    "details": {}
+  }
+}
+```
 
 ## 14. 接入验收清单
 

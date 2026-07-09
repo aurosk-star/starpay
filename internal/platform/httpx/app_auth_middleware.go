@@ -53,7 +53,7 @@ func AppAuthMiddleware(options AppAuthOptions) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		values, err := requestValues(ctx)
 		if err != nil {
-			JSONError(ctx, http.StatusBadRequest, "invalid_request", "invalid request parameters")
+			JSONError(ctx, http.StatusBadRequest, CodeInvalidRequest, "invalid request parameters")
 			ctx.Abort()
 			return
 		}
@@ -64,14 +64,14 @@ func AppAuthMiddleware(options AppAuthOptions) gin.HandlerFunc {
 		nonce := strings.TrimSpace(values.Get("nonce"))
 		signature := strings.TrimSpace(values.Get("sign"))
 		if appID == "" || requestID == "" || timestamp == "" || nonce == "" || signature == "" {
-			JSONError(ctx, http.StatusUnauthorized, "invalid_signature", "missing signature parameters")
+			JSONError(ctx, http.StatusUnauthorized, CodeInvalidSignature, "missing signature parameters")
 			ctx.Abort()
 			return
 		}
 
 		signedAt, err := parseAppTimestamp(timestamp)
 		if err != nil || time.Since(signedAt) > window || time.Until(signedAt) > window {
-			JSONError(ctx, http.StatusUnauthorized, "invalid_signature", "expired signature")
+			JSONError(ctx, http.StatusUnauthorized, CodeTimestampExpired, "timestamp is expired")
 			ctx.Abort()
 			return
 		}
@@ -82,46 +82,46 @@ func AppAuthMiddleware(options AppAuthOptions) gin.HandlerFunc {
 		}
 		record, err := repository.FindByAppID(ctx.Request.Context(), appID)
 		if err != nil {
-			JSONError(ctx, http.StatusUnauthorized, "invalid_signature", "invalid app credentials")
+			JSONError(ctx, http.StatusUnauthorized, CodeInvalidSignature, "invalid app credentials")
 			ctx.Abort()
 			return
 		}
 		if record.Status != "enabled" {
-			JSONError(ctx, http.StatusForbidden, "app_disabled", "app is disabled")
+			JSONError(ctx, http.StatusForbidden, CodeAppDisabled, "app is disabled")
 			ctx.Abort()
 			return
 		}
 		if !appIPAllowed(record.AllowedIps, ctx.ClientIP()) {
-			JSONError(ctx, http.StatusForbidden, "ip_not_allowed", "client ip is not allowed")
+			JSONError(ctx, http.StatusForbidden, CodeIPNotAllowed, "client ip is not allowed")
 			ctx.Abort()
 			return
 		}
 		if record.AppSecretCiphertext == "" {
-			JSONError(ctx, http.StatusUnauthorized, "invalid_signature", "app secret must be reset")
+			JSONError(ctx, http.StatusUnauthorized, CodeInvalidSignature, "app secret must be reset")
 			ctx.Abort()
 			return
 		}
 
 		secret, err := platformauth.DecryptSecret(options.SecretEncryptionKey, record.AppSecretCiphertext)
 		if err != nil {
-			JSONError(ctx, http.StatusUnauthorized, "invalid_signature", "invalid app credentials")
+			JSONError(ctx, http.StatusUnauthorized, CodeInvalidSignature, "invalid app credentials")
 			ctx.Abort()
 			return
 		}
 		if !validAppSignature(secret, values, signature) {
-			JSONError(ctx, http.StatusUnauthorized, "invalid_signature", "invalid signature")
+			JSONError(ctx, http.StatusUnauthorized, CodeInvalidSignature, "invalid signature")
 			ctx.Abort()
 			return
 		}
 
 		if options.ReplayStore != nil {
 			if ok := reserveReplayKey(ctx.Request.Context(), options.ReplayStore, "request", appID, requestID, window); !ok {
-				JSONError(ctx, http.StatusUnauthorized, "replayed_request", "request_id was already used")
+				JSONError(ctx, http.StatusUnauthorized, CodeReplayedRequest, "request_id was already used")
 				ctx.Abort()
 				return
 			}
 			if ok := reserveReplayKey(ctx.Request.Context(), options.ReplayStore, "nonce", appID, nonce, window); !ok {
-				JSONError(ctx, http.StatusUnauthorized, "replayed_request", "nonce was already used")
+				JSONError(ctx, http.StatusUnauthorized, CodeReplayedRequest, "nonce was already used")
 				ctx.Abort()
 				return
 			}

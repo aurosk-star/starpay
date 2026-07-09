@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -47,6 +48,7 @@ func TestAppAuthMiddlewareRejectsMissingRequestID(t *testing.T) {
 	if recorder.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want unauthorized", recorder.Code)
 	}
+	assertErrorCode(t, recorder, httpx.CodeInvalidSignature)
 }
 
 func TestAppAuthMiddlewareRejectsInvalidSignature(t *testing.T) {
@@ -60,6 +62,7 @@ func TestAppAuthMiddlewareRejectsInvalidSignature(t *testing.T) {
 	if recorder.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want unauthorized", recorder.Code)
 	}
+	assertErrorCode(t, recorder, httpx.CodeInvalidSignature)
 }
 
 func TestAppAuthMiddlewareRejectsExpiredTimestamp(t *testing.T) {
@@ -74,6 +77,7 @@ func TestAppAuthMiddlewareRejectsExpiredTimestamp(t *testing.T) {
 	if recorder.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want unauthorized", recorder.Code)
 	}
+	assertErrorCode(t, recorder, httpx.CodeTimestampExpired)
 }
 
 func TestAppAuthMiddlewareRejectsReplayRequestID(t *testing.T) {
@@ -91,6 +95,7 @@ func TestAppAuthMiddlewareRejectsReplayRequestID(t *testing.T) {
 	if second.Code != http.StatusUnauthorized {
 		t.Fatalf("second status = %d, want unauthorized", second.Code)
 	}
+	assertErrorCode(t, second, httpx.CodeReplayedRequest)
 }
 
 func TestAppAuthMiddlewareRejectsDisabledApp(t *testing.T) {
@@ -103,6 +108,7 @@ func TestAppAuthMiddlewareRejectsDisabledApp(t *testing.T) {
 	if recorder.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want forbidden", recorder.Code)
 	}
+	assertErrorCode(t, recorder, httpx.CodeAppDisabled)
 }
 
 func TestAppAuthMiddlewareRejectsIPMismatch(t *testing.T) {
@@ -116,6 +122,18 @@ func TestAppAuthMiddlewareRejectsIPMismatch(t *testing.T) {
 
 	if recorder.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want forbidden", recorder.Code)
+	}
+	assertErrorCode(t, recorder, httpx.CodeIPNotAllowed)
+}
+
+func assertErrorCode(t *testing.T, recorder *httptest.ResponseRecorder, want string) {
+	t.Helper()
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response["code"] != want {
+		t.Fatalf("code = %#v, want %s; body = %s", response["code"], want, recorder.Body.String())
 	}
 }
 

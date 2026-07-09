@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"strings"
@@ -72,7 +73,15 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 	channelrouter.Register(router.Group("/v1/admin"), channelHandler, userService, enforcer)
 	routingService := routingsvc.New(client)
 	routingrouter.Register(router.Group("/v1/admin"), routinghandler.New(routingService), userService, enforcer)
-	configService := configsvc.New(client)
+	configService := configsvc.New(client, configsvc.WithRuntimeDefaults(configsvc.RuntimeDefaults{
+		OrderDefaultTTL:              cfg.Orders.DefaultTTL,
+		OrderExpireScanInterval:      cfg.Orders.ExpireScanInterval,
+		OrderExpireScanLimit:         cfg.Orders.ExpireScanLimit,
+		OrderExpireWorkerConcurrency: cfg.Orders.ExpireWorkerConcurrency,
+		OpenAPIRateLimitEnabled:      cfg.RateLimit.OpenAPIEnabled,
+		OpenAPIRateLimit:             cfg.RateLimit.OpenAPILimit,
+		OpenAPIRateLimitWindow:       cfg.RateLimit.OpenAPIWindow,
+	}))
 	configHandler := confighandler.New(configService)
 	configrouter.Register(router.Group("/v1/admin"), configHandler, userService, enforcer)
 	router.GET("/v1/public/site-config", configHandler.GetPublicSiteConfig)
@@ -85,6 +94,7 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 	orderService := ordersvc.New(client,
 		ordersvc.WithWebhookService(webhookService),
 		ordersvc.WithDefaultOrderTTL(cfg.Orders.DefaultTTL),
+		ordersvc.WithDefaultOrderTTLResolver(configService.OrderDefaultTTL),
 	)
 	checkoutURLResolver := func(ctx *gin.Context, gatewayOrderNo string, token string) string {
 		gatewayConfig, err := configService.GetGatewayConfig(ctx.Request.Context())
@@ -139,6 +149,21 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 		Client:              client,
 		ReplayStore:         httpx.NewRedisReplayStore(redisClient),
 		SecretEncryptionKey: cfg.Auth.AppSecretEncryptionKey,
+	}))
+	open.Use(httpx.RateLimitMiddleware(httpx.RateLimitOptions{
+		Store:   httpx.NewRedisRateLimitStore(redisClient),
+		Enabled: cfg.RateLimit.OpenAPIEnabled,
+		Limit:   cfg.RateLimit.OpenAPILimit,
+		Window:  cfg.RateLimit.OpenAPIWindow,
+		Scope:   "open_api",
+		Resolver: func(ctx context.Context) (httpx.RateLimitRuntimeConfig, error) {
+			enabled, limit, window, err := configService.OpenAPIRateLimitConfig(ctx)
+			return httpx.RateLimitRuntimeConfig{
+				Enabled: enabled,
+				Limit:   limit,
+				Window:  window,
+			}, err
+		},
 	}))
 	open.GET("/ping", func(ctx *gin.Context) {
 		httpx.JSONOK(ctx, http.StatusOK, gin.H{

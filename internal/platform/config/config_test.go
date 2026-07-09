@@ -86,6 +86,47 @@ func TestLoadOrderExpirationConfig(t *testing.T) {
 	}
 }
 
+func TestLoadRateLimitDefaults(t *testing.T) {
+	clearConfigEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if !cfg.RateLimit.OpenAPIEnabled {
+		t.Fatalf("RateLimit.OpenAPIEnabled = false, want true")
+	}
+	if cfg.RateLimit.OpenAPILimit != 120 {
+		t.Fatalf("RateLimit.OpenAPILimit = %d, want 120", cfg.RateLimit.OpenAPILimit)
+	}
+	if cfg.RateLimit.OpenAPIWindow != time.Minute {
+		t.Fatalf("RateLimit.OpenAPIWindow = %v, want 1m", cfg.RateLimit.OpenAPIWindow)
+	}
+}
+
+func TestLoadRateLimitEnv(t *testing.T) {
+	clearConfigEnv(t)
+	t.Setenv("OPEN_API_RATE_LIMIT_ENABLED", "false")
+	t.Setenv("OPEN_API_RATE_LIMIT", "30")
+	t.Setenv("OPEN_API_RATE_LIMIT_WINDOW", "10s")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.RateLimit.OpenAPIEnabled {
+		t.Fatalf("RateLimit.OpenAPIEnabled = true, want false")
+	}
+	if cfg.RateLimit.OpenAPILimit != 30 {
+		t.Fatalf("RateLimit.OpenAPILimit = %d, want 30", cfg.RateLimit.OpenAPILimit)
+	}
+	if cfg.RateLimit.OpenAPIWindow != 10*time.Second {
+		t.Fatalf("RateLimit.OpenAPIWindow = %v, want 10s", cfg.RateLimit.OpenAPIWindow)
+	}
+}
+
 func TestLoadDatabaseDSNFromParts(t *testing.T) {
 	t.Setenv("DATABASE_URL", "")
 	t.Setenv("DB_DRIVER", "postgres")
@@ -195,6 +236,9 @@ func clearConfigEnv(t *testing.T) {
 		"ORDER_EXPIRE_SCAN_INTERVAL",
 		"ORDER_EXPIRE_SCAN_LIMIT",
 		"ORDER_EXPIRE_WORKER_CONCURRENCY",
+		"OPEN_API_RATE_LIMIT_ENABLED",
+		"OPEN_API_RATE_LIMIT",
+		"OPEN_API_RATE_LIMIT_WINDOW",
 	} {
 		t.Setenv(key, "")
 	}

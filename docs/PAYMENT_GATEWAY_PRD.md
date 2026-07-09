@@ -629,7 +629,125 @@ X-Signature
 method + path + timestamp + nonce + body
 ```
 
-### 11.2 创建支付订单
+### 11.1.1 安全控制
+
+重放攻击防护：
+
+- 开放 API 请求必须携带 `timestamp`、`request_id`、`nonce` 和签名。
+- `timestamp` 允许 5 分钟时间窗口，超出窗口返回 `TIMESTAMP_EXPIRED`。
+- `request_id` 和 `nonce` 在窗口期内按应用去重，重复使用返回 `REPLAYED_REQUEST`。
+- V1 使用 Redis `SetNX` 保存重放键，TTL 与时间窗口一致。
+
+请求频率限制：
+
+- V1 对开放 API 按 `app_id + HTTP method + route` 做固定窗口限流。
+- 默认限制为每个应用每个接口每分钟 120 次，可通过环境变量关闭或调整。
+- 命中限流返回 HTTP `429` 和错误码 `RATE_LIMITED`。
+- 限流状态存储在 Redis；Redis 不可用时返回 `SERVICE_UNAVAILABLE`，避免资金接口在风控组件失效时继续放量。
+
+密钥管理与泄露处理：
+
+- `app_secret` 由网关生成，创建应用和重置密钥时仅返回一次。
+- 网关保存 `app_secret_hash` 和加密后的 `app_secret_ciphertext`，不得明文展示密钥。
+- 加密密钥由 `APP_SECRET_ENCRYPTION_KEY` 提供，生产环境必须使用独立强随机值并纳入密钥管理系统。
+- V1 不支持双密钥并行验证；重置密钥会立即使旧密钥失效。
+- 业务方怀疑密钥泄露时，必须立即禁用应用或重置密钥，并更新业务系统配置。
+- 密钥轮换建议按季度或重大人员/系统变更时执行；V1 轮换流程为：新建维护窗口、重置密钥、业务方更新配置、用 `/v1/open/ping` 验签、恢复业务流量。
+
+### 11.2 统一响应与错误模型
+
+所有业务 API 必须返回统一响应结构。成功响应：
+
+```json
+{
+  "code": "ok",
+  "message": "ok",
+  "data": {},
+  "error": null
+}
+```
+
+失败响应：
+
+```json
+{
+  "code": "ORDER_NOT_FOUND",
+  "message": "支付订单不存在",
+  "data": null,
+  "error": {
+    "code": "ORDER_NOT_FOUND",
+    "message": "支付订单不存在",
+    "details": {
+      "gateway_order_no": "pay_20260630_xxx"
+    }
+  }
+}
+```
+
+约束：
+
+- `code` 与 `error.code` 必须一致。
+- 错误码使用稳定的大写蛇形命名，不直接暴露内部 Go error 文本。
+- `message` 面向接入方排障，允许中文；客户端逻辑不得依赖 `message`。
+- `error.details` 为对象，默认 `{}`，用于携带字段名、订单号、通道名、上游错误码、是否可重试等结构化信息。
+- HTTP 状态码表示请求处理层级，错误码表示业务语义。接入方必须优先按 `error.code` 做业务判断。
+- 支付通道原始错误只允许放入 `details.provider_error_code`、`details.provider_error_message`、`details.provider_request_id` 等脱敏字段，不得泄露密钥、证书、签名原文或完整上游响应。
+
+错误码分类：
+
+| 分类 | 错误码 | HTTP | 含义 | 可重试 |
+| --- | --- | --- | --- | --- |
+| 鉴权 | `INVALID_SIGNATURE` | 401 | 签名错误或缺少签名参数 | 否 |
+| 鉴权 | `TIMESTAMP_EXPIRED` | 401 | 请求时间戳超出允许窗口 | 是，重新签名 |
+| 鉴权 | `REPLAYED_REQUEST` | 401 | `request_id` 或 `nonce` 已使用 | 否 |
+| 鉴权 | `APP_NOT_FOUND` | 401 | 应用不存在或凭据无效 | 否 |
+| 鉴权 | `APP_DISABLED` | 403 | 应用已禁用 | 否 |
+| 鉴权 | `IP_NOT_ALLOWED` | 403 | 请求来源 IP 不在白名单 | 否 |
+| 参数 | `INVALID_REQUEST` | 400 | 请求体格式错误或 JSON 无法解析 | 否 |
+| 参数 | `MISSING_REQUIRED_FIELD` | 400 | 缺少必填字段 | 否 |
+| 参数 | `INVALID_AMOUNT` | 400 | 金额非法，金额必须为正整数分 | 否 |
+| 参数 | `INVALID_CURRENCY` | 400 | 币种格式非法 | 否 |
+| 参数 | `CURRENCY_NOT_SUPPORTED` | 400 | 当前通道不支持该币种 | 否 |
+| 参数 | `INVALID_RETURN_URL` | 400 | 返回地址非法 | 否 |
+| 参数 | `INVALID_METADATA` | 400 | 扩展数据格式或大小不合法 | 否 |
+| 订单 | `ORDER_NOT_FOUND` | 404 | 支付订单不存在 | 否 |
+| 订单 | `ORDER_ALREADY_PAID` | 409 | 订单已支付，不能重复支付或关闭 | 否 |
+| 订单 | `ORDER_EXPIRED` | 409 | 订单已过期 | 否 |
+| 订单 | `ORDER_STATUS_NOT_ALLOWED` | 409 | 当前订单状态不允许该操作 | 否 |
+| 订单 | `IDEMPOTENCY_CONFLICT` | 409 | 同一业务单号重复请求参数不一致 | 否 |
+| 退款 | `REFUND_NOT_FOUND` | 404 | 退款单不存在 | 否 |
+| 退款 | `REFUND_AMOUNT_EXCEEDS_PAID` | 400 | 退款金额超过可退金额 | 否 |
+| 退款 | `REFUND_STATUS_NOT_ALLOWED` | 409 | 当前退款状态不允许该操作 | 否 |
+| 通道 | `CHANNEL_UNAVAILABLE` | 503 | 没有可用支付通道或通道账号被禁用 | 是 |
+| 通道 | `CHANNEL_CONFIG_INVALID` | 500 | 通道配置缺失或非法 | 否 |
+| 通道 | `CHANNEL_RESPONSE_ERROR` | 502 | 支付通道返回失败 | 视 `details.retryable` |
+| 通道 | `CHANNEL_TIMEOUT` | 504 | 调用支付通道超时 | 是 |
+| 通道 | `CHANNEL_NOTIFY_VERIFY_FAILED` | 400 | 通道回调验签失败 | 否 |
+| 系统 | `INTERNAL_ERROR` | 500 | 网关内部错误 | 是 |
+| 系统 | `SERVICE_UNAVAILABLE` | 503 | 网关依赖服务不可用 | 是 |
+| 系统 | `RATE_LIMITED` | 429 | 请求频率超限 | 是 |
+
+错误响应示例：
+
+```json
+{
+  "code": "CHANNEL_RESPONSE_ERROR",
+  "message": "支付通道返回失败",
+  "data": null,
+  "error": {
+    "code": "CHANNEL_RESPONSE_ERROR",
+    "message": "支付通道返回失败",
+    "details": {
+      "channel": "wechat",
+      "provider_error_code": "PARAM_ERROR",
+      "provider_error_message": "参数错误",
+      "retryable": false
+    }
+  }
+}
+```
+
+### 11.3 创建支付订单
 
 ```text
 POST /v1/payment/orders
@@ -670,32 +788,32 @@ POST /v1/payment/orders
 }
 ```
 
-### 11.3 查询支付订单
+### 11.4 查询支付订单
 
 ```text
 GET /v1/payment/orders/{gateway_order_no}
 GET /v1/payment/orders/by-merchant/{merchant_order_no}
 ```
 
-### 11.4 关闭支付订单
+### 11.5 关闭支付订单
 
 ```text
 POST /v1/payment/orders/{gateway_order_no}/close
 ```
 
-### 11.5 创建退款
+### 11.6 创建退款
 
 ```text
 POST /v1/payment/refunds
 ```
 
-### 11.6 查询退款
+### 11.7 查询退款
 
 ```text
 GET /v1/payment/refunds/{refund_no}
 ```
 
-### 11.7 订阅接口
+### 11.8 订阅接口
 
 ```text
 POST /v1/plans
@@ -707,7 +825,7 @@ POST /v1/subscriptions/{subscription_no}/resume
 GET  /v1/invoices
 ```
 
-### 11.8 通道回调接口
+### 11.9 通道回调接口
 
 ```text
 POST /v1/channel/alipay/notify

@@ -56,12 +56,12 @@ type openOrderRequest struct {
 func (h OpenHandler) CreateOrder(ctx *gin.Context) {
 	appID := ctx.GetString(httpx.ContextAppID)
 	if appID == "" {
-		httpx.JSONError(ctx, http.StatusUnauthorized, "unauthorized", "missing app context")
+		httpx.JSONError(ctx, http.StatusUnauthorized, httpx.CodeInvalidSignature, "missing app context")
 		return
 	}
 	var req openOrderRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		httpx.JSONError(ctx, http.StatusBadRequest, "invalid_request", err.Error())
+		httpx.JSONError(ctx, http.StatusBadRequest, httpx.CodeInvalidRequest, err.Error())
 		return
 	}
 	result, created, err := h.service.CreateOpenOrderWithCheckoutToken(ctx.Request.Context(), appID, ordersvc.OpenOrderInput{
@@ -79,11 +79,7 @@ func (h OpenHandler) CreateOrder(ctx *gin.Context) {
 		Metadata:         req.Metadata,
 	})
 	if err != nil {
-		status := http.StatusBadRequest
-		if err == ordersvc.ErrIdempotencyConflict {
-			status = http.StatusConflict
-		}
-		httpx.JSONError(ctx, status, "create_order_failed", err.Error())
+		httpx.WriteAPIError(ctx, httpx.OrderAPIError(err, httpx.CodeInternalError, "failed to create order"))
 		return
 	}
 	order := result.Order
@@ -100,12 +96,12 @@ func (h OpenHandler) CreateOrder(ctx *gin.Context) {
 func (h OpenHandler) GetOrder(ctx *gin.Context) {
 	appID := ctx.GetString(httpx.ContextAppID)
 	if appID == "" {
-		httpx.JSONError(ctx, http.StatusUnauthorized, "unauthorized", "missing app context")
+		httpx.JSONError(ctx, http.StatusUnauthorized, httpx.CodeInvalidSignature, "missing app context")
 		return
 	}
 	order, err := h.service.FindOrderByGatewayOrderNoForApp(ctx.Request.Context(), appID, ctx.Param("gateway_order_no"))
 	if err != nil {
-		httpx.JSONError(ctx, http.StatusNotFound, "order_not_found", "payment order not found")
+		httpx.JSONErrorWithDetails(ctx, http.StatusNotFound, httpx.CodeOrderNotFound, "payment order not found", httpx.ErrorDetails{"gateway_order_no": ctx.Param("gateway_order_no")})
 		return
 	}
 	httpx.JSONOK(ctx, http.StatusOK, gin.H{"order": serializeOrder(order)})
@@ -114,12 +110,12 @@ func (h OpenHandler) GetOrder(ctx *gin.Context) {
 func (h OpenHandler) GetOrderByMerchant(ctx *gin.Context) {
 	appID := ctx.GetString(httpx.ContextAppID)
 	if appID == "" {
-		httpx.JSONError(ctx, http.StatusUnauthorized, "unauthorized", "missing app context")
+		httpx.JSONError(ctx, http.StatusUnauthorized, httpx.CodeInvalidSignature, "missing app context")
 		return
 	}
 	order, err := h.service.FindOrderByMerchantOrderNoForApp(ctx.Request.Context(), appID, ctx.Param("merchant_order_no"))
 	if err != nil {
-		httpx.JSONError(ctx, http.StatusNotFound, "order_not_found", "payment order not found")
+		httpx.JSONErrorWithDetails(ctx, http.StatusNotFound, httpx.CodeOrderNotFound, "payment order not found", httpx.ErrorDetails{"merchant_order_no": ctx.Param("merchant_order_no")})
 		return
 	}
 	httpx.JSONOK(ctx, http.StatusOK, gin.H{"order": serializeOrder(order)})
@@ -128,7 +124,7 @@ func (h OpenHandler) GetOrderByMerchant(ctx *gin.Context) {
 func (h OpenHandler) CloseOrder(ctx *gin.Context) {
 	appID := ctx.GetString(httpx.ContextAppID)
 	if appID == "" {
-		httpx.JSONError(ctx, http.StatusUnauthorized, "unauthorized", "missing app context")
+		httpx.JSONError(ctx, http.StatusUnauthorized, httpx.CodeInvalidSignature, "missing app context")
 		return
 	}
 	order, err := h.service.CloseOrderForApp(ctx.Request.Context(), appID, ctx.Param("gateway_order_no"))
@@ -137,7 +133,11 @@ func (h OpenHandler) CloseOrder(ctx *gin.Context) {
 		if errors.Is(err, ordersvc.ErrOrderCannotBeClosed) {
 			status = http.StatusConflict
 		}
-		httpx.JSONError(ctx, status, "close_order_failed", err.Error())
+		if status == http.StatusNotFound {
+			httpx.JSONErrorWithDetails(ctx, status, httpx.CodeOrderNotFound, "payment order not found", httpx.ErrorDetails{"gateway_order_no": ctx.Param("gateway_order_no")})
+			return
+		}
+		httpx.WriteAPIError(ctx, httpx.OrderAPIError(err, httpx.CodeInternalError, "failed to close order"))
 		return
 	}
 	httpx.JSONOK(ctx, http.StatusOK, gin.H{"order": serializeOrder(order)})

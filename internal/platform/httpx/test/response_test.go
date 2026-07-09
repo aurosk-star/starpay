@@ -38,7 +38,7 @@ func TestJSONErrorUsesGlobalResponseShape(t *testing.T) {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.GET("/bad", func(ctx *gin.Context) {
-		httpx.JSONError(ctx, http.StatusBadRequest, "invalid_request", "bad request")
+		httpx.JSONError(ctx, http.StatusBadRequest, "INVALID_REQUEST", "bad request")
 	})
 
 	recorder := httptest.NewRecorder()
@@ -48,11 +48,49 @@ func TestJSONErrorUsesGlobalResponseShape(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if body["code"] != "invalid_request" || body["message"] != "bad request" {
+	if body["code"] != "INVALID_REQUEST" || body["message"] != "bad request" {
 		t.Fatalf("response = %#v, want top-level error code and message", body)
 	}
 	errorBody, ok := body["error"].(map[string]any)
-	if !ok || errorBody["code"] != "invalid_request" {
+	if !ok || errorBody["code"] != "INVALID_REQUEST" {
 		t.Fatalf("error = %#v, want nested error detail", body["error"])
+	}
+	details, ok := errorBody["details"].(map[string]any)
+	if !ok || len(details) != 0 {
+		t.Fatalf("details = %#v, want empty object", errorBody["details"])
+	}
+}
+
+func TestJSONErrorWithDetailsIncludesStructuredDetails(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+	router.GET("/bad", func(ctx *gin.Context) {
+		httpx.JSONErrorWithDetails(ctx, http.StatusBadGateway, "CHANNEL_RESPONSE_ERROR", "payment channel failed", httpx.ErrorDetails{
+			"channel":             "wechat",
+			"provider_error_code": "PARAM_ERROR",
+			"retryable":           false,
+		})
+	})
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/bad", nil))
+
+	var body map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body["code"] != "CHANNEL_RESPONSE_ERROR" || body["message"] != "payment channel failed" {
+		t.Fatalf("response = %#v, want top-level channel error", body)
+	}
+	errorBody, ok := body["error"].(map[string]any)
+	if !ok || errorBody["code"] != "CHANNEL_RESPONSE_ERROR" {
+		t.Fatalf("error = %#v, want nested channel error", body["error"])
+	}
+	details, ok := errorBody["details"].(map[string]any)
+	if !ok {
+		t.Fatalf("details = %#v, want object", errorBody["details"])
+	}
+	if details["channel"] != "wechat" || details["provider_error_code"] != "PARAM_ERROR" || details["retryable"] != false {
+		t.Fatalf("details = %#v, want structured details", details)
 	}
 }

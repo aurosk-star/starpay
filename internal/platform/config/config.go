@@ -11,12 +11,13 @@ import (
 )
 
 type Config struct {
-	App      AppConfig
-	HTTP     HTTPConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	Auth     AuthConfig
-	Orders   OrdersConfig
+	App       AppConfig
+	HTTP      HTTPConfig
+	Database  DatabaseConfig
+	Redis     RedisConfig
+	Auth      AuthConfig
+	Orders    OrdersConfig
+	RateLimit RateLimitConfig
 }
 
 type AppConfig struct {
@@ -56,6 +57,12 @@ type OrdersConfig struct {
 	ExpireWorkerConcurrency int
 }
 
+type RateLimitConfig struct {
+	OpenAPIEnabled bool
+	OpenAPILimit   int
+	OpenAPIWindow  time.Duration
+}
+
 func Load() (Config, error) {
 	loadDotEnv(".env")
 	return Config{
@@ -86,6 +93,11 @@ func Load() (Config, error) {
 			ExpireScanInterval:      durationEnv("ORDER_EXPIRE_SCAN_INTERVAL", 30*time.Second),
 			ExpireScanLimit:         intEnv("ORDER_EXPIRE_SCAN_LIMIT", 100),
 			ExpireWorkerConcurrency: intEnv("ORDER_EXPIRE_WORKER_CONCURRENCY", 2),
+		},
+		RateLimit: RateLimitConfig{
+			OpenAPIEnabled: boolEnv("OPEN_API_RATE_LIMIT_ENABLED", true),
+			OpenAPILimit:   intEnv("OPEN_API_RATE_LIMIT", 120),
+			OpenAPIWindow:  durationEnv("OPEN_API_RATE_LIMIT_WINDOW", time.Minute),
 		},
 	}, nil
 }

@@ -11,6 +11,13 @@ const (
 )
 
 func JSONError(ctx *gin.Context, status int, code string, message string) {
+	JSONErrorWithDetails(ctx, status, code, message, ErrorDetails{})
+}
+
+func JSONErrorWithDetails(ctx *gin.Context, status int, code string, message string, details ErrorDetails) {
+	if details == nil {
+		details = ErrorDetails{}
+	}
 	ctx.JSON(status, gin.H{
 		"code":    code,
 		"message": message,
@@ -18,6 +25,7 @@ func JSONError(ctx *gin.Context, status int, code string, message string) {
 		"error": gin.H{
 			"code":    code,
 			"message": message,
+			"details": details,
 		},
 	})
 }

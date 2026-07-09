@@ -22,6 +22,7 @@ import (
 	paymentprovider "payment-gateway/internal/domain/payments/provider"
 	paymentsvc "payment-gateway/internal/domain/payments/service"
 	routingsvc "payment-gateway/internal/domain/routing/service"
+	"payment-gateway/internal/platform/httpx"
 )
 
 func TestCheckoutHandlerListsOnlyEnabledPaymentMethods(t *testing.T) {
@@ -864,9 +865,61 @@ func TestCheckoutHandlerRejectsMismatchedMethodForLockedOrder(t *testing.T) {
 		"channel":    "wechat",
 	}))
 
-	if recorder.Code != http.StatusBadRequest {
+	if recorder.Code != http.StatusConflict {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
+	assertResponseCode(t, recorder, httpx.CodeOrderStatusNotAllowed)
+}
+
+func TestCheckoutHandlerReturnsStableChannelUnavailableCode(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_channel_unavailable?mode=memory&cache=shared&_fk=1")
+	t.Cleanup(func() { client.Close() })
+	createEnabledApp(t, client, "snsgo")
+
+	orderService := ordersvc.New(client)
+	created, err := orderService.CreateOrder(t.Context(), ordersvc.ManageOrderInput{
+		AppID:           "snsgo",
+		MerchantOrderNo: "biz_checkout_channel_unavailable",
+		Subject:         "Pro 会员",
+		Amount:          9900,
+		Currency:        "CNY",
+		PayMethod:       "alipay",
+		Channel:         "alipay",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+
+	channelService := channelsvc.New(client)
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "alipay",
+		Name:    "支付宝沙箱",
+		Enabled: true,
+		Env:     "sandbox",
+		Config:  map[string]any{"app_id": "app-1"},
+	}); err != nil {
+		t.Fatalf("CreateChannelAccount(alipay) error = %v", err)
+	}
+
+	router := gin.New()
+	checkoutHandler := orderhandler.NewCheckout(
+		orderService,
+		orderhandler.WithChannelService(channelService),
+		orderhandler.WithPaymentService(paymentsvc.New(paymentsvc.WithChannelRepository(channelrepo.New(client)))),
+	)
+	router.POST("/orders/:gateway_order_no/pay", checkoutHandler.StartPayment)
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, created, http.MethodPost, "/orders/"+created.GatewayOrderNo+"/pay", map[string]any{
+		"pay_method": "alipay",
+		"channel":    "alipay",
+	}))
+
+	if recorder.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	assertResponseCode(t, recorder, httpx.CodeChannelUnavailable)
 }
 
 func TestCheckoutHandlerRejectsUnsupportedCurrencyAtPaymentStart(t *testing.T) {
@@ -1199,6 +1252,17 @@ func decodeCheckoutMethods(t *testing.T, recorder *httptest.ResponseRecorder) []
 	}
 	data := response["data"].(map[string]any)
 	return data["methods"].([]any)
+}
+
+func assertResponseCode(t *testing.T, recorder *httptest.ResponseRecorder, want string) {
+	t.Helper()
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response["code"] != want {
+		t.Fatalf("code = %#v, want %s; body = %s", response["code"], want, recorder.Body.String())
+	}
 }
 
 func checkoutRequest(t *testing.T, service ordersvc.Service, order *ent.PaymentOrder, method string, path string, body map[string]any) *http.Request {

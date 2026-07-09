@@ -304,14 +304,14 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 			expectedPayMethod = expectedChannel
 		}
 		if (channel != "" && channel != expectedChannel) || (payMethod != "" && payMethod != expectedPayMethod) {
-			httpx.JSONError(ctx, http.StatusBadRequest, "locked_payment_method_mismatch", "payment method is locked by the order")
+			httpx.JSONError(ctx, http.StatusConflict, httpx.CodeOrderStatusNotAllowed, "payment method is locked by the order")
 			return
 		}
 		channel = expectedChannel
 		payMethod = expectedPayMethod
 	}
 	if !paymentsvc.ChannelSupportsCurrency(channel, order.Currency) {
-		httpx.JSONError(ctx, http.StatusBadRequest, "unsupported_currency_for_channel", "currency is not supported by channel")
+		httpx.JSONError(ctx, http.StatusBadRequest, httpx.CodeCurrencyNotSupported, "currency is not supported by channel")
 		return
 	}
 	payMode := ""
@@ -322,7 +322,7 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 			return
 		}
 		if !ok {
-			httpx.JSONError(ctx, http.StatusBadRequest, "payment_mode_unavailable", "payment method is not available for current terminal")
+			httpx.JSONError(ctx, http.StatusServiceUnavailable, httpx.CodeChannelUnavailable, "payment method is not available for current terminal")
 			return
 		}
 		payMode = resolvedMode
@@ -348,7 +348,7 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 		NotifyURL:        notifyURL,
 	})
 	if err != nil {
-		httpx.JSONError(ctx, http.StatusBadRequest, "start_payment_failed", err.Error())
+		httpx.WriteAPIError(ctx, httpx.OrderAPIError(err, httpx.CodeChannelResponseError, "failed to start payment"))
 		return
 	}
 	if order.Channel == "" || order.PayMethod == "" {

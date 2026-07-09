@@ -86,6 +86,13 @@ func TestOpenOrderHandlerScopesLookupToContextApp(t *testing.T) {
 	if recorder.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response["code"] != httpx.CodeOrderNotFound {
+		t.Fatalf("code = %#v, want %s", response["code"], httpx.CodeOrderNotFound)
+	}
 }
 
 func TestOpenOrderHandlerClosesOrderWithGlobalResponse(t *testing.T) {
@@ -123,6 +130,56 @@ func TestOpenOrderHandlerClosesOrderWithGlobalResponse(t *testing.T) {
 	}
 	if response["code"] != "ok" || response["error"] != nil {
 		t.Fatalf("response = %#v, want global ok shape", response)
+	}
+}
+
+func TestOpenCreateOrderReturnsStableInvalidAmountCode(t *testing.T) {
+	router := newOpenOrderTestRouter(t, "snsgo")
+	body := map[string]any{
+		"merchant_order_no": "biz_invalid_amount",
+		"subject":           "Pro 会员",
+		"amount":            int64(0),
+		"currency":          "CNY",
+	}
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, jsonRequest(http.MethodPost, "/orders", body))
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response["code"] != httpx.CodeInvalidAmount {
+		t.Fatalf("code = %#v, want %s", response["code"], httpx.CodeInvalidAmount)
+	}
+}
+
+func TestOpenCreateOrderReturnsStableCurrencyNotSupportedCode(t *testing.T) {
+	router := newOpenOrderTestRouter(t, "snsgo")
+	body := map[string]any{
+		"merchant_order_no": "biz_currency",
+		"subject":           "Pro 会员",
+		"amount":            int64(9900),
+		"currency":          "USD",
+		"channel":           "wechat",
+		"pay_method":        "wechat",
+	}
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, jsonRequest(http.MethodPost, "/orders", body))
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response["code"] != httpx.CodeCurrencyNotSupported {
+		t.Fatalf("code = %#v, want %s", response["code"], httpx.CodeCurrencyNotSupported)
 	}
 }
 
