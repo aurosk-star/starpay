@@ -46,13 +46,12 @@ func TestGatewayConfigUpdateNormalizesValues(t *testing.T) {
 
 	svc := configsvc.New(client)
 	cfg, err := svc.UpdateGatewayConfig(ctx, configsvc.UpdateGatewayConfigInput{
-		GatewayBaseURL:    " https://pay.example.com/ ",
-		SiteName:          " 绘星支付中心 ",
-		PaymentNotifyPath: "v1/channel/notify",
-		DefaultCurrency:   " usd ",
-		DefaultLocale:     " en-US ",
-		RequestIDEnabled:  false,
-		MaintenanceMode:   true,
+		GatewayBaseURL:   " https://pay.example.com/ ",
+		SiteName:         " 绘星支付中心 ",
+		DefaultCurrency:  " usd ",
+		DefaultLocale:    " en-US ",
+		RequestIDEnabled: false,
+		MaintenanceMode:  true,
 		Extra: map[string]any{
 			"support_email": "ops@example.com",
 		},
@@ -67,7 +66,7 @@ func TestGatewayConfigUpdateNormalizesValues(t *testing.T) {
 		t.Fatalf("SiteName = %q, want trimmed", cfg.SiteName)
 	}
 	if cfg.PaymentNotifyPath != "/v1/channel/notify" {
-		t.Fatalf("PaymentNotifyPath = %q, want leading slash", cfg.PaymentNotifyPath)
+		t.Fatalf("PaymentNotifyPath = %q, want fixed default", cfg.PaymentNotifyPath)
 	}
 	if cfg.DefaultCurrency != "USD" {
 		t.Fatalf("DefaultCurrency = %q, want upper case", cfg.DefaultCurrency)

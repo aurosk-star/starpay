@@ -15,7 +15,6 @@ export type GatewayConfig = {
 export type UpdateGatewayConfigPayload = {
   site_name: string;
   gateway_base_url: string;
-  payment_notify_path: string;
   default_currency: string;
   default_locale: string;
   request_id_enabled: boolean;

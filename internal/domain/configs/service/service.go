@@ -29,14 +29,13 @@ func New(client *ent.Client) Service {
 }
 
 type UpdateGatewayConfigInput struct {
-	SiteName          string
-	GatewayBaseURL    string
-	PaymentNotifyPath string
-	DefaultCurrency   string
-	DefaultLocale     string
-	RequestIDEnabled  bool
-	MaintenanceMode   bool
-	Extra             map[string]any
+	SiteName         string
+	GatewayBaseURL   string
+	DefaultCurrency  string
+	DefaultLocale    string
+	RequestIDEnabled bool
+	MaintenanceMode  bool
+	Extra            map[string]any
 }
 
 func (s Service) GetGatewayConfig(ctx context.Context) (*ent.GatewayConfig, error) {
@@ -66,7 +65,7 @@ func (s Service) UpdateGatewayConfig(ctx context.Context, input UpdateGatewayCon
 	return s.configs.Update(ctx, current.ID, configrepo.UpdateGatewayConfigInput{
 		SiteName:          normalized.SiteName,
 		GatewayBaseURL:    normalized.GatewayBaseURL,
-		PaymentNotifyPath: normalized.PaymentNotifyPath,
+		PaymentNotifyPath: DefaultPaymentNotifyPath,
 		DefaultCurrency:   normalized.DefaultCurrency,
 		DefaultLocale:     normalized.DefaultLocale,
 		RequestIDEnabled:  normalized.RequestIDEnabled,
@@ -104,26 +103,14 @@ func normalizeInput(input UpdateGatewayConfigInput) (UpdateGatewayConfigInput, e
 		siteName = DefaultSiteName
 	}
 	return UpdateGatewayConfigInput{
-		SiteName:          siteName,
-		GatewayBaseURL:    baseURL,
-		PaymentNotifyPath: normalizePath(input.PaymentNotifyPath, DefaultPaymentNotifyPath),
-		DefaultCurrency:   currency,
-		DefaultLocale:     locale,
-		RequestIDEnabled:  input.RequestIDEnabled,
-		MaintenanceMode:   input.MaintenanceMode,
-		Extra:             extra,
+		SiteName:         siteName,
+		GatewayBaseURL:   baseURL,
+		DefaultCurrency:  currency,
+		DefaultLocale:    locale,
+		RequestIDEnabled: input.RequestIDEnabled,
+		MaintenanceMode:  input.MaintenanceMode,
+		Extra:            extra,
 	}, nil
-}
-
-func normalizePath(value string, fallback string) string {
-	path := strings.TrimSpace(value)
-	if path == "" {
-		return fallback
-	}
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
-	return path
 }
 
 func ensureExtra(cfg *ent.GatewayConfig) *ent.GatewayConfig {

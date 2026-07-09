@@ -20,13 +20,12 @@ func TestPublicSiteConfigReturnsSafeFields(t *testing.T) {
 	defer client.Close()
 	svc := configsvc.New(client)
 	if _, err := svc.UpdateGatewayConfig(t.Context(), configsvc.UpdateGatewayConfigInput{
-		SiteName:          "绘星支付中心",
-		GatewayBaseURL:    "https://pay.example.com",
-		PaymentNotifyPath: "/v1/channel/notify",
-		DefaultCurrency:   "USD",
-		DefaultLocale:     "en",
-		RequestIDEnabled:  true,
-		MaintenanceMode:   true,
+		SiteName:         "绘星支付中心",
+		GatewayBaseURL:   "https://pay.example.com",
+		DefaultCurrency:  "USD",
+		DefaultLocale:    "en",
+		RequestIDEnabled: true,
+		MaintenanceMode:  true,
 		Extra: map[string]any{
 			"secret_note": "hidden",
 		},

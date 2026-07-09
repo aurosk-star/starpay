@@ -1,18 +1,22 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Save, Settings2 } from "lucide-react";
+import { Copy, Save, Settings2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "@/features/auth/store";
@@ -25,7 +29,6 @@ import type { GatewayConfig, UpdateGatewayConfigPayload } from "./types";
 type FormState = {
   siteName: string;
   gatewayBaseUrl: string;
-  paymentNotifyPath: string;
   defaultCurrency: string;
   defaultLocale: string;
   requestIdEnabled: boolean;
@@ -36,7 +39,6 @@ type FormState = {
 const emptyForm: FormState = {
   siteName: "",
   gatewayBaseUrl: "",
-  paymentNotifyPath: "",
   defaultCurrency: "",
   defaultLocale: "",
   requestIdEnabled: true,
@@ -80,7 +82,6 @@ export function GatewayConfigPage() {
       const payload: UpdateGatewayConfigPayload = {
         site_name: form.siteName,
         gateway_base_url: form.gatewayBaseUrl,
-        payment_notify_path: form.paymentNotifyPath,
         default_currency: form.defaultCurrency,
         default_locale: form.defaultLocale,
         request_id_enabled: form.requestIdEnabled,
@@ -97,6 +98,17 @@ export function GatewayConfigPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  const notifyURL =
+    config && form.gatewayBaseUrl
+      ? `${form.gatewayBaseUrl.replace(/\/+$/, "")}${config.payment_notify_path}`
+      : "";
+
+  async function copyNotifyURL() {
+    if (!notifyURL) return;
+    await navigator.clipboard.writeText(notifyURL);
+    toast.success(t("config.notifyCopied"));
   }
 
   return (
@@ -125,144 +137,140 @@ export function GatewayConfigPage() {
         </Alert>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("config.gateway")}</CardTitle>
-          <CardDescription>{t("config.gatewayDescription")}</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("config.gateway")}</CardTitle>
+            <CardDescription>{t("config.gatewayDescription")}</CardDescription>
+          </CardHeader>
           {loading ? (
-            <p className="text-sm text-muted-foreground">
-              {t("config.loading")}
-            </p>
+            <GatewayConfigSkeleton />
           ) : (
-            <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="site_name">
-                    {t("config.fields.siteName")}
-                  </FieldLabel>
-                  <Input
-                    id="site_name"
-                    value={form.siteName}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        siteName: event.target.value,
-                      }))
-                    }
-                    required
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="gateway_base_url">
-                    {t("config.fields.gatewayBaseUrl")}
-                  </FieldLabel>
-                  <Input
-                    id="gateway_base_url"
-                    value={form.gatewayBaseUrl}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        gatewayBaseUrl: event.target.value,
-                      }))
-                    }
-                    required
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="payment_notify_path">
-                    {t("config.fields.paymentNotifyPath")}
-                  </FieldLabel>
-                  <Input
-                    id="payment_notify_path"
-                    value={form.paymentNotifyPath}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        paymentNotifyPath: event.target.value,
-                      }))
-                    }
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="default_currency">
-                    {t("config.fields.defaultCurrency")}
-                  </FieldLabel>
-                  <Input
-                    id="default_currency"
-                    value={form.defaultCurrency}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        defaultCurrency: event.target.value,
-                      }))
-                    }
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="default_locale">
-                    {t("config.fields.defaultLocale")}
-                  </FieldLabel>
-                  <Input
-                    id="default_locale"
-                    value={form.defaultLocale}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        defaultLocale: event.target.value,
-                      }))
-                    }
-                  />
-                </Field>
-                <Field orientation="horizontal">
-                  <FieldLabel htmlFor="request_id_enabled">
-                    {t("config.fields.requestIdEnabled")}
-                  </FieldLabel>
-                  <Switch
-                    id="request_id_enabled"
-                    checked={form.requestIdEnabled}
-                    onCheckedChange={(checked) =>
-                      setForm((current) => ({
-                        ...current,
-                        requestIdEnabled: checked,
-                      }))
-                    }
-                  />
-                </Field>
-                <Field orientation="horizontal">
-                  <FieldLabel htmlFor="maintenance_mode">
-                    {t("config.fields.maintenanceMode")}
-                  </FieldLabel>
-                  <Switch
-                    id="maintenance_mode"
-                    checked={form.maintenanceMode}
-                    onCheckedChange={(checked) =>
-                      setForm((current) => ({
-                        ...current,
-                        maintenanceMode: checked,
-                      }))
-                    }
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="extra">
-                    {t("config.fields.extra")}
-                  </FieldLabel>
-                  <Textarea
-                    id="extra"
-                    value={form.extra}
-                    rows={8}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        extra: event.target.value,
-                      }))
-                    }
-                  />
-                </Field>
-              </FieldGroup>
-              <div className="flex items-center justify-between gap-3">
+            <form onSubmit={handleSubmit}>
+              <CardContent className="pb-5">
+                <FieldGroup>
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <Field>
+                      <FieldLabel htmlFor="site_name">
+                        {t("config.fields.siteName")}
+                      </FieldLabel>
+                      <Input
+                        id="site_name"
+                        value={form.siteName}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            siteName: event.target.value,
+                          }))
+                        }
+                        required
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="gateway_base_url">
+                        {t("config.fields.gatewayBaseUrl")}
+                      </FieldLabel>
+                      <Input
+                        id="gateway_base_url"
+                        value={form.gatewayBaseUrl}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            gatewayBaseUrl: event.target.value,
+                          }))
+                        }
+                        required
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="default_currency">
+                        {t("config.fields.defaultCurrency")}
+                      </FieldLabel>
+                      <Input
+                        id="default_currency"
+                        value={form.defaultCurrency}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            defaultCurrency: event.target.value,
+                          }))
+                        }
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="default_locale">
+                        {t("config.fields.defaultLocale")}
+                      </FieldLabel>
+                      <Input
+                        id="default_locale"
+                        value={form.defaultLocale}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            defaultLocale: event.target.value,
+                          }))
+                        }
+                      />
+                    </Field>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Field
+                      orientation="horizontal"
+                      className="rounded-lg border bg-muted/20 p-3"
+                    >
+                      <FieldLabel htmlFor="request_id_enabled">
+                        {t("config.fields.requestIdEnabled")}
+                      </FieldLabel>
+                      <Switch
+                        id="request_id_enabled"
+                        checked={form.requestIdEnabled}
+                        onCheckedChange={(checked) =>
+                          setForm((current) => ({
+                            ...current,
+                            requestIdEnabled: checked,
+                          }))
+                        }
+                      />
+                    </Field>
+                    <Field
+                      orientation="horizontal"
+                      className="rounded-lg border bg-muted/20 p-3"
+                    >
+                      <FieldLabel htmlFor="maintenance_mode">
+                        {t("config.fields.maintenanceMode")}
+                      </FieldLabel>
+                      <Switch
+                        id="maintenance_mode"
+                        checked={form.maintenanceMode}
+                        onCheckedChange={(checked) =>
+                          setForm((current) => ({
+                            ...current,
+                            maintenanceMode: checked,
+                          }))
+                        }
+                      />
+                    </Field>
+                  </div>
+                  <Field>
+                    <FieldLabel htmlFor="extra">
+                      {t("config.fields.extra")}
+                    </FieldLabel>
+                    <Textarea
+                      id="extra"
+                      value={form.extra}
+                      rows={8}
+                      className="font-mono text-xs"
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          extra: event.target.value,
+                        }))
+                      }
+                    />
+                  </Field>
+                </FieldGroup>
+              </CardContent>
+              <CardFooter className="justify-between gap-3">
                 <p className="text-xs text-muted-foreground">
                   {config
                     ? t("config.updatedAt", {
@@ -274,11 +282,109 @@ export function GatewayConfigPage() {
                   <Save data-icon="inline-start" />
                   {saving ? t("config.saving") : t("config.save")}
                 </Button>
-              </div>
+              </CardFooter>
             </form>
           )}
-        </CardContent>
-      </Card>
+        </Card>
+
+        <Card className="xl:sticky xl:top-5">
+          <CardHeader>
+            <CardTitle>{t("config.runtime")}</CardTitle>
+            <CardDescription>{t("config.runtimeDescription")}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2 rounded-lg border bg-muted/20 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium">
+                  {t("config.fields.paymentNotifyPath")}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!notifyURL}
+                  onClick={copyNotifyURL}
+                >
+                  <Copy data-icon="inline-start" />
+                  {t("config.copy")}
+                </Button>
+              </div>
+              {loading ? (
+                <Skeleton className="h-8 w-full" />
+              ) : (
+                <code className="break-all rounded-md bg-background px-2 py-2 font-mono text-xs text-foreground ring-1 ring-border">
+                  {notifyURL || "-"}
+                </code>
+              )}
+            </div>
+            <div className="grid gap-3">
+              <RuntimeRow
+                label={t("config.fields.requestIdEnabled")}
+                value={form.requestIdEnabled}
+                enabledText={t("config.enabled")}
+                disabledText={t("config.disabled")}
+              />
+              <RuntimeRow
+                label={t("config.fields.maintenanceMode")}
+                value={form.maintenanceMode}
+                enabledText={t("config.enabled")}
+                disabledText={t("config.disabled")}
+              />
+              <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+                <span className="text-sm text-muted-foreground">
+                  {t("config.fields.updatedAt")}
+                </span>
+                <span className="text-right text-xs">
+                  {config
+                    ? new Date(config.updated_at).toLocaleString()
+                    : t("config.notSaved")}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function GatewayConfigSkeleton() {
+  return (
+    <CardContent>
+      <div className="flex flex-col gap-5">
+        <div className="grid gap-5 md:grid-cols-2">
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Skeleton className="h-12" />
+          <Skeleton className="h-12" />
+        </div>
+        <Skeleton className="h-48" />
+      </div>
+    </CardContent>
+  );
+}
+
+function RuntimeRow({
+  label,
+  value,
+  enabledText,
+  disabledText,
+}: {
+  label: string;
+  value: boolean;
+  enabledText: string;
+  disabledText: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <Badge variant={value ? "secondary" : "outline"}>
+        {value ? enabledText : disabledText}
+      </Badge>
     </div>
   );
 }
@@ -287,7 +393,6 @@ function toForm(config: GatewayConfig): FormState {
   return {
     siteName: config.site_name,
     gatewayBaseUrl: config.gateway_base_url,
-    paymentNotifyPath: config.payment_notify_path,
     defaultCurrency: config.default_currency,
     defaultLocale: config.default_locale,
     requestIdEnabled: config.request_id_enabled,
