@@ -32,6 +32,20 @@ type GatewayConfig struct {
 	RequestIDEnabled bool `json:"request_id_enabled,omitempty"`
 	// MaintenanceMode holds the value of the "maintenance_mode" field.
 	MaintenanceMode bool `json:"maintenance_mode,omitempty"`
+	// OrderDefaultTTLSeconds holds the value of the "order_default_ttl_seconds" field.
+	OrderDefaultTTLSeconds int `json:"order_default_ttl_seconds,omitempty"`
+	// OrderExpireScanIntervalSeconds holds the value of the "order_expire_scan_interval_seconds" field.
+	OrderExpireScanIntervalSeconds int `json:"order_expire_scan_interval_seconds,omitempty"`
+	// OrderExpireScanLimit holds the value of the "order_expire_scan_limit" field.
+	OrderExpireScanLimit int `json:"order_expire_scan_limit,omitempty"`
+	// OrderExpireWorkerConcurrency holds the value of the "order_expire_worker_concurrency" field.
+	OrderExpireWorkerConcurrency int `json:"order_expire_worker_concurrency,omitempty"`
+	// OpenAPIRateLimitEnabled holds the value of the "open_api_rate_limit_enabled" field.
+	OpenAPIRateLimitEnabled bool `json:"open_api_rate_limit_enabled,omitempty"`
+	// OpenAPIRateLimit holds the value of the "open_api_rate_limit" field.
+	OpenAPIRateLimit int `json:"open_api_rate_limit,omitempty"`
+	// OpenAPIRateLimitWindowSeconds holds the value of the "open_api_rate_limit_window_seconds" field.
+	OpenAPIRateLimitWindowSeconds int `json:"open_api_rate_limit_window_seconds,omitempty"`
 	// Extra holds the value of the "extra" field.
 	Extra map[string]interface{} `json:"extra,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -48,9 +62,9 @@ func (*GatewayConfig) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case gatewayconfig.FieldExtra:
 			values[i] = new([]byte)
-		case gatewayconfig.FieldRequestIDEnabled, gatewayconfig.FieldMaintenanceMode:
+		case gatewayconfig.FieldRequestIDEnabled, gatewayconfig.FieldMaintenanceMode, gatewayconfig.FieldOpenAPIRateLimitEnabled:
 			values[i] = new(sql.NullBool)
-		case gatewayconfig.FieldID:
+		case gatewayconfig.FieldID, gatewayconfig.FieldOrderDefaultTTLSeconds, gatewayconfig.FieldOrderExpireScanIntervalSeconds, gatewayconfig.FieldOrderExpireScanLimit, gatewayconfig.FieldOrderExpireWorkerConcurrency, gatewayconfig.FieldOpenAPIRateLimit, gatewayconfig.FieldOpenAPIRateLimitWindowSeconds:
 			values[i] = new(sql.NullInt64)
 		case gatewayconfig.FieldSiteName, gatewayconfig.FieldGatewayBaseURL, gatewayconfig.FieldPaymentNotifyPath, gatewayconfig.FieldDefaultCurrency, gatewayconfig.FieldDefaultLocale:
 			values[i] = new(sql.NullString)
@@ -118,6 +132,48 @@ func (_m *GatewayConfig) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field maintenance_mode", values[i])
 			} else if value.Valid {
 				_m.MaintenanceMode = value.Bool
+			}
+		case gatewayconfig.FieldOrderDefaultTTLSeconds:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field order_default_ttl_seconds", values[i])
+			} else if value.Valid {
+				_m.OrderDefaultTTLSeconds = int(value.Int64)
+			}
+		case gatewayconfig.FieldOrderExpireScanIntervalSeconds:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field order_expire_scan_interval_seconds", values[i])
+			} else if value.Valid {
+				_m.OrderExpireScanIntervalSeconds = int(value.Int64)
+			}
+		case gatewayconfig.FieldOrderExpireScanLimit:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field order_expire_scan_limit", values[i])
+			} else if value.Valid {
+				_m.OrderExpireScanLimit = int(value.Int64)
+			}
+		case gatewayconfig.FieldOrderExpireWorkerConcurrency:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field order_expire_worker_concurrency", values[i])
+			} else if value.Valid {
+				_m.OrderExpireWorkerConcurrency = int(value.Int64)
+			}
+		case gatewayconfig.FieldOpenAPIRateLimitEnabled:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field open_api_rate_limit_enabled", values[i])
+			} else if value.Valid {
+				_m.OpenAPIRateLimitEnabled = value.Bool
+			}
+		case gatewayconfig.FieldOpenAPIRateLimit:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field open_api_rate_limit", values[i])
+			} else if value.Valid {
+				_m.OpenAPIRateLimit = int(value.Int64)
+			}
+		case gatewayconfig.FieldOpenAPIRateLimitWindowSeconds:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field open_api_rate_limit_window_seconds", values[i])
+			} else if value.Valid {
+				_m.OpenAPIRateLimitWindowSeconds = int(value.Int64)
 			}
 		case gatewayconfig.FieldExtra:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -195,6 +251,27 @@ func (_m *GatewayConfig) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("maintenance_mode=")
 	builder.WriteString(fmt.Sprintf("%v", _m.MaintenanceMode))
+	builder.WriteString(", ")
+	builder.WriteString("order_default_ttl_seconds=")
+	builder.WriteString(fmt.Sprintf("%v", _m.OrderDefaultTTLSeconds))
+	builder.WriteString(", ")
+	builder.WriteString("order_expire_scan_interval_seconds=")
+	builder.WriteString(fmt.Sprintf("%v", _m.OrderExpireScanIntervalSeconds))
+	builder.WriteString(", ")
+	builder.WriteString("order_expire_scan_limit=")
+	builder.WriteString(fmt.Sprintf("%v", _m.OrderExpireScanLimit))
+	builder.WriteString(", ")
+	builder.WriteString("order_expire_worker_concurrency=")
+	builder.WriteString(fmt.Sprintf("%v", _m.OrderExpireWorkerConcurrency))
+	builder.WriteString(", ")
+	builder.WriteString("open_api_rate_limit_enabled=")
+	builder.WriteString(fmt.Sprintf("%v", _m.OpenAPIRateLimitEnabled))
+	builder.WriteString(", ")
+	builder.WriteString("open_api_rate_limit=")
+	builder.WriteString(fmt.Sprintf("%v", _m.OpenAPIRateLimit))
+	builder.WriteString(", ")
+	builder.WriteString("open_api_rate_limit_window_seconds=")
+	builder.WriteString(fmt.Sprintf("%v", _m.OpenAPIRateLimitWindowSeconds))
 	builder.WriteString(", ")
 	builder.WriteString("extra=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Extra))

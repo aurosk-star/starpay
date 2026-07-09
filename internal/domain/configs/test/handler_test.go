@@ -20,12 +20,19 @@ func TestPublicSiteConfigReturnsSafeFields(t *testing.T) {
 	defer client.Close()
 	svc := configsvc.New(client)
 	if _, err := svc.UpdateGatewayConfig(t.Context(), configsvc.UpdateGatewayConfigInput{
-		SiteName:         "绘星支付中心",
-		GatewayBaseURL:   "https://pay.example.com",
-		DefaultCurrency:  "USD",
-		DefaultLocale:    "en",
-		RequestIDEnabled: true,
-		MaintenanceMode:  true,
+		SiteName:                       "绘星支付中心",
+		GatewayBaseURL:                 "https://pay.example.com",
+		DefaultCurrency:                "USD",
+		DefaultLocale:                  "en",
+		RequestIDEnabled:               true,
+		MaintenanceMode:                true,
+		OrderDefaultTTLSeconds:         900,
+		OrderExpireScanIntervalSeconds: 30,
+		OrderExpireScanLimit:           100,
+		OrderExpireWorkerConcurrency:   2,
+		OpenAPIRateLimitEnabled:        true,
+		OpenAPIRateLimit:               120,
+		OpenAPIRateLimitWindowSeconds:  60,
 		Extra: map[string]any{
 			"secret_note": "hidden",
 		},

@@ -23,6 +23,11 @@ type Worker struct {
 	logger   *slog.Logger
 }
 
+type ExpireScannerConfig struct {
+	Interval time.Duration
+	Limit    int
+}
+
 func NewWorker(service Service, redisClient *redis.Client, consumer string) Worker {
 	if consumer == "" {
 		consumer = "worker-1"
@@ -76,18 +81,47 @@ func (w Worker) Run(ctx context.Context) {
 }
 
 func (w Worker) RunExpireScanner(ctx context.Context, interval time.Duration, limit int) {
+	w.RunExpireScannerWithResolver(ctx, interval, limit, nil)
+}
+
+func (w Worker) RunExpireScannerWithResolver(ctx context.Context, interval time.Duration, limit int, resolver func(context.Context) (ExpireScannerConfig, error)) {
 	if interval <= 0 {
 		return
 	}
-	w.scanExpiredOrders(ctx, limit)
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
+	currentInterval := interval
+	currentLimit := limit
+	if resolver != nil {
+		if resolved, err := resolver(ctx); err == nil {
+			if resolved.Interval > 0 {
+				currentInterval = resolved.Interval
+			}
+			if resolved.Limit > 0 {
+				currentLimit = resolved.Limit
+			}
+		}
+	}
+	w.scanExpiredOrders(ctx, currentLimit)
+	timer := time.NewTimer(currentInterval)
+	defer timer.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
-			w.scanExpiredOrders(ctx, limit)
+		case <-timer.C:
+			if resolver != nil {
+				if resolved, err := resolver(ctx); err == nil {
+					if resolved.Interval > 0 {
+						currentInterval = resolved.Interval
+					}
+					if resolved.Limit > 0 {
+						currentLimit = resolved.Limit
+					}
+				} else {
+					w.logger.Error("resolve order expiration scanner config", "error", err)
+				}
+			}
+			w.scanExpiredOrders(ctx, currentLimit)
+			timer.Reset(currentInterval)
 		}
 	}
 }

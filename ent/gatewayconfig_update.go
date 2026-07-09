@@ -126,6 +126,146 @@ func (_u *GatewayConfigUpdate) SetNillableMaintenanceMode(v *bool) *GatewayConfi
 	return _u
 }
 
+// SetOrderDefaultTTLSeconds sets the "order_default_ttl_seconds" field.
+func (_u *GatewayConfigUpdate) SetOrderDefaultTTLSeconds(v int) *GatewayConfigUpdate {
+	_u.mutation.ResetOrderDefaultTTLSeconds()
+	_u.mutation.SetOrderDefaultTTLSeconds(v)
+	return _u
+}
+
+// SetNillableOrderDefaultTTLSeconds sets the "order_default_ttl_seconds" field if the given value is not nil.
+func (_u *GatewayConfigUpdate) SetNillableOrderDefaultTTLSeconds(v *int) *GatewayConfigUpdate {
+	if v != nil {
+		_u.SetOrderDefaultTTLSeconds(*v)
+	}
+	return _u
+}
+
+// AddOrderDefaultTTLSeconds adds value to the "order_default_ttl_seconds" field.
+func (_u *GatewayConfigUpdate) AddOrderDefaultTTLSeconds(v int) *GatewayConfigUpdate {
+	_u.mutation.AddOrderDefaultTTLSeconds(v)
+	return _u
+}
+
+// SetOrderExpireScanIntervalSeconds sets the "order_expire_scan_interval_seconds" field.
+func (_u *GatewayConfigUpdate) SetOrderExpireScanIntervalSeconds(v int) *GatewayConfigUpdate {
+	_u.mutation.ResetOrderExpireScanIntervalSeconds()
+	_u.mutation.SetOrderExpireScanIntervalSeconds(v)
+	return _u
+}
+
+// SetNillableOrderExpireScanIntervalSeconds sets the "order_expire_scan_interval_seconds" field if the given value is not nil.
+func (_u *GatewayConfigUpdate) SetNillableOrderExpireScanIntervalSeconds(v *int) *GatewayConfigUpdate {
+	if v != nil {
+		_u.SetOrderExpireScanIntervalSeconds(*v)
+	}
+	return _u
+}
+
+// AddOrderExpireScanIntervalSeconds adds value to the "order_expire_scan_interval_seconds" field.
+func (_u *GatewayConfigUpdate) AddOrderExpireScanIntervalSeconds(v int) *GatewayConfigUpdate {
+	_u.mutation.AddOrderExpireScanIntervalSeconds(v)
+	return _u
+}
+
+// SetOrderExpireScanLimit sets the "order_expire_scan_limit" field.
+func (_u *GatewayConfigUpdate) SetOrderExpireScanLimit(v int) *GatewayConfigUpdate {
+	_u.mutation.ResetOrderExpireScanLimit()
+	_u.mutation.SetOrderExpireScanLimit(v)
+	return _u
+}
+
+// SetNillableOrderExpireScanLimit sets the "order_expire_scan_limit" field if the given value is not nil.
+func (_u *GatewayConfigUpdate) SetNillableOrderExpireScanLimit(v *int) *GatewayConfigUpdate {
+	if v != nil {
+		_u.SetOrderExpireScanLimit(*v)
+	}
+	return _u
+}
+
+// AddOrderExpireScanLimit adds value to the "order_expire_scan_limit" field.
+func (_u *GatewayConfigUpdate) AddOrderExpireScanLimit(v int) *GatewayConfigUpdate {
+	_u.mutation.AddOrderExpireScanLimit(v)
+	return _u
+}
+
+// SetOrderExpireWorkerConcurrency sets the "order_expire_worker_concurrency" field.
+func (_u *GatewayConfigUpdate) SetOrderExpireWorkerConcurrency(v int) *GatewayConfigUpdate {
+	_u.mutation.ResetOrderExpireWorkerConcurrency()
+	_u.mutation.SetOrderExpireWorkerConcurrency(v)
+	return _u
+}
+
+// SetNillableOrderExpireWorkerConcurrency sets the "order_expire_worker_concurrency" field if the given value is not nil.
+func (_u *GatewayConfigUpdate) SetNillableOrderExpireWorkerConcurrency(v *int) *GatewayConfigUpdate {
+	if v != nil {
+		_u.SetOrderExpireWorkerConcurrency(*v)
+	}
+	return _u
+}
+
+// AddOrderExpireWorkerConcurrency adds value to the "order_expire_worker_concurrency" field.
+func (_u *GatewayConfigUpdate) AddOrderExpireWorkerConcurrency(v int) *GatewayConfigUpdate {
+	_u.mutation.AddOrderExpireWorkerConcurrency(v)
+	return _u
+}
+
+// SetOpenAPIRateLimitEnabled sets the "open_api_rate_limit_enabled" field.
+func (_u *GatewayConfigUpdate) SetOpenAPIRateLimitEnabled(v bool) *GatewayConfigUpdate {
+	_u.mutation.SetOpenAPIRateLimitEnabled(v)
+	return _u
+}
+
+// SetNillableOpenAPIRateLimitEnabled sets the "open_api_rate_limit_enabled" field if the given value is not nil.
+func (_u *GatewayConfigUpdate) SetNillableOpenAPIRateLimitEnabled(v *bool) *GatewayConfigUpdate {
+	if v != nil {
+		_u.SetOpenAPIRateLimitEnabled(*v)
+	}
+	return _u
+}
+
+// SetOpenAPIRateLimit sets the "open_api_rate_limit" field.
+func (_u *GatewayConfigUpdate) SetOpenAPIRateLimit(v int) *GatewayConfigUpdate {
+	_u.mutation.ResetOpenAPIRateLimit()
+	_u.mutation.SetOpenAPIRateLimit(v)
+	return _u
+}
+
+// SetNillableOpenAPIRateLimit sets the "open_api_rate_limit" field if the given value is not nil.
+func (_u *GatewayConfigUpdate) SetNillableOpenAPIRateLimit(v *int) *GatewayConfigUpdate {
+	if v != nil {
+		_u.SetOpenAPIRateLimit(*v)
+	}
+	return _u
+}
+
+// AddOpenAPIRateLimit adds value to the "open_api_rate_limit" field.
+func (_u *GatewayConfigUpdate) AddOpenAPIRateLimit(v int) *GatewayConfigUpdate {
+	_u.mutation.AddOpenAPIRateLimit(v)
+	return _u
+}
+
+// SetOpenAPIRateLimitWindowSeconds sets the "open_api_rate_limit_window_seconds" field.
+func (_u *GatewayConfigUpdate) SetOpenAPIRateLimitWindowSeconds(v int) *GatewayConfigUpdate {
+	_u.mutation.ResetOpenAPIRateLimitWindowSeconds()
+	_u.mutation.SetOpenAPIRateLimitWindowSeconds(v)
+	return _u
+}
+
+// SetNillableOpenAPIRateLimitWindowSeconds sets the "open_api_rate_limit_window_seconds" field if the given value is not nil.
+func (_u *GatewayConfigUpdate) SetNillableOpenAPIRateLimitWindowSeconds(v *int) *GatewayConfigUpdate {
+	if v != nil {
+		_u.SetOpenAPIRateLimitWindowSeconds(*v)
+	}
+	return _u
+}
+
+// AddOpenAPIRateLimitWindowSeconds adds value to the "open_api_rate_limit_window_seconds" field.
+func (_u *GatewayConfigUpdate) AddOpenAPIRateLimitWindowSeconds(v int) *GatewayConfigUpdate {
+	_u.mutation.AddOpenAPIRateLimitWindowSeconds(v)
+	return _u
+}
+
 // SetExtra sets the "extra" field.
 func (_u *GatewayConfigUpdate) SetExtra(v map[string]interface{}) *GatewayConfigUpdate {
 	_u.mutation.SetExtra(v)
@@ -214,6 +354,45 @@ func (_u *GatewayConfigUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if value, ok := _u.mutation.MaintenanceMode(); ok {
 		_spec.SetField(gatewayconfig.FieldMaintenanceMode, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.OrderDefaultTTLSeconds(); ok {
+		_spec.SetField(gatewayconfig.FieldOrderDefaultTTLSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOrderDefaultTTLSeconds(); ok {
+		_spec.AddField(gatewayconfig.FieldOrderDefaultTTLSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.OrderExpireScanIntervalSeconds(); ok {
+		_spec.SetField(gatewayconfig.FieldOrderExpireScanIntervalSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOrderExpireScanIntervalSeconds(); ok {
+		_spec.AddField(gatewayconfig.FieldOrderExpireScanIntervalSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.OrderExpireScanLimit(); ok {
+		_spec.SetField(gatewayconfig.FieldOrderExpireScanLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOrderExpireScanLimit(); ok {
+		_spec.AddField(gatewayconfig.FieldOrderExpireScanLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.OrderExpireWorkerConcurrency(); ok {
+		_spec.SetField(gatewayconfig.FieldOrderExpireWorkerConcurrency, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOrderExpireWorkerConcurrency(); ok {
+		_spec.AddField(gatewayconfig.FieldOrderExpireWorkerConcurrency, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.OpenAPIRateLimitEnabled(); ok {
+		_spec.SetField(gatewayconfig.FieldOpenAPIRateLimitEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.OpenAPIRateLimit(); ok {
+		_spec.SetField(gatewayconfig.FieldOpenAPIRateLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOpenAPIRateLimit(); ok {
+		_spec.AddField(gatewayconfig.FieldOpenAPIRateLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.OpenAPIRateLimitWindowSeconds(); ok {
+		_spec.SetField(gatewayconfig.FieldOpenAPIRateLimitWindowSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOpenAPIRateLimitWindowSeconds(); ok {
+		_spec.AddField(gatewayconfig.FieldOpenAPIRateLimitWindowSeconds, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Extra(); ok {
 		_spec.SetField(gatewayconfig.FieldExtra, field.TypeJSON, value)
@@ -342,6 +521,146 @@ func (_u *GatewayConfigUpdateOne) SetNillableMaintenanceMode(v *bool) *GatewayCo
 	return _u
 }
 
+// SetOrderDefaultTTLSeconds sets the "order_default_ttl_seconds" field.
+func (_u *GatewayConfigUpdateOne) SetOrderDefaultTTLSeconds(v int) *GatewayConfigUpdateOne {
+	_u.mutation.ResetOrderDefaultTTLSeconds()
+	_u.mutation.SetOrderDefaultTTLSeconds(v)
+	return _u
+}
+
+// SetNillableOrderDefaultTTLSeconds sets the "order_default_ttl_seconds" field if the given value is not nil.
+func (_u *GatewayConfigUpdateOne) SetNillableOrderDefaultTTLSeconds(v *int) *GatewayConfigUpdateOne {
+	if v != nil {
+		_u.SetOrderDefaultTTLSeconds(*v)
+	}
+	return _u
+}
+
+// AddOrderDefaultTTLSeconds adds value to the "order_default_ttl_seconds" field.
+func (_u *GatewayConfigUpdateOne) AddOrderDefaultTTLSeconds(v int) *GatewayConfigUpdateOne {
+	_u.mutation.AddOrderDefaultTTLSeconds(v)
+	return _u
+}
+
+// SetOrderExpireScanIntervalSeconds sets the "order_expire_scan_interval_seconds" field.
+func (_u *GatewayConfigUpdateOne) SetOrderExpireScanIntervalSeconds(v int) *GatewayConfigUpdateOne {
+	_u.mutation.ResetOrderExpireScanIntervalSeconds()
+	_u.mutation.SetOrderExpireScanIntervalSeconds(v)
+	return _u
+}
+
+// SetNillableOrderExpireScanIntervalSeconds sets the "order_expire_scan_interval_seconds" field if the given value is not nil.
+func (_u *GatewayConfigUpdateOne) SetNillableOrderExpireScanIntervalSeconds(v *int) *GatewayConfigUpdateOne {
+	if v != nil {
+		_u.SetOrderExpireScanIntervalSeconds(*v)
+	}
+	return _u
+}
+
+// AddOrderExpireScanIntervalSeconds adds value to the "order_expire_scan_interval_seconds" field.
+func (_u *GatewayConfigUpdateOne) AddOrderExpireScanIntervalSeconds(v int) *GatewayConfigUpdateOne {
+	_u.mutation.AddOrderExpireScanIntervalSeconds(v)
+	return _u
+}
+
+// SetOrderExpireScanLimit sets the "order_expire_scan_limit" field.
+func (_u *GatewayConfigUpdateOne) SetOrderExpireScanLimit(v int) *GatewayConfigUpdateOne {
+	_u.mutation.ResetOrderExpireScanLimit()
+	_u.mutation.SetOrderExpireScanLimit(v)
+	return _u
+}
+
+// SetNillableOrderExpireScanLimit sets the "order_expire_scan_limit" field if the given value is not nil.
+func (_u *GatewayConfigUpdateOne) SetNillableOrderExpireScanLimit(v *int) *GatewayConfigUpdateOne {
+	if v != nil {
+		_u.SetOrderExpireScanLimit(*v)
+	}
+	return _u
+}
+
+// AddOrderExpireScanLimit adds value to the "order_expire_scan_limit" field.
+func (_u *GatewayConfigUpdateOne) AddOrderExpireScanLimit(v int) *GatewayConfigUpdateOne {
+	_u.mutation.AddOrderExpireScanLimit(v)
+	return _u
+}
+
+// SetOrderExpireWorkerConcurrency sets the "order_expire_worker_concurrency" field.
+func (_u *GatewayConfigUpdateOne) SetOrderExpireWorkerConcurrency(v int) *GatewayConfigUpdateOne {
+	_u.mutation.ResetOrderExpireWorkerConcurrency()
+	_u.mutation.SetOrderExpireWorkerConcurrency(v)
+	return _u
+}
+
+// SetNillableOrderExpireWorkerConcurrency sets the "order_expire_worker_concurrency" field if the given value is not nil.
+func (_u *GatewayConfigUpdateOne) SetNillableOrderExpireWorkerConcurrency(v *int) *GatewayConfigUpdateOne {
+	if v != nil {
+		_u.SetOrderExpireWorkerConcurrency(*v)
+	}
+	return _u
+}
+
+// AddOrderExpireWorkerConcurrency adds value to the "order_expire_worker_concurrency" field.
+func (_u *GatewayConfigUpdateOne) AddOrderExpireWorkerConcurrency(v int) *GatewayConfigUpdateOne {
+	_u.mutation.AddOrderExpireWorkerConcurrency(v)
+	return _u
+}
+
+// SetOpenAPIRateLimitEnabled sets the "open_api_rate_limit_enabled" field.
+func (_u *GatewayConfigUpdateOne) SetOpenAPIRateLimitEnabled(v bool) *GatewayConfigUpdateOne {
+	_u.mutation.SetOpenAPIRateLimitEnabled(v)
+	return _u
+}
+
+// SetNillableOpenAPIRateLimitEnabled sets the "open_api_rate_limit_enabled" field if the given value is not nil.
+func (_u *GatewayConfigUpdateOne) SetNillableOpenAPIRateLimitEnabled(v *bool) *GatewayConfigUpdateOne {
+	if v != nil {
+		_u.SetOpenAPIRateLimitEnabled(*v)
+	}
+	return _u
+}
+
+// SetOpenAPIRateLimit sets the "open_api_rate_limit" field.
+func (_u *GatewayConfigUpdateOne) SetOpenAPIRateLimit(v int) *GatewayConfigUpdateOne {
+	_u.mutation.ResetOpenAPIRateLimit()
+	_u.mutation.SetOpenAPIRateLimit(v)
+	return _u
+}
+
+// SetNillableOpenAPIRateLimit sets the "open_api_rate_limit" field if the given value is not nil.
+func (_u *GatewayConfigUpdateOne) SetNillableOpenAPIRateLimit(v *int) *GatewayConfigUpdateOne {
+	if v != nil {
+		_u.SetOpenAPIRateLimit(*v)
+	}
+	return _u
+}
+
+// AddOpenAPIRateLimit adds value to the "open_api_rate_limit" field.
+func (_u *GatewayConfigUpdateOne) AddOpenAPIRateLimit(v int) *GatewayConfigUpdateOne {
+	_u.mutation.AddOpenAPIRateLimit(v)
+	return _u
+}
+
+// SetOpenAPIRateLimitWindowSeconds sets the "open_api_rate_limit_window_seconds" field.
+func (_u *GatewayConfigUpdateOne) SetOpenAPIRateLimitWindowSeconds(v int) *GatewayConfigUpdateOne {
+	_u.mutation.ResetOpenAPIRateLimitWindowSeconds()
+	_u.mutation.SetOpenAPIRateLimitWindowSeconds(v)
+	return _u
+}
+
+// SetNillableOpenAPIRateLimitWindowSeconds sets the "open_api_rate_limit_window_seconds" field if the given value is not nil.
+func (_u *GatewayConfigUpdateOne) SetNillableOpenAPIRateLimitWindowSeconds(v *int) *GatewayConfigUpdateOne {
+	if v != nil {
+		_u.SetOpenAPIRateLimitWindowSeconds(*v)
+	}
+	return _u
+}
+
+// AddOpenAPIRateLimitWindowSeconds adds value to the "open_api_rate_limit_window_seconds" field.
+func (_u *GatewayConfigUpdateOne) AddOpenAPIRateLimitWindowSeconds(v int) *GatewayConfigUpdateOne {
+	_u.mutation.AddOpenAPIRateLimitWindowSeconds(v)
+	return _u
+}
+
 // SetExtra sets the "extra" field.
 func (_u *GatewayConfigUpdateOne) SetExtra(v map[string]interface{}) *GatewayConfigUpdateOne {
 	_u.mutation.SetExtra(v)
@@ -460,6 +779,45 @@ func (_u *GatewayConfigUpdateOne) sqlSave(ctx context.Context) (_node *GatewayCo
 	}
 	if value, ok := _u.mutation.MaintenanceMode(); ok {
 		_spec.SetField(gatewayconfig.FieldMaintenanceMode, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.OrderDefaultTTLSeconds(); ok {
+		_spec.SetField(gatewayconfig.FieldOrderDefaultTTLSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOrderDefaultTTLSeconds(); ok {
+		_spec.AddField(gatewayconfig.FieldOrderDefaultTTLSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.OrderExpireScanIntervalSeconds(); ok {
+		_spec.SetField(gatewayconfig.FieldOrderExpireScanIntervalSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOrderExpireScanIntervalSeconds(); ok {
+		_spec.AddField(gatewayconfig.FieldOrderExpireScanIntervalSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.OrderExpireScanLimit(); ok {
+		_spec.SetField(gatewayconfig.FieldOrderExpireScanLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOrderExpireScanLimit(); ok {
+		_spec.AddField(gatewayconfig.FieldOrderExpireScanLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.OrderExpireWorkerConcurrency(); ok {
+		_spec.SetField(gatewayconfig.FieldOrderExpireWorkerConcurrency, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOrderExpireWorkerConcurrency(); ok {
+		_spec.AddField(gatewayconfig.FieldOrderExpireWorkerConcurrency, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.OpenAPIRateLimitEnabled(); ok {
+		_spec.SetField(gatewayconfig.FieldOpenAPIRateLimitEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.OpenAPIRateLimit(); ok {
+		_spec.SetField(gatewayconfig.FieldOpenAPIRateLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOpenAPIRateLimit(); ok {
+		_spec.AddField(gatewayconfig.FieldOpenAPIRateLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.OpenAPIRateLimitWindowSeconds(); ok {
+		_spec.SetField(gatewayconfig.FieldOpenAPIRateLimitWindowSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOpenAPIRateLimitWindowSeconds(); ok {
+		_spec.AddField(gatewayconfig.FieldOpenAPIRateLimitWindowSeconds, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Extra(); ok {
 		_spec.SetField(gatewayconfig.FieldExtra, field.TypeJSON, value)

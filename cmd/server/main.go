@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	configsvc "payment-gateway/internal/domain/configs/service"
 	ordersvc "payment-gateway/internal/domain/orders/service"
 	webhooksvc "payment-gateway/internal/domain/webhooks/service"
 	"payment-gateway/internal/platform/cache"
@@ -47,14 +48,31 @@ func main() {
 	go webhookWorker.Run(ctx)
 	go webhookWorker.RunRetryScanner(ctx, 30*time.Second, 100)
 
+	configService := configsvc.New(db, configsvc.WithRuntimeDefaults(configsvc.RuntimeDefaults{
+		OrderDefaultTTL:              cfg.Orders.DefaultTTL,
+		OrderExpireScanInterval:      cfg.Orders.ExpireScanInterval,
+		OrderExpireScanLimit:         cfg.Orders.ExpireScanLimit,
+		OrderExpireWorkerConcurrency: cfg.Orders.ExpireWorkerConcurrency,
+		OpenAPIRateLimitEnabled:      cfg.RateLimit.OpenAPIEnabled,
+		OpenAPIRateLimit:             cfg.RateLimit.OpenAPILimit,
+		OpenAPIRateLimitWindow:       cfg.RateLimit.OpenAPIWindow,
+	}))
+
 	orderService := ordersvc.New(db,
 		ordersvc.WithWebhookService(webhookService),
 		ordersvc.WithDefaultOrderTTL(cfg.Orders.DefaultTTL),
+		ordersvc.WithDefaultOrderTTLResolver(configService.OrderDefaultTTL),
 		ordersvc.WithExpirationEnqueuer(ordersvc.NewRedisExpirationEnqueuer(redisClient)),
 	)
 	orderWorker := ordersvc.NewWorker(orderService, redisClient, cfg.App.Name)
-	go orderWorker.RunExpireScanner(ctx, cfg.Orders.ExpireScanInterval, cfg.Orders.ExpireScanLimit)
+	go orderWorker.RunExpireScannerWithResolver(ctx, cfg.Orders.ExpireScanInterval, cfg.Orders.ExpireScanLimit, func(ctx context.Context) (ordersvc.ExpireScannerConfig, error) {
+		interval, limit, err := configService.OrderExpireScanConfig(ctx)
+		return ordersvc.ExpireScannerConfig{Interval: interval, Limit: limit}, err
+	})
 	orderWorkerConcurrency := cfg.Orders.ExpireWorkerConcurrency
+	if configuredConcurrency, err := configService.OrderExpireWorkerConcurrency(ctx); err == nil && configuredConcurrency > 0 {
+		orderWorkerConcurrency = configuredConcurrency
+	}
 	if orderWorkerConcurrency < 1 {
 		orderWorkerConcurrency = 1
 	}

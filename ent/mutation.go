@@ -2399,23 +2399,36 @@ func (m *ChannelAccountMutation) ResetEdge(name string) error {
 // GatewayConfigMutation represents an operation that mutates the GatewayConfig nodes in the graph.
 type GatewayConfigMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *int
-	site_name           *string
-	gateway_base_url    *string
-	payment_notify_path *string
-	default_currency    *string
-	default_locale      *string
-	request_id_enabled  *bool
-	maintenance_mode    *bool
-	extra               *map[string]interface{}
-	created_at          *time.Time
-	updated_at          *time.Time
-	clearedFields       map[string]struct{}
-	done                bool
-	oldValue            func(context.Context) (*GatewayConfig, error)
-	predicates          []predicate.GatewayConfig
+	op                                    Op
+	typ                                   string
+	id                                    *int
+	site_name                             *string
+	gateway_base_url                      *string
+	payment_notify_path                   *string
+	default_currency                      *string
+	default_locale                        *string
+	request_id_enabled                    *bool
+	maintenance_mode                      *bool
+	order_default_ttl_seconds             *int
+	addorder_default_ttl_seconds          *int
+	order_expire_scan_interval_seconds    *int
+	addorder_expire_scan_interval_seconds *int
+	order_expire_scan_limit               *int
+	addorder_expire_scan_limit            *int
+	order_expire_worker_concurrency       *int
+	addorder_expire_worker_concurrency    *int
+	open_api_rate_limit_enabled           *bool
+	open_api_rate_limit                   *int
+	addopen_api_rate_limit                *int
+	open_api_rate_limit_window_seconds    *int
+	addopen_api_rate_limit_window_seconds *int
+	extra                                 *map[string]interface{}
+	created_at                            *time.Time
+	updated_at                            *time.Time
+	clearedFields                         map[string]struct{}
+	done                                  bool
+	oldValue                              func(context.Context) (*GatewayConfig, error)
+	predicates                            []predicate.GatewayConfig
 }
 
 var _ ent.Mutation = (*GatewayConfigMutation)(nil)
@@ -2768,6 +2781,378 @@ func (m *GatewayConfigMutation) ResetMaintenanceMode() {
 	m.maintenance_mode = nil
 }
 
+// SetOrderDefaultTTLSeconds sets the "order_default_ttl_seconds" field.
+func (m *GatewayConfigMutation) SetOrderDefaultTTLSeconds(i int) {
+	m.order_default_ttl_seconds = &i
+	m.addorder_default_ttl_seconds = nil
+}
+
+// OrderDefaultTTLSeconds returns the value of the "order_default_ttl_seconds" field in the mutation.
+func (m *GatewayConfigMutation) OrderDefaultTTLSeconds() (r int, exists bool) {
+	v := m.order_default_ttl_seconds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrderDefaultTTLSeconds returns the old "order_default_ttl_seconds" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldOrderDefaultTTLSeconds(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrderDefaultTTLSeconds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrderDefaultTTLSeconds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrderDefaultTTLSeconds: %w", err)
+	}
+	return oldValue.OrderDefaultTTLSeconds, nil
+}
+
+// AddOrderDefaultTTLSeconds adds i to the "order_default_ttl_seconds" field.
+func (m *GatewayConfigMutation) AddOrderDefaultTTLSeconds(i int) {
+	if m.addorder_default_ttl_seconds != nil {
+		*m.addorder_default_ttl_seconds += i
+	} else {
+		m.addorder_default_ttl_seconds = &i
+	}
+}
+
+// AddedOrderDefaultTTLSeconds returns the value that was added to the "order_default_ttl_seconds" field in this mutation.
+func (m *GatewayConfigMutation) AddedOrderDefaultTTLSeconds() (r int, exists bool) {
+	v := m.addorder_default_ttl_seconds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOrderDefaultTTLSeconds resets all changes to the "order_default_ttl_seconds" field.
+func (m *GatewayConfigMutation) ResetOrderDefaultTTLSeconds() {
+	m.order_default_ttl_seconds = nil
+	m.addorder_default_ttl_seconds = nil
+}
+
+// SetOrderExpireScanIntervalSeconds sets the "order_expire_scan_interval_seconds" field.
+func (m *GatewayConfigMutation) SetOrderExpireScanIntervalSeconds(i int) {
+	m.order_expire_scan_interval_seconds = &i
+	m.addorder_expire_scan_interval_seconds = nil
+}
+
+// OrderExpireScanIntervalSeconds returns the value of the "order_expire_scan_interval_seconds" field in the mutation.
+func (m *GatewayConfigMutation) OrderExpireScanIntervalSeconds() (r int, exists bool) {
+	v := m.order_expire_scan_interval_seconds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrderExpireScanIntervalSeconds returns the old "order_expire_scan_interval_seconds" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldOrderExpireScanIntervalSeconds(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrderExpireScanIntervalSeconds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrderExpireScanIntervalSeconds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrderExpireScanIntervalSeconds: %w", err)
+	}
+	return oldValue.OrderExpireScanIntervalSeconds, nil
+}
+
+// AddOrderExpireScanIntervalSeconds adds i to the "order_expire_scan_interval_seconds" field.
+func (m *GatewayConfigMutation) AddOrderExpireScanIntervalSeconds(i int) {
+	if m.addorder_expire_scan_interval_seconds != nil {
+		*m.addorder_expire_scan_interval_seconds += i
+	} else {
+		m.addorder_expire_scan_interval_seconds = &i
+	}
+}
+
+// AddedOrderExpireScanIntervalSeconds returns the value that was added to the "order_expire_scan_interval_seconds" field in this mutation.
+func (m *GatewayConfigMutation) AddedOrderExpireScanIntervalSeconds() (r int, exists bool) {
+	v := m.addorder_expire_scan_interval_seconds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOrderExpireScanIntervalSeconds resets all changes to the "order_expire_scan_interval_seconds" field.
+func (m *GatewayConfigMutation) ResetOrderExpireScanIntervalSeconds() {
+	m.order_expire_scan_interval_seconds = nil
+	m.addorder_expire_scan_interval_seconds = nil
+}
+
+// SetOrderExpireScanLimit sets the "order_expire_scan_limit" field.
+func (m *GatewayConfigMutation) SetOrderExpireScanLimit(i int) {
+	m.order_expire_scan_limit = &i
+	m.addorder_expire_scan_limit = nil
+}
+
+// OrderExpireScanLimit returns the value of the "order_expire_scan_limit" field in the mutation.
+func (m *GatewayConfigMutation) OrderExpireScanLimit() (r int, exists bool) {
+	v := m.order_expire_scan_limit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrderExpireScanLimit returns the old "order_expire_scan_limit" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldOrderExpireScanLimit(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrderExpireScanLimit is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrderExpireScanLimit requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrderExpireScanLimit: %w", err)
+	}
+	return oldValue.OrderExpireScanLimit, nil
+}
+
+// AddOrderExpireScanLimit adds i to the "order_expire_scan_limit" field.
+func (m *GatewayConfigMutation) AddOrderExpireScanLimit(i int) {
+	if m.addorder_expire_scan_limit != nil {
+		*m.addorder_expire_scan_limit += i
+	} else {
+		m.addorder_expire_scan_limit = &i
+	}
+}
+
+// AddedOrderExpireScanLimit returns the value that was added to the "order_expire_scan_limit" field in this mutation.
+func (m *GatewayConfigMutation) AddedOrderExpireScanLimit() (r int, exists bool) {
+	v := m.addorder_expire_scan_limit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOrderExpireScanLimit resets all changes to the "order_expire_scan_limit" field.
+func (m *GatewayConfigMutation) ResetOrderExpireScanLimit() {
+	m.order_expire_scan_limit = nil
+	m.addorder_expire_scan_limit = nil
+}
+
+// SetOrderExpireWorkerConcurrency sets the "order_expire_worker_concurrency" field.
+func (m *GatewayConfigMutation) SetOrderExpireWorkerConcurrency(i int) {
+	m.order_expire_worker_concurrency = &i
+	m.addorder_expire_worker_concurrency = nil
+}
+
+// OrderExpireWorkerConcurrency returns the value of the "order_expire_worker_concurrency" field in the mutation.
+func (m *GatewayConfigMutation) OrderExpireWorkerConcurrency() (r int, exists bool) {
+	v := m.order_expire_worker_concurrency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrderExpireWorkerConcurrency returns the old "order_expire_worker_concurrency" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldOrderExpireWorkerConcurrency(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrderExpireWorkerConcurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrderExpireWorkerConcurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrderExpireWorkerConcurrency: %w", err)
+	}
+	return oldValue.OrderExpireWorkerConcurrency, nil
+}
+
+// AddOrderExpireWorkerConcurrency adds i to the "order_expire_worker_concurrency" field.
+func (m *GatewayConfigMutation) AddOrderExpireWorkerConcurrency(i int) {
+	if m.addorder_expire_worker_concurrency != nil {
+		*m.addorder_expire_worker_concurrency += i
+	} else {
+		m.addorder_expire_worker_concurrency = &i
+	}
+}
+
+// AddedOrderExpireWorkerConcurrency returns the value that was added to the "order_expire_worker_concurrency" field in this mutation.
+func (m *GatewayConfigMutation) AddedOrderExpireWorkerConcurrency() (r int, exists bool) {
+	v := m.addorder_expire_worker_concurrency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOrderExpireWorkerConcurrency resets all changes to the "order_expire_worker_concurrency" field.
+func (m *GatewayConfigMutation) ResetOrderExpireWorkerConcurrency() {
+	m.order_expire_worker_concurrency = nil
+	m.addorder_expire_worker_concurrency = nil
+}
+
+// SetOpenAPIRateLimitEnabled sets the "open_api_rate_limit_enabled" field.
+func (m *GatewayConfigMutation) SetOpenAPIRateLimitEnabled(b bool) {
+	m.open_api_rate_limit_enabled = &b
+}
+
+// OpenAPIRateLimitEnabled returns the value of the "open_api_rate_limit_enabled" field in the mutation.
+func (m *GatewayConfigMutation) OpenAPIRateLimitEnabled() (r bool, exists bool) {
+	v := m.open_api_rate_limit_enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOpenAPIRateLimitEnabled returns the old "open_api_rate_limit_enabled" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldOpenAPIRateLimitEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOpenAPIRateLimitEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOpenAPIRateLimitEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOpenAPIRateLimitEnabled: %w", err)
+	}
+	return oldValue.OpenAPIRateLimitEnabled, nil
+}
+
+// ResetOpenAPIRateLimitEnabled resets all changes to the "open_api_rate_limit_enabled" field.
+func (m *GatewayConfigMutation) ResetOpenAPIRateLimitEnabled() {
+	m.open_api_rate_limit_enabled = nil
+}
+
+// SetOpenAPIRateLimit sets the "open_api_rate_limit" field.
+func (m *GatewayConfigMutation) SetOpenAPIRateLimit(i int) {
+	m.open_api_rate_limit = &i
+	m.addopen_api_rate_limit = nil
+}
+
+// OpenAPIRateLimit returns the value of the "open_api_rate_limit" field in the mutation.
+func (m *GatewayConfigMutation) OpenAPIRateLimit() (r int, exists bool) {
+	v := m.open_api_rate_limit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOpenAPIRateLimit returns the old "open_api_rate_limit" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldOpenAPIRateLimit(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOpenAPIRateLimit is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOpenAPIRateLimit requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOpenAPIRateLimit: %w", err)
+	}
+	return oldValue.OpenAPIRateLimit, nil
+}
+
+// AddOpenAPIRateLimit adds i to the "open_api_rate_limit" field.
+func (m *GatewayConfigMutation) AddOpenAPIRateLimit(i int) {
+	if m.addopen_api_rate_limit != nil {
+		*m.addopen_api_rate_limit += i
+	} else {
+		m.addopen_api_rate_limit = &i
+	}
+}
+
+// AddedOpenAPIRateLimit returns the value that was added to the "open_api_rate_limit" field in this mutation.
+func (m *GatewayConfigMutation) AddedOpenAPIRateLimit() (r int, exists bool) {
+	v := m.addopen_api_rate_limit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOpenAPIRateLimit resets all changes to the "open_api_rate_limit" field.
+func (m *GatewayConfigMutation) ResetOpenAPIRateLimit() {
+	m.open_api_rate_limit = nil
+	m.addopen_api_rate_limit = nil
+}
+
+// SetOpenAPIRateLimitWindowSeconds sets the "open_api_rate_limit_window_seconds" field.
+func (m *GatewayConfigMutation) SetOpenAPIRateLimitWindowSeconds(i int) {
+	m.open_api_rate_limit_window_seconds = &i
+	m.addopen_api_rate_limit_window_seconds = nil
+}
+
+// OpenAPIRateLimitWindowSeconds returns the value of the "open_api_rate_limit_window_seconds" field in the mutation.
+func (m *GatewayConfigMutation) OpenAPIRateLimitWindowSeconds() (r int, exists bool) {
+	v := m.open_api_rate_limit_window_seconds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOpenAPIRateLimitWindowSeconds returns the old "open_api_rate_limit_window_seconds" field's value of the GatewayConfig entity.
+// If the GatewayConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GatewayConfigMutation) OldOpenAPIRateLimitWindowSeconds(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOpenAPIRateLimitWindowSeconds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOpenAPIRateLimitWindowSeconds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOpenAPIRateLimitWindowSeconds: %w", err)
+	}
+	return oldValue.OpenAPIRateLimitWindowSeconds, nil
+}
+
+// AddOpenAPIRateLimitWindowSeconds adds i to the "open_api_rate_limit_window_seconds" field.
+func (m *GatewayConfigMutation) AddOpenAPIRateLimitWindowSeconds(i int) {
+	if m.addopen_api_rate_limit_window_seconds != nil {
+		*m.addopen_api_rate_limit_window_seconds += i
+	} else {
+		m.addopen_api_rate_limit_window_seconds = &i
+	}
+}
+
+// AddedOpenAPIRateLimitWindowSeconds returns the value that was added to the "open_api_rate_limit_window_seconds" field in this mutation.
+func (m *GatewayConfigMutation) AddedOpenAPIRateLimitWindowSeconds() (r int, exists bool) {
+	v := m.addopen_api_rate_limit_window_seconds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOpenAPIRateLimitWindowSeconds resets all changes to the "open_api_rate_limit_window_seconds" field.
+func (m *GatewayConfigMutation) ResetOpenAPIRateLimitWindowSeconds() {
+	m.open_api_rate_limit_window_seconds = nil
+	m.addopen_api_rate_limit_window_seconds = nil
+}
+
 // SetExtra sets the "extra" field.
 func (m *GatewayConfigMutation) SetExtra(value map[string]interface{}) {
 	m.extra = &value
@@ -2923,7 +3308,7 @@ func (m *GatewayConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GatewayConfigMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 17)
 	if m.site_name != nil {
 		fields = append(fields, gatewayconfig.FieldSiteName)
 	}
@@ -2944,6 +3329,27 @@ func (m *GatewayConfigMutation) Fields() []string {
 	}
 	if m.maintenance_mode != nil {
 		fields = append(fields, gatewayconfig.FieldMaintenanceMode)
+	}
+	if m.order_default_ttl_seconds != nil {
+		fields = append(fields, gatewayconfig.FieldOrderDefaultTTLSeconds)
+	}
+	if m.order_expire_scan_interval_seconds != nil {
+		fields = append(fields, gatewayconfig.FieldOrderExpireScanIntervalSeconds)
+	}
+	if m.order_expire_scan_limit != nil {
+		fields = append(fields, gatewayconfig.FieldOrderExpireScanLimit)
+	}
+	if m.order_expire_worker_concurrency != nil {
+		fields = append(fields, gatewayconfig.FieldOrderExpireWorkerConcurrency)
+	}
+	if m.open_api_rate_limit_enabled != nil {
+		fields = append(fields, gatewayconfig.FieldOpenAPIRateLimitEnabled)
+	}
+	if m.open_api_rate_limit != nil {
+		fields = append(fields, gatewayconfig.FieldOpenAPIRateLimit)
+	}
+	if m.open_api_rate_limit_window_seconds != nil {
+		fields = append(fields, gatewayconfig.FieldOpenAPIRateLimitWindowSeconds)
 	}
 	if m.extra != nil {
 		fields = append(fields, gatewayconfig.FieldExtra)
@@ -2976,6 +3382,20 @@ func (m *GatewayConfigMutation) Field(name string) (ent.Value, bool) {
 		return m.RequestIDEnabled()
 	case gatewayconfig.FieldMaintenanceMode:
 		return m.MaintenanceMode()
+	case gatewayconfig.FieldOrderDefaultTTLSeconds:
+		return m.OrderDefaultTTLSeconds()
+	case gatewayconfig.FieldOrderExpireScanIntervalSeconds:
+		return m.OrderExpireScanIntervalSeconds()
+	case gatewayconfig.FieldOrderExpireScanLimit:
+		return m.OrderExpireScanLimit()
+	case gatewayconfig.FieldOrderExpireWorkerConcurrency:
+		return m.OrderExpireWorkerConcurrency()
+	case gatewayconfig.FieldOpenAPIRateLimitEnabled:
+		return m.OpenAPIRateLimitEnabled()
+	case gatewayconfig.FieldOpenAPIRateLimit:
+		return m.OpenAPIRateLimit()
+	case gatewayconfig.FieldOpenAPIRateLimitWindowSeconds:
+		return m.OpenAPIRateLimitWindowSeconds()
 	case gatewayconfig.FieldExtra:
 		return m.Extra()
 	case gatewayconfig.FieldCreatedAt:
@@ -3005,6 +3425,20 @@ func (m *GatewayConfigMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldRequestIDEnabled(ctx)
 	case gatewayconfig.FieldMaintenanceMode:
 		return m.OldMaintenanceMode(ctx)
+	case gatewayconfig.FieldOrderDefaultTTLSeconds:
+		return m.OldOrderDefaultTTLSeconds(ctx)
+	case gatewayconfig.FieldOrderExpireScanIntervalSeconds:
+		return m.OldOrderExpireScanIntervalSeconds(ctx)
+	case gatewayconfig.FieldOrderExpireScanLimit:
+		return m.OldOrderExpireScanLimit(ctx)
+	case gatewayconfig.FieldOrderExpireWorkerConcurrency:
+		return m.OldOrderExpireWorkerConcurrency(ctx)
+	case gatewayconfig.FieldOpenAPIRateLimitEnabled:
+		return m.OldOpenAPIRateLimitEnabled(ctx)
+	case gatewayconfig.FieldOpenAPIRateLimit:
+		return m.OldOpenAPIRateLimit(ctx)
+	case gatewayconfig.FieldOpenAPIRateLimitWindowSeconds:
+		return m.OldOpenAPIRateLimitWindowSeconds(ctx)
 	case gatewayconfig.FieldExtra:
 		return m.OldExtra(ctx)
 	case gatewayconfig.FieldCreatedAt:
@@ -3069,6 +3503,55 @@ func (m *GatewayConfigMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetMaintenanceMode(v)
 		return nil
+	case gatewayconfig.FieldOrderDefaultTTLSeconds:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrderDefaultTTLSeconds(v)
+		return nil
+	case gatewayconfig.FieldOrderExpireScanIntervalSeconds:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrderExpireScanIntervalSeconds(v)
+		return nil
+	case gatewayconfig.FieldOrderExpireScanLimit:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrderExpireScanLimit(v)
+		return nil
+	case gatewayconfig.FieldOrderExpireWorkerConcurrency:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrderExpireWorkerConcurrency(v)
+		return nil
+	case gatewayconfig.FieldOpenAPIRateLimitEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOpenAPIRateLimitEnabled(v)
+		return nil
+	case gatewayconfig.FieldOpenAPIRateLimit:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOpenAPIRateLimit(v)
+		return nil
+	case gatewayconfig.FieldOpenAPIRateLimitWindowSeconds:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOpenAPIRateLimitWindowSeconds(v)
+		return nil
 	case gatewayconfig.FieldExtra:
 		v, ok := value.(map[string]interface{})
 		if !ok {
@@ -3097,13 +3580,46 @@ func (m *GatewayConfigMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *GatewayConfigMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addorder_default_ttl_seconds != nil {
+		fields = append(fields, gatewayconfig.FieldOrderDefaultTTLSeconds)
+	}
+	if m.addorder_expire_scan_interval_seconds != nil {
+		fields = append(fields, gatewayconfig.FieldOrderExpireScanIntervalSeconds)
+	}
+	if m.addorder_expire_scan_limit != nil {
+		fields = append(fields, gatewayconfig.FieldOrderExpireScanLimit)
+	}
+	if m.addorder_expire_worker_concurrency != nil {
+		fields = append(fields, gatewayconfig.FieldOrderExpireWorkerConcurrency)
+	}
+	if m.addopen_api_rate_limit != nil {
+		fields = append(fields, gatewayconfig.FieldOpenAPIRateLimit)
+	}
+	if m.addopen_api_rate_limit_window_seconds != nil {
+		fields = append(fields, gatewayconfig.FieldOpenAPIRateLimitWindowSeconds)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *GatewayConfigMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case gatewayconfig.FieldOrderDefaultTTLSeconds:
+		return m.AddedOrderDefaultTTLSeconds()
+	case gatewayconfig.FieldOrderExpireScanIntervalSeconds:
+		return m.AddedOrderExpireScanIntervalSeconds()
+	case gatewayconfig.FieldOrderExpireScanLimit:
+		return m.AddedOrderExpireScanLimit()
+	case gatewayconfig.FieldOrderExpireWorkerConcurrency:
+		return m.AddedOrderExpireWorkerConcurrency()
+	case gatewayconfig.FieldOpenAPIRateLimit:
+		return m.AddedOpenAPIRateLimit()
+	case gatewayconfig.FieldOpenAPIRateLimitWindowSeconds:
+		return m.AddedOpenAPIRateLimitWindowSeconds()
+	}
 	return nil, false
 }
 
@@ -3112,6 +3628,48 @@ func (m *GatewayConfigMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *GatewayConfigMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case gatewayconfig.FieldOrderDefaultTTLSeconds:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOrderDefaultTTLSeconds(v)
+		return nil
+	case gatewayconfig.FieldOrderExpireScanIntervalSeconds:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOrderExpireScanIntervalSeconds(v)
+		return nil
+	case gatewayconfig.FieldOrderExpireScanLimit:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOrderExpireScanLimit(v)
+		return nil
+	case gatewayconfig.FieldOrderExpireWorkerConcurrency:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOrderExpireWorkerConcurrency(v)
+		return nil
+	case gatewayconfig.FieldOpenAPIRateLimit:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOpenAPIRateLimit(v)
+		return nil
+	case gatewayconfig.FieldOpenAPIRateLimitWindowSeconds:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOpenAPIRateLimitWindowSeconds(v)
+		return nil
 	}
 	return fmt.Errorf("unknown GatewayConfig numeric field %s", name)
 }
@@ -3168,6 +3726,27 @@ func (m *GatewayConfigMutation) ResetField(name string) error {
 		return nil
 	case gatewayconfig.FieldMaintenanceMode:
 		m.ResetMaintenanceMode()
+		return nil
+	case gatewayconfig.FieldOrderDefaultTTLSeconds:
+		m.ResetOrderDefaultTTLSeconds()
+		return nil
+	case gatewayconfig.FieldOrderExpireScanIntervalSeconds:
+		m.ResetOrderExpireScanIntervalSeconds()
+		return nil
+	case gatewayconfig.FieldOrderExpireScanLimit:
+		m.ResetOrderExpireScanLimit()
+		return nil
+	case gatewayconfig.FieldOrderExpireWorkerConcurrency:
+		m.ResetOrderExpireWorkerConcurrency()
+		return nil
+	case gatewayconfig.FieldOpenAPIRateLimitEnabled:
+		m.ResetOpenAPIRateLimitEnabled()
+		return nil
+	case gatewayconfig.FieldOpenAPIRateLimit:
+		m.ResetOpenAPIRateLimit()
+		return nil
+	case gatewayconfig.FieldOpenAPIRateLimitWindowSeconds:
+		m.ResetOpenAPIRateLimitWindowSeconds()
 		return nil
 	case gatewayconfig.FieldExtra:
 		m.ResetExtra()

@@ -359,6 +359,38 @@ func TestOpenOrderCreateUsesGatewayDefaultExpiration(t *testing.T) {
 	}
 }
 
+func TestOpenOrderCreateUsesDynamicGatewayDefaultExpiration(t *testing.T) {
+	ctx := context.Background()
+	client := enttest.Open(t, dialect.SQLite, "file:open_order_dynamic_default_expiration?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	createEnabledApp(t, client, "snsgo")
+	now := time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC)
+	svc := ordersvc.New(client,
+		ordersvc.WithNow(func() time.Time { return now }),
+		ordersvc.WithDefaultOrderTTL(15*time.Minute),
+		ordersvc.WithDefaultOrderTTLResolver(func(ctx context.Context) (time.Duration, error) {
+			return 20 * time.Minute, nil
+		}),
+	)
+
+	order, _, err := svc.CreateOpenOrder(ctx, "snsgo", ordersvc.OpenOrderInput{
+		MerchantOrderNo: "biz_open_dynamic_expire",
+		Subject:         "Pro 会员",
+		Amount:          9900,
+		Currency:        "CNY",
+	})
+	if err != nil {
+		t.Fatalf("CreateOpenOrder() error = %v", err)
+	}
+	if order.ExpiresAt == nil {
+		t.Fatal("ExpiresAt = nil, want gateway default expiration")
+	}
+	if want := now.Add(20 * time.Minute); !order.ExpiresAt.Equal(want) {
+		t.Fatalf("ExpiresAt = %v, want %v", order.ExpiresAt, want)
+	}
+}
+
 func TestOpenOrderRejectsIdempotencyConflict(t *testing.T) {
 	ctx := context.Background()
 	client := enttest.Open(t, dialect.SQLite, "file:open_order_conflict?mode=memory&cache=shared&_fk=1")

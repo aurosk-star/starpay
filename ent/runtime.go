@@ -88,12 +88,40 @@ func init() {
 	gatewayconfigDescMaintenanceMode := gatewayconfigFields[6].Descriptor()
 	// gatewayconfig.DefaultMaintenanceMode holds the default value on creation for the maintenance_mode field.
 	gatewayconfig.DefaultMaintenanceMode = gatewayconfigDescMaintenanceMode.Default.(bool)
+	// gatewayconfigDescOrderDefaultTTLSeconds is the schema descriptor for order_default_ttl_seconds field.
+	gatewayconfigDescOrderDefaultTTLSeconds := gatewayconfigFields[7].Descriptor()
+	// gatewayconfig.DefaultOrderDefaultTTLSeconds holds the default value on creation for the order_default_ttl_seconds field.
+	gatewayconfig.DefaultOrderDefaultTTLSeconds = gatewayconfigDescOrderDefaultTTLSeconds.Default.(int)
+	// gatewayconfigDescOrderExpireScanIntervalSeconds is the schema descriptor for order_expire_scan_interval_seconds field.
+	gatewayconfigDescOrderExpireScanIntervalSeconds := gatewayconfigFields[8].Descriptor()
+	// gatewayconfig.DefaultOrderExpireScanIntervalSeconds holds the default value on creation for the order_expire_scan_interval_seconds field.
+	gatewayconfig.DefaultOrderExpireScanIntervalSeconds = gatewayconfigDescOrderExpireScanIntervalSeconds.Default.(int)
+	// gatewayconfigDescOrderExpireScanLimit is the schema descriptor for order_expire_scan_limit field.
+	gatewayconfigDescOrderExpireScanLimit := gatewayconfigFields[9].Descriptor()
+	// gatewayconfig.DefaultOrderExpireScanLimit holds the default value on creation for the order_expire_scan_limit field.
+	gatewayconfig.DefaultOrderExpireScanLimit = gatewayconfigDescOrderExpireScanLimit.Default.(int)
+	// gatewayconfigDescOrderExpireWorkerConcurrency is the schema descriptor for order_expire_worker_concurrency field.
+	gatewayconfigDescOrderExpireWorkerConcurrency := gatewayconfigFields[10].Descriptor()
+	// gatewayconfig.DefaultOrderExpireWorkerConcurrency holds the default value on creation for the order_expire_worker_concurrency field.
+	gatewayconfig.DefaultOrderExpireWorkerConcurrency = gatewayconfigDescOrderExpireWorkerConcurrency.Default.(int)
+	// gatewayconfigDescOpenAPIRateLimitEnabled is the schema descriptor for open_api_rate_limit_enabled field.
+	gatewayconfigDescOpenAPIRateLimitEnabled := gatewayconfigFields[11].Descriptor()
+	// gatewayconfig.DefaultOpenAPIRateLimitEnabled holds the default value on creation for the open_api_rate_limit_enabled field.
+	gatewayconfig.DefaultOpenAPIRateLimitEnabled = gatewayconfigDescOpenAPIRateLimitEnabled.Default.(bool)
+	// gatewayconfigDescOpenAPIRateLimit is the schema descriptor for open_api_rate_limit field.
+	gatewayconfigDescOpenAPIRateLimit := gatewayconfigFields[12].Descriptor()
+	// gatewayconfig.DefaultOpenAPIRateLimit holds the default value on creation for the open_api_rate_limit field.
+	gatewayconfig.DefaultOpenAPIRateLimit = gatewayconfigDescOpenAPIRateLimit.Default.(int)
+	// gatewayconfigDescOpenAPIRateLimitWindowSeconds is the schema descriptor for open_api_rate_limit_window_seconds field.
+	gatewayconfigDescOpenAPIRateLimitWindowSeconds := gatewayconfigFields[13].Descriptor()
+	// gatewayconfig.DefaultOpenAPIRateLimitWindowSeconds holds the default value on creation for the open_api_rate_limit_window_seconds field.
+	gatewayconfig.DefaultOpenAPIRateLimitWindowSeconds = gatewayconfigDescOpenAPIRateLimitWindowSeconds.Default.(int)
 	// gatewayconfigDescCreatedAt is the schema descriptor for created_at field.
-	gatewayconfigDescCreatedAt := gatewayconfigFields[8].Descriptor()
+	gatewayconfigDescCreatedAt := gatewayconfigFields[15].Descriptor()
 	// gatewayconfig.DefaultCreatedAt holds the default value on creation for the created_at field.
 	gatewayconfig.DefaultCreatedAt = gatewayconfigDescCreatedAt.Default.(func() time.Time)
 	// gatewayconfigDescUpdatedAt is the schema descriptor for updated_at field.
-	gatewayconfigDescUpdatedAt := gatewayconfigFields[9].Descriptor()
+	gatewayconfigDescUpdatedAt := gatewayconfigFields[16].Descriptor()
 	// gatewayconfig.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	gatewayconfig.DefaultUpdatedAt = gatewayconfigDescUpdatedAt.Default.(func() time.Time)
 	// gatewayconfig.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

@@ -89,6 +89,41 @@ func MaintenanceMode(v bool) predicate.GatewayConfig {
 	return predicate.GatewayConfig(sql.FieldEQ(FieldMaintenanceMode, v))
 }
 
+// OrderDefaultTTLSeconds applies equality check predicate on the "order_default_ttl_seconds" field. It's identical to OrderDefaultTTLSecondsEQ.
+func OrderDefaultTTLSeconds(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOrderDefaultTTLSeconds, v))
+}
+
+// OrderExpireScanIntervalSeconds applies equality check predicate on the "order_expire_scan_interval_seconds" field. It's identical to OrderExpireScanIntervalSecondsEQ.
+func OrderExpireScanIntervalSeconds(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOrderExpireScanIntervalSeconds, v))
+}
+
+// OrderExpireScanLimit applies equality check predicate on the "order_expire_scan_limit" field. It's identical to OrderExpireScanLimitEQ.
+func OrderExpireScanLimit(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOrderExpireScanLimit, v))
+}
+
+// OrderExpireWorkerConcurrency applies equality check predicate on the "order_expire_worker_concurrency" field. It's identical to OrderExpireWorkerConcurrencyEQ.
+func OrderExpireWorkerConcurrency(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOrderExpireWorkerConcurrency, v))
+}
+
+// OpenAPIRateLimitEnabled applies equality check predicate on the "open_api_rate_limit_enabled" field. It's identical to OpenAPIRateLimitEnabledEQ.
+func OpenAPIRateLimitEnabled(v bool) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOpenAPIRateLimitEnabled, v))
+}
+
+// OpenAPIRateLimit applies equality check predicate on the "open_api_rate_limit" field. It's identical to OpenAPIRateLimitEQ.
+func OpenAPIRateLimit(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOpenAPIRateLimit, v))
+}
+
+// OpenAPIRateLimitWindowSeconds applies equality check predicate on the "open_api_rate_limit_window_seconds" field. It's identical to OpenAPIRateLimitWindowSecondsEQ.
+func OpenAPIRateLimitWindowSeconds(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOpenAPIRateLimitWindowSeconds, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.GatewayConfig {
 	return predicate.GatewayConfig(sql.FieldEQ(FieldCreatedAt, v))
@@ -442,6 +477,256 @@ func MaintenanceModeEQ(v bool) predicate.GatewayConfig {
 // MaintenanceModeNEQ applies the NEQ predicate on the "maintenance_mode" field.
 func MaintenanceModeNEQ(v bool) predicate.GatewayConfig {
 	return predicate.GatewayConfig(sql.FieldNEQ(FieldMaintenanceMode, v))
+}
+
+// OrderDefaultTTLSecondsEQ applies the EQ predicate on the "order_default_ttl_seconds" field.
+func OrderDefaultTTLSecondsEQ(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOrderDefaultTTLSeconds, v))
+}
+
+// OrderDefaultTTLSecondsNEQ applies the NEQ predicate on the "order_default_ttl_seconds" field.
+func OrderDefaultTTLSecondsNEQ(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNEQ(FieldOrderDefaultTTLSeconds, v))
+}
+
+// OrderDefaultTTLSecondsIn applies the In predicate on the "order_default_ttl_seconds" field.
+func OrderDefaultTTLSecondsIn(vs ...int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldIn(FieldOrderDefaultTTLSeconds, vs...))
+}
+
+// OrderDefaultTTLSecondsNotIn applies the NotIn predicate on the "order_default_ttl_seconds" field.
+func OrderDefaultTTLSecondsNotIn(vs ...int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNotIn(FieldOrderDefaultTTLSeconds, vs...))
+}
+
+// OrderDefaultTTLSecondsGT applies the GT predicate on the "order_default_ttl_seconds" field.
+func OrderDefaultTTLSecondsGT(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGT(FieldOrderDefaultTTLSeconds, v))
+}
+
+// OrderDefaultTTLSecondsGTE applies the GTE predicate on the "order_default_ttl_seconds" field.
+func OrderDefaultTTLSecondsGTE(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGTE(FieldOrderDefaultTTLSeconds, v))
+}
+
+// OrderDefaultTTLSecondsLT applies the LT predicate on the "order_default_ttl_seconds" field.
+func OrderDefaultTTLSecondsLT(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLT(FieldOrderDefaultTTLSeconds, v))
+}
+
+// OrderDefaultTTLSecondsLTE applies the LTE predicate on the "order_default_ttl_seconds" field.
+func OrderDefaultTTLSecondsLTE(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLTE(FieldOrderDefaultTTLSeconds, v))
+}
+
+// OrderExpireScanIntervalSecondsEQ applies the EQ predicate on the "order_expire_scan_interval_seconds" field.
+func OrderExpireScanIntervalSecondsEQ(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOrderExpireScanIntervalSeconds, v))
+}
+
+// OrderExpireScanIntervalSecondsNEQ applies the NEQ predicate on the "order_expire_scan_interval_seconds" field.
+func OrderExpireScanIntervalSecondsNEQ(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNEQ(FieldOrderExpireScanIntervalSeconds, v))
+}
+
+// OrderExpireScanIntervalSecondsIn applies the In predicate on the "order_expire_scan_interval_seconds" field.
+func OrderExpireScanIntervalSecondsIn(vs ...int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldIn(FieldOrderExpireScanIntervalSeconds, vs...))
+}
+
+// OrderExpireScanIntervalSecondsNotIn applies the NotIn predicate on the "order_expire_scan_interval_seconds" field.
+func OrderExpireScanIntervalSecondsNotIn(vs ...int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNotIn(FieldOrderExpireScanIntervalSeconds, vs...))
+}
+
+// OrderExpireScanIntervalSecondsGT applies the GT predicate on the "order_expire_scan_interval_seconds" field.
+func OrderExpireScanIntervalSecondsGT(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGT(FieldOrderExpireScanIntervalSeconds, v))
+}
+
+// OrderExpireScanIntervalSecondsGTE applies the GTE predicate on the "order_expire_scan_interval_seconds" field.
+func OrderExpireScanIntervalSecondsGTE(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGTE(FieldOrderExpireScanIntervalSeconds, v))
+}
+
+// OrderExpireScanIntervalSecondsLT applies the LT predicate on the "order_expire_scan_interval_seconds" field.
+func OrderExpireScanIntervalSecondsLT(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLT(FieldOrderExpireScanIntervalSeconds, v))
+}
+
+// OrderExpireScanIntervalSecondsLTE applies the LTE predicate on the "order_expire_scan_interval_seconds" field.
+func OrderExpireScanIntervalSecondsLTE(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLTE(FieldOrderExpireScanIntervalSeconds, v))
+}
+
+// OrderExpireScanLimitEQ applies the EQ predicate on the "order_expire_scan_limit" field.
+func OrderExpireScanLimitEQ(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOrderExpireScanLimit, v))
+}
+
+// OrderExpireScanLimitNEQ applies the NEQ predicate on the "order_expire_scan_limit" field.
+func OrderExpireScanLimitNEQ(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNEQ(FieldOrderExpireScanLimit, v))
+}
+
+// OrderExpireScanLimitIn applies the In predicate on the "order_expire_scan_limit" field.
+func OrderExpireScanLimitIn(vs ...int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldIn(FieldOrderExpireScanLimit, vs...))
+}
+
+// OrderExpireScanLimitNotIn applies the NotIn predicate on the "order_expire_scan_limit" field.
+func OrderExpireScanLimitNotIn(vs ...int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNotIn(FieldOrderExpireScanLimit, vs...))
+}
+
+// OrderExpireScanLimitGT applies the GT predicate on the "order_expire_scan_limit" field.
+func OrderExpireScanLimitGT(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGT(FieldOrderExpireScanLimit, v))
+}
+
+// OrderExpireScanLimitGTE applies the GTE predicate on the "order_expire_scan_limit" field.
+func OrderExpireScanLimitGTE(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGTE(FieldOrderExpireScanLimit, v))
+}
+
+// OrderExpireScanLimitLT applies the LT predicate on the "order_expire_scan_limit" field.
+func OrderExpireScanLimitLT(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLT(FieldOrderExpireScanLimit, v))
+}
+
+// OrderExpireScanLimitLTE applies the LTE predicate on the "order_expire_scan_limit" field.
+func OrderExpireScanLimitLTE(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLTE(FieldOrderExpireScanLimit, v))
+}
+
+// OrderExpireWorkerConcurrencyEQ applies the EQ predicate on the "order_expire_worker_concurrency" field.
+func OrderExpireWorkerConcurrencyEQ(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOrderExpireWorkerConcurrency, v))
+}
+
+// OrderExpireWorkerConcurrencyNEQ applies the NEQ predicate on the "order_expire_worker_concurrency" field.
+func OrderExpireWorkerConcurrencyNEQ(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNEQ(FieldOrderExpireWorkerConcurrency, v))
+}
+
+// OrderExpireWorkerConcurrencyIn applies the In predicate on the "order_expire_worker_concurrency" field.
+func OrderExpireWorkerConcurrencyIn(vs ...int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldIn(FieldOrderExpireWorkerConcurrency, vs...))
+}
+
+// OrderExpireWorkerConcurrencyNotIn applies the NotIn predicate on the "order_expire_worker_concurrency" field.
+func OrderExpireWorkerConcurrencyNotIn(vs ...int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNotIn(FieldOrderExpireWorkerConcurrency, vs...))
+}
+
+// OrderExpireWorkerConcurrencyGT applies the GT predicate on the "order_expire_worker_concurrency" field.
+func OrderExpireWorkerConcurrencyGT(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGT(FieldOrderExpireWorkerConcurrency, v))
+}
+
+// OrderExpireWorkerConcurrencyGTE applies the GTE predicate on the "order_expire_worker_concurrency" field.
+func OrderExpireWorkerConcurrencyGTE(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGTE(FieldOrderExpireWorkerConcurrency, v))
+}
+
+// OrderExpireWorkerConcurrencyLT applies the LT predicate on the "order_expire_worker_concurrency" field.
+func OrderExpireWorkerConcurrencyLT(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLT(FieldOrderExpireWorkerConcurrency, v))
+}
+
+// OrderExpireWorkerConcurrencyLTE applies the LTE predicate on the "order_expire_worker_concurrency" field.
+func OrderExpireWorkerConcurrencyLTE(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLTE(FieldOrderExpireWorkerConcurrency, v))
+}
+
+// OpenAPIRateLimitEnabledEQ applies the EQ predicate on the "open_api_rate_limit_enabled" field.
+func OpenAPIRateLimitEnabledEQ(v bool) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOpenAPIRateLimitEnabled, v))
+}
+
+// OpenAPIRateLimitEnabledNEQ applies the NEQ predicate on the "open_api_rate_limit_enabled" field.
+func OpenAPIRateLimitEnabledNEQ(v bool) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNEQ(FieldOpenAPIRateLimitEnabled, v))
+}
+
+// OpenAPIRateLimitEQ applies the EQ predicate on the "open_api_rate_limit" field.
+func OpenAPIRateLimitEQ(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOpenAPIRateLimit, v))
+}
+
+// OpenAPIRateLimitNEQ applies the NEQ predicate on the "open_api_rate_limit" field.
+func OpenAPIRateLimitNEQ(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNEQ(FieldOpenAPIRateLimit, v))
+}
+
+// OpenAPIRateLimitIn applies the In predicate on the "open_api_rate_limit" field.
+func OpenAPIRateLimitIn(vs ...int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldIn(FieldOpenAPIRateLimit, vs...))
+}
+
+// OpenAPIRateLimitNotIn applies the NotIn predicate on the "open_api_rate_limit" field.
+func OpenAPIRateLimitNotIn(vs ...int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNotIn(FieldOpenAPIRateLimit, vs...))
+}
+
+// OpenAPIRateLimitGT applies the GT predicate on the "open_api_rate_limit" field.
+func OpenAPIRateLimitGT(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGT(FieldOpenAPIRateLimit, v))
+}
+
+// OpenAPIRateLimitGTE applies the GTE predicate on the "open_api_rate_limit" field.
+func OpenAPIRateLimitGTE(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGTE(FieldOpenAPIRateLimit, v))
+}
+
+// OpenAPIRateLimitLT applies the LT predicate on the "open_api_rate_limit" field.
+func OpenAPIRateLimitLT(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLT(FieldOpenAPIRateLimit, v))
+}
+
+// OpenAPIRateLimitLTE applies the LTE predicate on the "open_api_rate_limit" field.
+func OpenAPIRateLimitLTE(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLTE(FieldOpenAPIRateLimit, v))
+}
+
+// OpenAPIRateLimitWindowSecondsEQ applies the EQ predicate on the "open_api_rate_limit_window_seconds" field.
+func OpenAPIRateLimitWindowSecondsEQ(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldEQ(FieldOpenAPIRateLimitWindowSeconds, v))
+}
+
+// OpenAPIRateLimitWindowSecondsNEQ applies the NEQ predicate on the "open_api_rate_limit_window_seconds" field.
+func OpenAPIRateLimitWindowSecondsNEQ(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNEQ(FieldOpenAPIRateLimitWindowSeconds, v))
+}
+
+// OpenAPIRateLimitWindowSecondsIn applies the In predicate on the "open_api_rate_limit_window_seconds" field.
+func OpenAPIRateLimitWindowSecondsIn(vs ...int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldIn(FieldOpenAPIRateLimitWindowSeconds, vs...))
+}
+
+// OpenAPIRateLimitWindowSecondsNotIn applies the NotIn predicate on the "open_api_rate_limit_window_seconds" field.
+func OpenAPIRateLimitWindowSecondsNotIn(vs ...int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldNotIn(FieldOpenAPIRateLimitWindowSeconds, vs...))
+}
+
+// OpenAPIRateLimitWindowSecondsGT applies the GT predicate on the "open_api_rate_limit_window_seconds" field.
+func OpenAPIRateLimitWindowSecondsGT(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGT(FieldOpenAPIRateLimitWindowSeconds, v))
+}
+
+// OpenAPIRateLimitWindowSecondsGTE applies the GTE predicate on the "open_api_rate_limit_window_seconds" field.
+func OpenAPIRateLimitWindowSecondsGTE(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldGTE(FieldOpenAPIRateLimitWindowSeconds, v))
+}
+
+// OpenAPIRateLimitWindowSecondsLT applies the LT predicate on the "open_api_rate_limit_window_seconds" field.
+func OpenAPIRateLimitWindowSecondsLT(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLT(FieldOpenAPIRateLimitWindowSeconds, v))
+}
+
+// OpenAPIRateLimitWindowSecondsLTE applies the LTE predicate on the "open_api_rate_limit_window_seconds" field.
+func OpenAPIRateLimitWindowSecondsLTE(v int) predicate.GatewayConfig {
+	return predicate.GatewayConfig(sql.FieldLTE(FieldOpenAPIRateLimitWindowSeconds, v))
 }
 
 // ExtraIsNil applies the IsNil predicate on the "extra" field.

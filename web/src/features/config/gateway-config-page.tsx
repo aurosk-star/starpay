@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { Copy, Save, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +32,13 @@ type FormState = {
   defaultLocale: string;
   requestIdEnabled: boolean;
   maintenanceMode: boolean;
+  orderDefaultTtlSeconds: string;
+  orderExpireScanIntervalSeconds: string;
+  orderExpireScanLimit: string;
+  orderExpireWorkerConcurrency: string;
+  openApiRateLimitEnabled: boolean;
+  openApiRateLimit: string;
+  openApiRateLimitWindowSeconds: string;
   extra: string;
 };
 
@@ -43,6 +49,13 @@ const emptyForm: FormState = {
   defaultLocale: "",
   requestIdEnabled: true,
   maintenanceMode: false,
+  orderDefaultTtlSeconds: "900",
+  orderExpireScanIntervalSeconds: "30",
+  orderExpireScanLimit: "100",
+  orderExpireWorkerConcurrency: "2",
+  openApiRateLimitEnabled: true,
+  openApiRateLimit: "120",
+  openApiRateLimitWindowSeconds: "60",
   extra: "{}",
 };
 
@@ -53,20 +66,19 @@ export function GatewayConfigPage() {
   const [config, setConfig] = useState<GatewayConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!accessToken) return;
     setLoading(true);
-    setError(null);
     void getGatewayConfig(accessToken)
       .then((result) => {
         setConfig(result.gateway_config);
         setForm(toForm(result.gateway_config));
       })
       .catch((err) =>
-        setError(err instanceof APIError ? err.message : t("config.loadFailed")),
+        toast.error(
+          err instanceof APIError ? err.message : t("config.loadFailed"),
+        ),
       )
       .finally(() => setLoading(false));
   }, [accessToken, t]);
@@ -75,8 +87,6 @@ export function GatewayConfigPage() {
     event.preventDefault();
     if (!accessToken) return;
     setSaving(true);
-    setSaved(false);
-    setError(null);
     try {
       const extra = parseExtra(form.extra);
       const payload: UpdateGatewayConfigPayload = {
@@ -86,15 +96,33 @@ export function GatewayConfigPage() {
         default_locale: form.defaultLocale,
         request_id_enabled: form.requestIdEnabled,
         maintenance_mode: form.maintenanceMode,
+        order_default_ttl_seconds: positiveInt(form.orderDefaultTtlSeconds, 900),
+        order_expire_scan_interval_seconds: positiveInt(
+          form.orderExpireScanIntervalSeconds,
+          30,
+        ),
+        order_expire_scan_limit: positiveInt(form.orderExpireScanLimit, 100),
+        order_expire_worker_concurrency: positiveInt(
+          form.orderExpireWorkerConcurrency,
+          2,
+        ),
+        open_api_rate_limit_enabled: form.openApiRateLimitEnabled,
+        open_api_rate_limit: positiveInt(form.openApiRateLimit, 120),
+        open_api_rate_limit_window_seconds: positiveInt(
+          form.openApiRateLimitWindowSeconds,
+          60,
+        ),
         extra,
       };
       const result = await updateGatewayConfig(accessToken, payload);
       setConfig(result.gateway_config);
       setForm(toForm(result.gateway_config));
       setCachedSiteName(result.gateway_config.site_name);
-      setSaved(true);
+      toast.success(t("config.savedDescription"));
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("config.saveFailed"));
+      toast.error(
+        err instanceof APIError ? err.message : t("config.saveFailed"),
+      );
     } finally {
       setSaving(false);
     }
@@ -122,20 +150,6 @@ export function GatewayConfigPage() {
           {t("config.description")}
         </p>
       </div>
-
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("config.errorTitle")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      {saved ? (
-        <Alert>
-          <AlertTitle>{t("config.savedTitle")}</AlertTitle>
-          <AlertDescription>{t("config.savedDescription")}</AlertDescription>
-        </Alert>
-      ) : null}
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
@@ -251,6 +265,108 @@ export function GatewayConfigPage() {
                       />
                     </Field>
                   </div>
+                  <section className="flex flex-col gap-3 rounded-lg border bg-muted/10 p-4">
+                    <div>
+                      <h2 className="text-sm font-medium">
+                        {t("config.orderExpiration")}
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        {t("config.orderExpirationDescription")}
+                      </p>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <NumberField
+                        id="order_default_ttl_seconds"
+                        label={t("config.fields.orderDefaultTtlSeconds")}
+                        value={form.orderDefaultTtlSeconds}
+                        onChange={(value) =>
+                          setForm((current) => ({
+                            ...current,
+                            orderDefaultTtlSeconds: value,
+                          }))
+                        }
+                      />
+                      <NumberField
+                        id="order_expire_scan_interval_seconds"
+                        label={t("config.fields.orderExpireScanIntervalSeconds")}
+                        value={form.orderExpireScanIntervalSeconds}
+                        onChange={(value) =>
+                          setForm((current) => ({
+                            ...current,
+                            orderExpireScanIntervalSeconds: value,
+                          }))
+                        }
+                      />
+                      <NumberField
+                        id="order_expire_scan_limit"
+                        label={t("config.fields.orderExpireScanLimit")}
+                        value={form.orderExpireScanLimit}
+                        onChange={(value) =>
+                          setForm((current) => ({
+                            ...current,
+                            orderExpireScanLimit: value,
+                          }))
+                        }
+                      />
+                      <NumberField
+                        id="order_expire_worker_concurrency"
+                        label={t("config.fields.orderExpireWorkerConcurrency")}
+                        value={form.orderExpireWorkerConcurrency}
+                        onChange={(value) =>
+                          setForm((current) => ({
+                            ...current,
+                            orderExpireWorkerConcurrency: value,
+                          }))
+                        }
+                      />
+                    </div>
+                  </section>
+                  <section className="flex flex-col gap-3 rounded-lg border bg-muted/10 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h2 className="text-sm font-medium">
+                          {t("config.openApiRateLimit")}
+                        </h2>
+                        <p className="text-xs text-muted-foreground">
+                          {t("config.openApiRateLimitDescription")}
+                        </p>
+                      </div>
+                      <Switch
+                        id="open_api_rate_limit_enabled"
+                        checked={form.openApiRateLimitEnabled}
+                        onCheckedChange={(checked) =>
+                          setForm((current) => ({
+                            ...current,
+                            openApiRateLimitEnabled: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <NumberField
+                        id="open_api_rate_limit"
+                        label={t("config.fields.openApiRateLimit")}
+                        value={form.openApiRateLimit}
+                        onChange={(value) =>
+                          setForm((current) => ({
+                            ...current,
+                            openApiRateLimit: value,
+                          }))
+                        }
+                      />
+                      <NumberField
+                        id="open_api_rate_limit_window_seconds"
+                        label={t("config.fields.openApiRateLimitWindowSeconds")}
+                        value={form.openApiRateLimitWindowSeconds}
+                        onChange={(value) =>
+                          setForm((current) => ({
+                            ...current,
+                            openApiRateLimitWindowSeconds: value,
+                          }))
+                        }
+                      />
+                    </div>
+                  </section>
                   <Field>
                     <FieldLabel htmlFor="extra">
                       {t("config.fields.extra")}
@@ -330,6 +446,30 @@ export function GatewayConfigPage() {
                 enabledText={t("config.enabled")}
                 disabledText={t("config.disabled")}
               />
+              <RuntimeValue
+                label={t("config.fields.orderDefaultTtlSeconds")}
+                value={t("config.seconds", {
+                  count: Number(form.orderDefaultTtlSeconds) || 0,
+                })}
+              />
+              <RuntimeValue
+                label={t("config.fields.orderExpireScanIntervalSeconds")}
+                value={t("config.seconds", {
+                  count: Number(form.orderExpireScanIntervalSeconds) || 0,
+                })}
+              />
+              <RuntimeValue
+                label={t("config.fields.openApiRateLimit")}
+                value={
+                  form.openApiRateLimitEnabled
+                    ? t("config.perWindow", {
+                        count: Number(form.openApiRateLimit) || 0,
+                        seconds:
+                          Number(form.openApiRateLimitWindowSeconds) || 0,
+                      })
+                    : t("config.disabled")
+                }
+              />
               <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
                 <span className="text-sm text-muted-foreground">
                   {t("config.fields.updatedAt")}
@@ -362,9 +502,46 @@ function GatewayConfigSkeleton() {
           <Skeleton className="h-12" />
           <Skeleton className="h-12" />
         </div>
+        <Skeleton className="h-44" />
+        <Skeleton className="h-36" />
         <Skeleton className="h-48" />
       </div>
     </CardContent>
+  );
+}
+
+function NumberField({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Input
+        id={id}
+        type="number"
+        min={1}
+        step={1}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </Field>
+  );
+}
+
+function RuntimeValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-right text-xs">{value}</span>
+    </div>
   );
 }
 
@@ -397,8 +574,29 @@ function toForm(config: GatewayConfig): FormState {
     defaultLocale: config.default_locale,
     requestIdEnabled: config.request_id_enabled,
     maintenanceMode: config.maintenance_mode,
+    orderDefaultTtlSeconds: String(config.order_default_ttl_seconds),
+    orderExpireScanIntervalSeconds: String(
+      config.order_expire_scan_interval_seconds,
+    ),
+    orderExpireScanLimit: String(config.order_expire_scan_limit),
+    orderExpireWorkerConcurrency: String(
+      config.order_expire_worker_concurrency,
+    ),
+    openApiRateLimitEnabled: config.open_api_rate_limit_enabled,
+    openApiRateLimit: String(config.open_api_rate_limit),
+    openApiRateLimitWindowSeconds: String(
+      config.open_api_rate_limit_window_seconds,
+    ),
     extra: JSON.stringify(config.extra ?? {}, null, 2),
   };
+}
+
+function positiveInt(value: string, fallback: number) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
 }
 
 function parseExtra(value: string): Record<string, unknown> {

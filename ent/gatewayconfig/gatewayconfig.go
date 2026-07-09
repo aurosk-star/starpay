@@ -27,6 +27,20 @@ const (
 	FieldRequestIDEnabled = "request_id_enabled"
 	// FieldMaintenanceMode holds the string denoting the maintenance_mode field in the database.
 	FieldMaintenanceMode = "maintenance_mode"
+	// FieldOrderDefaultTTLSeconds holds the string denoting the order_default_ttl_seconds field in the database.
+	FieldOrderDefaultTTLSeconds = "order_default_ttl_seconds"
+	// FieldOrderExpireScanIntervalSeconds holds the string denoting the order_expire_scan_interval_seconds field in the database.
+	FieldOrderExpireScanIntervalSeconds = "order_expire_scan_interval_seconds"
+	// FieldOrderExpireScanLimit holds the string denoting the order_expire_scan_limit field in the database.
+	FieldOrderExpireScanLimit = "order_expire_scan_limit"
+	// FieldOrderExpireWorkerConcurrency holds the string denoting the order_expire_worker_concurrency field in the database.
+	FieldOrderExpireWorkerConcurrency = "order_expire_worker_concurrency"
+	// FieldOpenAPIRateLimitEnabled holds the string denoting the open_api_rate_limit_enabled field in the database.
+	FieldOpenAPIRateLimitEnabled = "open_api_rate_limit_enabled"
+	// FieldOpenAPIRateLimit holds the string denoting the open_api_rate_limit field in the database.
+	FieldOpenAPIRateLimit = "open_api_rate_limit"
+	// FieldOpenAPIRateLimitWindowSeconds holds the string denoting the open_api_rate_limit_window_seconds field in the database.
+	FieldOpenAPIRateLimitWindowSeconds = "open_api_rate_limit_window_seconds"
 	// FieldExtra holds the string denoting the extra field in the database.
 	FieldExtra = "extra"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -47,6 +61,13 @@ var Columns = []string{
 	FieldDefaultLocale,
 	FieldRequestIDEnabled,
 	FieldMaintenanceMode,
+	FieldOrderDefaultTTLSeconds,
+	FieldOrderExpireScanIntervalSeconds,
+	FieldOrderExpireScanLimit,
+	FieldOrderExpireWorkerConcurrency,
+	FieldOpenAPIRateLimitEnabled,
+	FieldOpenAPIRateLimit,
+	FieldOpenAPIRateLimitWindowSeconds,
 	FieldExtra,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -77,6 +98,20 @@ var (
 	DefaultRequestIDEnabled bool
 	// DefaultMaintenanceMode holds the default value on creation for the "maintenance_mode" field.
 	DefaultMaintenanceMode bool
+	// DefaultOrderDefaultTTLSeconds holds the default value on creation for the "order_default_ttl_seconds" field.
+	DefaultOrderDefaultTTLSeconds int
+	// DefaultOrderExpireScanIntervalSeconds holds the default value on creation for the "order_expire_scan_interval_seconds" field.
+	DefaultOrderExpireScanIntervalSeconds int
+	// DefaultOrderExpireScanLimit holds the default value on creation for the "order_expire_scan_limit" field.
+	DefaultOrderExpireScanLimit int
+	// DefaultOrderExpireWorkerConcurrency holds the default value on creation for the "order_expire_worker_concurrency" field.
+	DefaultOrderExpireWorkerConcurrency int
+	// DefaultOpenAPIRateLimitEnabled holds the default value on creation for the "open_api_rate_limit_enabled" field.
+	DefaultOpenAPIRateLimitEnabled bool
+	// DefaultOpenAPIRateLimit holds the default value on creation for the "open_api_rate_limit" field.
+	DefaultOpenAPIRateLimit int
+	// DefaultOpenAPIRateLimitWindowSeconds holds the default value on creation for the "open_api_rate_limit_window_seconds" field.
+	DefaultOpenAPIRateLimitWindowSeconds int
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -126,6 +161,41 @@ func ByRequestIDEnabled(opts ...sql.OrderTermOption) OrderOption {
 // ByMaintenanceMode orders the results by the maintenance_mode field.
 func ByMaintenanceMode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMaintenanceMode, opts...).ToFunc()
+}
+
+// ByOrderDefaultTTLSeconds orders the results by the order_default_ttl_seconds field.
+func ByOrderDefaultTTLSeconds(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOrderDefaultTTLSeconds, opts...).ToFunc()
+}
+
+// ByOrderExpireScanIntervalSeconds orders the results by the order_expire_scan_interval_seconds field.
+func ByOrderExpireScanIntervalSeconds(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOrderExpireScanIntervalSeconds, opts...).ToFunc()
+}
+
+// ByOrderExpireScanLimit orders the results by the order_expire_scan_limit field.
+func ByOrderExpireScanLimit(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOrderExpireScanLimit, opts...).ToFunc()
+}
+
+// ByOrderExpireWorkerConcurrency orders the results by the order_expire_worker_concurrency field.
+func ByOrderExpireWorkerConcurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOrderExpireWorkerConcurrency, opts...).ToFunc()
+}
+
+// ByOpenAPIRateLimitEnabled orders the results by the open_api_rate_limit_enabled field.
+func ByOpenAPIRateLimitEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOpenAPIRateLimitEnabled, opts...).ToFunc()
+}
+
+// ByOpenAPIRateLimit orders the results by the open_api_rate_limit field.
+func ByOpenAPIRateLimit(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOpenAPIRateLimit, opts...).ToFunc()
+}
+
+// ByOpenAPIRateLimitWindowSeconds orders the results by the open_api_rate_limit_window_seconds field.
+func ByOpenAPIRateLimitWindowSeconds(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOpenAPIRateLimitWindowSeconds, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

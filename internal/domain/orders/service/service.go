@@ -33,12 +33,13 @@ var (
 )
 
 type Service struct {
-	orders          orderrepo.Repository
-	apps            apprepo.Repository
-	webhooks        webhooksvc.Service
-	enqueuer        ExpirationEnqueuer
-	now             func() time.Time
-	defaultOrderTTL time.Duration
+	orders                  orderrepo.Repository
+	apps                    apprepo.Repository
+	webhooks                webhooksvc.Service
+	enqueuer                ExpirationEnqueuer
+	now                     func() time.Time
+	defaultOrderTTL         time.Duration
+	defaultOrderTTLResolver func(context.Context) (time.Duration, error)
 }
 
 type Option func(*Service)
@@ -60,6 +61,12 @@ func WithNow(now func() time.Time) Option {
 func WithDefaultOrderTTL(ttl time.Duration) Option {
 	return func(s *Service) {
 		s.defaultOrderTTL = ttl
+	}
+}
+
+func WithDefaultOrderTTLResolver(resolver func(context.Context) (time.Duration, error)) Option {
+	return func(s *Service) {
+		s.defaultOrderTTLResolver = resolver
 	}
 }
 
@@ -174,7 +181,7 @@ func (s Service) CreateOrderWithCheckoutToken(ctx context.Context, input ManageO
 	}
 	expiresAt := normalized.ExpiresAt
 	if expiresAt == nil {
-		expiresAt = s.defaultExpiresAt()
+		expiresAt = s.defaultExpiresAt(ctx)
 	}
 	gatewayOrderNo, err := newGatewayOrderNo(s.now())
 	if err != nil {
@@ -452,11 +459,17 @@ func (s Service) MarkPaid(ctx context.Context, id int, channelTradeNo string) (*
 	return paid, nil
 }
 
-func (s Service) defaultExpiresAt() *time.Time {
-	if s.defaultOrderTTL <= 0 {
+func (s Service) defaultExpiresAt(ctx context.Context) *time.Time {
+	ttl := s.defaultOrderTTL
+	if s.defaultOrderTTLResolver != nil {
+		if resolved, err := s.defaultOrderTTLResolver(ctx); err == nil {
+			ttl = resolved
+		}
+	}
+	if ttl <= 0 {
 		return nil
 	}
-	expiresAt := s.now().Add(s.defaultOrderTTL)
+	expiresAt := s.now().Add(ttl)
 	return &expiresAt
 }
 

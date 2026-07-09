@@ -118,6 +118,104 @@ func (_c *GatewayConfigCreate) SetNillableMaintenanceMode(v *bool) *GatewayConfi
 	return _c
 }
 
+// SetOrderDefaultTTLSeconds sets the "order_default_ttl_seconds" field.
+func (_c *GatewayConfigCreate) SetOrderDefaultTTLSeconds(v int) *GatewayConfigCreate {
+	_c.mutation.SetOrderDefaultTTLSeconds(v)
+	return _c
+}
+
+// SetNillableOrderDefaultTTLSeconds sets the "order_default_ttl_seconds" field if the given value is not nil.
+func (_c *GatewayConfigCreate) SetNillableOrderDefaultTTLSeconds(v *int) *GatewayConfigCreate {
+	if v != nil {
+		_c.SetOrderDefaultTTLSeconds(*v)
+	}
+	return _c
+}
+
+// SetOrderExpireScanIntervalSeconds sets the "order_expire_scan_interval_seconds" field.
+func (_c *GatewayConfigCreate) SetOrderExpireScanIntervalSeconds(v int) *GatewayConfigCreate {
+	_c.mutation.SetOrderExpireScanIntervalSeconds(v)
+	return _c
+}
+
+// SetNillableOrderExpireScanIntervalSeconds sets the "order_expire_scan_interval_seconds" field if the given value is not nil.
+func (_c *GatewayConfigCreate) SetNillableOrderExpireScanIntervalSeconds(v *int) *GatewayConfigCreate {
+	if v != nil {
+		_c.SetOrderExpireScanIntervalSeconds(*v)
+	}
+	return _c
+}
+
+// SetOrderExpireScanLimit sets the "order_expire_scan_limit" field.
+func (_c *GatewayConfigCreate) SetOrderExpireScanLimit(v int) *GatewayConfigCreate {
+	_c.mutation.SetOrderExpireScanLimit(v)
+	return _c
+}
+
+// SetNillableOrderExpireScanLimit sets the "order_expire_scan_limit" field if the given value is not nil.
+func (_c *GatewayConfigCreate) SetNillableOrderExpireScanLimit(v *int) *GatewayConfigCreate {
+	if v != nil {
+		_c.SetOrderExpireScanLimit(*v)
+	}
+	return _c
+}
+
+// SetOrderExpireWorkerConcurrency sets the "order_expire_worker_concurrency" field.
+func (_c *GatewayConfigCreate) SetOrderExpireWorkerConcurrency(v int) *GatewayConfigCreate {
+	_c.mutation.SetOrderExpireWorkerConcurrency(v)
+	return _c
+}
+
+// SetNillableOrderExpireWorkerConcurrency sets the "order_expire_worker_concurrency" field if the given value is not nil.
+func (_c *GatewayConfigCreate) SetNillableOrderExpireWorkerConcurrency(v *int) *GatewayConfigCreate {
+	if v != nil {
+		_c.SetOrderExpireWorkerConcurrency(*v)
+	}
+	return _c
+}
+
+// SetOpenAPIRateLimitEnabled sets the "open_api_rate_limit_enabled" field.
+func (_c *GatewayConfigCreate) SetOpenAPIRateLimitEnabled(v bool) *GatewayConfigCreate {
+	_c.mutation.SetOpenAPIRateLimitEnabled(v)
+	return _c
+}
+
+// SetNillableOpenAPIRateLimitEnabled sets the "open_api_rate_limit_enabled" field if the given value is not nil.
+func (_c *GatewayConfigCreate) SetNillableOpenAPIRateLimitEnabled(v *bool) *GatewayConfigCreate {
+	if v != nil {
+		_c.SetOpenAPIRateLimitEnabled(*v)
+	}
+	return _c
+}
+
+// SetOpenAPIRateLimit sets the "open_api_rate_limit" field.
+func (_c *GatewayConfigCreate) SetOpenAPIRateLimit(v int) *GatewayConfigCreate {
+	_c.mutation.SetOpenAPIRateLimit(v)
+	return _c
+}
+
+// SetNillableOpenAPIRateLimit sets the "open_api_rate_limit" field if the given value is not nil.
+func (_c *GatewayConfigCreate) SetNillableOpenAPIRateLimit(v *int) *GatewayConfigCreate {
+	if v != nil {
+		_c.SetOpenAPIRateLimit(*v)
+	}
+	return _c
+}
+
+// SetOpenAPIRateLimitWindowSeconds sets the "open_api_rate_limit_window_seconds" field.
+func (_c *GatewayConfigCreate) SetOpenAPIRateLimitWindowSeconds(v int) *GatewayConfigCreate {
+	_c.mutation.SetOpenAPIRateLimitWindowSeconds(v)
+	return _c
+}
+
+// SetNillableOpenAPIRateLimitWindowSeconds sets the "open_api_rate_limit_window_seconds" field if the given value is not nil.
+func (_c *GatewayConfigCreate) SetNillableOpenAPIRateLimitWindowSeconds(v *int) *GatewayConfigCreate {
+	if v != nil {
+		_c.SetOpenAPIRateLimitWindowSeconds(*v)
+	}
+	return _c
+}
+
 // SetExtra sets the "extra" field.
 func (_c *GatewayConfigCreate) SetExtra(v map[string]interface{}) *GatewayConfigCreate {
 	_c.mutation.SetExtra(v)
@@ -215,6 +313,34 @@ func (_c *GatewayConfigCreate) defaults() {
 		v := gatewayconfig.DefaultMaintenanceMode
 		_c.mutation.SetMaintenanceMode(v)
 	}
+	if _, ok := _c.mutation.OrderDefaultTTLSeconds(); !ok {
+		v := gatewayconfig.DefaultOrderDefaultTTLSeconds
+		_c.mutation.SetOrderDefaultTTLSeconds(v)
+	}
+	if _, ok := _c.mutation.OrderExpireScanIntervalSeconds(); !ok {
+		v := gatewayconfig.DefaultOrderExpireScanIntervalSeconds
+		_c.mutation.SetOrderExpireScanIntervalSeconds(v)
+	}
+	if _, ok := _c.mutation.OrderExpireScanLimit(); !ok {
+		v := gatewayconfig.DefaultOrderExpireScanLimit
+		_c.mutation.SetOrderExpireScanLimit(v)
+	}
+	if _, ok := _c.mutation.OrderExpireWorkerConcurrency(); !ok {
+		v := gatewayconfig.DefaultOrderExpireWorkerConcurrency
+		_c.mutation.SetOrderExpireWorkerConcurrency(v)
+	}
+	if _, ok := _c.mutation.OpenAPIRateLimitEnabled(); !ok {
+		v := gatewayconfig.DefaultOpenAPIRateLimitEnabled
+		_c.mutation.SetOpenAPIRateLimitEnabled(v)
+	}
+	if _, ok := _c.mutation.OpenAPIRateLimit(); !ok {
+		v := gatewayconfig.DefaultOpenAPIRateLimit
+		_c.mutation.SetOpenAPIRateLimit(v)
+	}
+	if _, ok := _c.mutation.OpenAPIRateLimitWindowSeconds(); !ok {
+		v := gatewayconfig.DefaultOpenAPIRateLimitWindowSeconds
+		_c.mutation.SetOpenAPIRateLimitWindowSeconds(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := gatewayconfig.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -247,6 +373,27 @@ func (_c *GatewayConfigCreate) check() error {
 	}
 	if _, ok := _c.mutation.MaintenanceMode(); !ok {
 		return &ValidationError{Name: "maintenance_mode", err: errors.New(`ent: missing required field "GatewayConfig.maintenance_mode"`)}
+	}
+	if _, ok := _c.mutation.OrderDefaultTTLSeconds(); !ok {
+		return &ValidationError{Name: "order_default_ttl_seconds", err: errors.New(`ent: missing required field "GatewayConfig.order_default_ttl_seconds"`)}
+	}
+	if _, ok := _c.mutation.OrderExpireScanIntervalSeconds(); !ok {
+		return &ValidationError{Name: "order_expire_scan_interval_seconds", err: errors.New(`ent: missing required field "GatewayConfig.order_expire_scan_interval_seconds"`)}
+	}
+	if _, ok := _c.mutation.OrderExpireScanLimit(); !ok {
+		return &ValidationError{Name: "order_expire_scan_limit", err: errors.New(`ent: missing required field "GatewayConfig.order_expire_scan_limit"`)}
+	}
+	if _, ok := _c.mutation.OrderExpireWorkerConcurrency(); !ok {
+		return &ValidationError{Name: "order_expire_worker_concurrency", err: errors.New(`ent: missing required field "GatewayConfig.order_expire_worker_concurrency"`)}
+	}
+	if _, ok := _c.mutation.OpenAPIRateLimitEnabled(); !ok {
+		return &ValidationError{Name: "open_api_rate_limit_enabled", err: errors.New(`ent: missing required field "GatewayConfig.open_api_rate_limit_enabled"`)}
+	}
+	if _, ok := _c.mutation.OpenAPIRateLimit(); !ok {
+		return &ValidationError{Name: "open_api_rate_limit", err: errors.New(`ent: missing required field "GatewayConfig.open_api_rate_limit"`)}
+	}
+	if _, ok := _c.mutation.OpenAPIRateLimitWindowSeconds(); !ok {
+		return &ValidationError{Name: "open_api_rate_limit_window_seconds", err: errors.New(`ent: missing required field "GatewayConfig.open_api_rate_limit_window_seconds"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "GatewayConfig.created_at"`)}
@@ -307,6 +454,34 @@ func (_c *GatewayConfigCreate) createSpec() (*GatewayConfig, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.MaintenanceMode(); ok {
 		_spec.SetField(gatewayconfig.FieldMaintenanceMode, field.TypeBool, value)
 		_node.MaintenanceMode = value
+	}
+	if value, ok := _c.mutation.OrderDefaultTTLSeconds(); ok {
+		_spec.SetField(gatewayconfig.FieldOrderDefaultTTLSeconds, field.TypeInt, value)
+		_node.OrderDefaultTTLSeconds = value
+	}
+	if value, ok := _c.mutation.OrderExpireScanIntervalSeconds(); ok {
+		_spec.SetField(gatewayconfig.FieldOrderExpireScanIntervalSeconds, field.TypeInt, value)
+		_node.OrderExpireScanIntervalSeconds = value
+	}
+	if value, ok := _c.mutation.OrderExpireScanLimit(); ok {
+		_spec.SetField(gatewayconfig.FieldOrderExpireScanLimit, field.TypeInt, value)
+		_node.OrderExpireScanLimit = value
+	}
+	if value, ok := _c.mutation.OrderExpireWorkerConcurrency(); ok {
+		_spec.SetField(gatewayconfig.FieldOrderExpireWorkerConcurrency, field.TypeInt, value)
+		_node.OrderExpireWorkerConcurrency = value
+	}
+	if value, ok := _c.mutation.OpenAPIRateLimitEnabled(); ok {
+		_spec.SetField(gatewayconfig.FieldOpenAPIRateLimitEnabled, field.TypeBool, value)
+		_node.OpenAPIRateLimitEnabled = value
+	}
+	if value, ok := _c.mutation.OpenAPIRateLimit(); ok {
+		_spec.SetField(gatewayconfig.FieldOpenAPIRateLimit, field.TypeInt, value)
+		_node.OpenAPIRateLimit = value
+	}
+	if value, ok := _c.mutation.OpenAPIRateLimitWindowSeconds(); ok {
+		_spec.SetField(gatewayconfig.FieldOpenAPIRateLimitWindowSeconds, field.TypeInt, value)
+		_node.OpenAPIRateLimitWindowSeconds = value
 	}
 	if value, ok := _c.mutation.Extra(); ok {
 		_spec.SetField(gatewayconfig.FieldExtra, field.TypeJSON, value)
