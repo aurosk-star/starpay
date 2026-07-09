@@ -1,6 +1,6 @@
 import { createRouter } from "@tanstack/react-router";
 
-import { appsRoute } from "./routes/apps";
+import { appDetailRoute, appsRoute } from "./routes/apps";
 import {
   channelCreateRoute,
   channelEditRoute,
@@ -11,6 +11,11 @@ import { checkoutResultRoute, checkoutRoute } from "./routes/checkout";
 import { indexRoute } from "./routes/index";
 import { orderDetailRoute, ordersRoute } from "./routes/orders";
 import { rootRoute } from "./routes/root";
+import {
+  routingCreateRoute,
+  routingEditRoute,
+  routingRoute,
+} from "./routes/routing";
 import { webhooksRoute } from "./routes/webhooks";
 import { webhookDetailRoute } from "./routes/webhook-detail";
 import { testPayRoute } from "./routes/test-pay";
@@ -20,6 +25,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   usersRoute,
   appsRoute,
+  appDetailRoute,
   ordersRoute,
   orderDetailRoute,
   webhooksRoute,
@@ -30,6 +36,9 @@ const routeTree = rootRoute.addChildren([
   channelsRoute,
   channelCreateRoute,
   channelEditRoute,
+  routingRoute,
+  routingCreateRoute,
+  routingEditRoute,
   gatewayConfigRoute,
 ]);
 

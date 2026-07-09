@@ -18,6 +18,8 @@ import (
 	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
+	"payment-gateway/ent/routingrule"
+	"payment-gateway/ent/routingtarget"
 	"payment-gateway/ent/user"
 	"payment-gateway/ent/webhookdelivery"
 	"payment-gateway/ent/webhookevent"
@@ -47,6 +49,10 @@ type Client struct {
 	RefreshToken *RefreshTokenClient
 	// Role is the client for interacting with the Role builders.
 	Role *RoleClient
+	// RoutingRule is the client for interacting with the RoutingRule builders.
+	RoutingRule *RoutingRuleClient
+	// RoutingTarget is the client for interacting with the RoutingTarget builders.
+	RoutingTarget *RoutingTargetClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// WebhookDelivery is the client for interacting with the WebhookDelivery builders.
@@ -71,6 +77,8 @@ func (c *Client) init() {
 	c.PaymentOrder = NewPaymentOrderClient(c.config)
 	c.RefreshToken = NewRefreshTokenClient(c.config)
 	c.Role = NewRoleClient(c.config)
+	c.RoutingRule = NewRoutingRuleClient(c.config)
+	c.RoutingTarget = NewRoutingTargetClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.WebhookDelivery = NewWebhookDeliveryClient(c.config)
 	c.WebhookEvent = NewWebhookEventClient(c.config)
@@ -173,6 +181,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PaymentOrder:    NewPaymentOrderClient(cfg),
 		RefreshToken:    NewRefreshTokenClient(cfg),
 		Role:            NewRoleClient(cfg),
+		RoutingRule:     NewRoutingRuleClient(cfg),
+		RoutingTarget:   NewRoutingTargetClient(cfg),
 		User:            NewUserClient(cfg),
 		WebhookDelivery: NewWebhookDeliveryClient(cfg),
 		WebhookEvent:    NewWebhookEventClient(cfg),
@@ -202,6 +212,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PaymentOrder:    NewPaymentOrderClient(cfg),
 		RefreshToken:    NewRefreshTokenClient(cfg),
 		Role:            NewRoleClient(cfg),
+		RoutingRule:     NewRoutingRuleClient(cfg),
+		RoutingTarget:   NewRoutingTargetClient(cfg),
 		User:            NewUserClient(cfg),
 		WebhookDelivery: NewWebhookDeliveryClient(cfg),
 		WebhookEvent:    NewWebhookEventClient(cfg),
@@ -235,7 +247,8 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.App, c.CasbinRule, c.ChannelAccount, c.GatewayConfig, c.PaymentOrder,
-		c.RefreshToken, c.Role, c.User, c.WebhookDelivery, c.WebhookEvent,
+		c.RefreshToken, c.Role, c.RoutingRule, c.RoutingTarget, c.User,
+		c.WebhookDelivery, c.WebhookEvent,
 	} {
 		n.Use(hooks...)
 	}
@@ -246,7 +259,8 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.App, c.CasbinRule, c.ChannelAccount, c.GatewayConfig, c.PaymentOrder,
-		c.RefreshToken, c.Role, c.User, c.WebhookDelivery, c.WebhookEvent,
+		c.RefreshToken, c.Role, c.RoutingRule, c.RoutingTarget, c.User,
+		c.WebhookDelivery, c.WebhookEvent,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -269,6 +283,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.RefreshToken.mutate(ctx, m)
 	case *RoleMutation:
 		return c.Role.mutate(ctx, m)
+	case *RoutingRuleMutation:
+		return c.RoutingRule.mutate(ctx, m)
+	case *RoutingTargetMutation:
+		return c.RoutingTarget.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	case *WebhookDeliveryMutation:
@@ -1243,6 +1261,272 @@ func (c *RoleClient) mutate(ctx context.Context, m *RoleMutation) (Value, error)
 	}
 }
 
+// RoutingRuleClient is a client for the RoutingRule schema.
+type RoutingRuleClient struct {
+	config
+}
+
+// NewRoutingRuleClient returns a client for the RoutingRule from the given config.
+func NewRoutingRuleClient(c config) *RoutingRuleClient {
+	return &RoutingRuleClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `routingrule.Hooks(f(g(h())))`.
+func (c *RoutingRuleClient) Use(hooks ...Hook) {
+	c.hooks.RoutingRule = append(c.hooks.RoutingRule, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `routingrule.Intercept(f(g(h())))`.
+func (c *RoutingRuleClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RoutingRule = append(c.inters.RoutingRule, interceptors...)
+}
+
+// Create returns a builder for creating a RoutingRule entity.
+func (c *RoutingRuleClient) Create() *RoutingRuleCreate {
+	mutation := newRoutingRuleMutation(c.config, OpCreate)
+	return &RoutingRuleCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RoutingRule entities.
+func (c *RoutingRuleClient) CreateBulk(builders ...*RoutingRuleCreate) *RoutingRuleCreateBulk {
+	return &RoutingRuleCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RoutingRuleClient) MapCreateBulk(slice any, setFunc func(*RoutingRuleCreate, int)) *RoutingRuleCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RoutingRuleCreateBulk{err: fmt.Errorf("calling to RoutingRuleClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RoutingRuleCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RoutingRuleCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RoutingRule.
+func (c *RoutingRuleClient) Update() *RoutingRuleUpdate {
+	mutation := newRoutingRuleMutation(c.config, OpUpdate)
+	return &RoutingRuleUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RoutingRuleClient) UpdateOne(_m *RoutingRule) *RoutingRuleUpdateOne {
+	mutation := newRoutingRuleMutation(c.config, OpUpdateOne, withRoutingRule(_m))
+	return &RoutingRuleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RoutingRuleClient) UpdateOneID(id int) *RoutingRuleUpdateOne {
+	mutation := newRoutingRuleMutation(c.config, OpUpdateOne, withRoutingRuleID(id))
+	return &RoutingRuleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RoutingRule.
+func (c *RoutingRuleClient) Delete() *RoutingRuleDelete {
+	mutation := newRoutingRuleMutation(c.config, OpDelete)
+	return &RoutingRuleDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RoutingRuleClient) DeleteOne(_m *RoutingRule) *RoutingRuleDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RoutingRuleClient) DeleteOneID(id int) *RoutingRuleDeleteOne {
+	builder := c.Delete().Where(routingrule.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RoutingRuleDeleteOne{builder}
+}
+
+// Query returns a query builder for RoutingRule.
+func (c *RoutingRuleClient) Query() *RoutingRuleQuery {
+	return &RoutingRuleQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRoutingRule},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RoutingRule entity by its id.
+func (c *RoutingRuleClient) Get(ctx context.Context, id int) (*RoutingRule, error) {
+	return c.Query().Where(routingrule.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RoutingRuleClient) GetX(ctx context.Context, id int) *RoutingRule {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RoutingRuleClient) Hooks() []Hook {
+	return c.hooks.RoutingRule
+}
+
+// Interceptors returns the client interceptors.
+func (c *RoutingRuleClient) Interceptors() []Interceptor {
+	return c.inters.RoutingRule
+}
+
+func (c *RoutingRuleClient) mutate(ctx context.Context, m *RoutingRuleMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RoutingRuleCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RoutingRuleUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RoutingRuleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RoutingRuleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RoutingRule mutation op: %q", m.Op())
+	}
+}
+
+// RoutingTargetClient is a client for the RoutingTarget schema.
+type RoutingTargetClient struct {
+	config
+}
+
+// NewRoutingTargetClient returns a client for the RoutingTarget from the given config.
+func NewRoutingTargetClient(c config) *RoutingTargetClient {
+	return &RoutingTargetClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `routingtarget.Hooks(f(g(h())))`.
+func (c *RoutingTargetClient) Use(hooks ...Hook) {
+	c.hooks.RoutingTarget = append(c.hooks.RoutingTarget, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `routingtarget.Intercept(f(g(h())))`.
+func (c *RoutingTargetClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RoutingTarget = append(c.inters.RoutingTarget, interceptors...)
+}
+
+// Create returns a builder for creating a RoutingTarget entity.
+func (c *RoutingTargetClient) Create() *RoutingTargetCreate {
+	mutation := newRoutingTargetMutation(c.config, OpCreate)
+	return &RoutingTargetCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RoutingTarget entities.
+func (c *RoutingTargetClient) CreateBulk(builders ...*RoutingTargetCreate) *RoutingTargetCreateBulk {
+	return &RoutingTargetCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RoutingTargetClient) MapCreateBulk(slice any, setFunc func(*RoutingTargetCreate, int)) *RoutingTargetCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RoutingTargetCreateBulk{err: fmt.Errorf("calling to RoutingTargetClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RoutingTargetCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RoutingTargetCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RoutingTarget.
+func (c *RoutingTargetClient) Update() *RoutingTargetUpdate {
+	mutation := newRoutingTargetMutation(c.config, OpUpdate)
+	return &RoutingTargetUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RoutingTargetClient) UpdateOne(_m *RoutingTarget) *RoutingTargetUpdateOne {
+	mutation := newRoutingTargetMutation(c.config, OpUpdateOne, withRoutingTarget(_m))
+	return &RoutingTargetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RoutingTargetClient) UpdateOneID(id int) *RoutingTargetUpdateOne {
+	mutation := newRoutingTargetMutation(c.config, OpUpdateOne, withRoutingTargetID(id))
+	return &RoutingTargetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RoutingTarget.
+func (c *RoutingTargetClient) Delete() *RoutingTargetDelete {
+	mutation := newRoutingTargetMutation(c.config, OpDelete)
+	return &RoutingTargetDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RoutingTargetClient) DeleteOne(_m *RoutingTarget) *RoutingTargetDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RoutingTargetClient) DeleteOneID(id int) *RoutingTargetDeleteOne {
+	builder := c.Delete().Where(routingtarget.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RoutingTargetDeleteOne{builder}
+}
+
+// Query returns a query builder for RoutingTarget.
+func (c *RoutingTargetClient) Query() *RoutingTargetQuery {
+	return &RoutingTargetQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRoutingTarget},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RoutingTarget entity by its id.
+func (c *RoutingTargetClient) Get(ctx context.Context, id int) (*RoutingTarget, error) {
+	return c.Query().Where(routingtarget.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RoutingTargetClient) GetX(ctx context.Context, id int) *RoutingTarget {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RoutingTargetClient) Hooks() []Hook {
+	return c.hooks.RoutingTarget
+}
+
+// Interceptors returns the client interceptors.
+func (c *RoutingTargetClient) Interceptors() []Interceptor {
+	return c.inters.RoutingTarget
+}
+
+func (c *RoutingTargetClient) mutate(ctx context.Context, m *RoutingTargetMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RoutingTargetCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RoutingTargetUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RoutingTargetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RoutingTargetDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RoutingTarget mutation op: %q", m.Op())
+	}
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -1678,10 +1962,12 @@ func (c *WebhookEventClient) mutate(ctx context.Context, m *WebhookEventMutation
 type (
 	hooks struct {
 		App, CasbinRule, ChannelAccount, GatewayConfig, PaymentOrder, RefreshToken,
-		Role, User, WebhookDelivery, WebhookEvent []ent.Hook
+		Role, RoutingRule, RoutingTarget, User, WebhookDelivery,
+		WebhookEvent []ent.Hook
 	}
 	inters struct {
 		App, CasbinRule, ChannelAccount, GatewayConfig, PaymentOrder, RefreshToken,
-		Role, User, WebhookDelivery, WebhookEvent []ent.Interceptor
+		Role, RoutingRule, RoutingTarget, User, WebhookDelivery,
+		WebhookEvent []ent.Interceptor
 	}
 )

@@ -54,8 +54,12 @@ github.com/go-openapi/inflect v0.19.0 h1:9jCH9scKIbHeV9m12SmPilScz6krDxKRasNNSNP
 github.com/go-openapi/inflect v0.19.0/go.mod h1:lHpZVlpIQqLyKwJ4N+YSc9hchQy/i12fJykb83CRBH4=
 github.com/go-pay/crypto v0.0.1 h1:B6InT8CLfSLc6nGRVx9VMJRBBazFMjr293+jl0lLXUY=
 github.com/go-pay/crypto v0.0.1/go.mod h1:41oEIvHMKbNcYlWUlRWtsnC6+ASgh7u29z0gJXe5bes=
+github.com/go-pay/errgroup v0.0.3 h1:DB4s8e8oWYDyETKQ1y1riMJ7y29zE1uIsMCSjEOFSbU=
+github.com/go-pay/errgroup v0.0.3/go.mod h1:0+4b8mvFMS71MIzsaC+gVvB4x37I93lRb2dqrwuU8x8=
 github.com/go-pay/gopay v1.5.121 h1:zPc2eqP+u/I6h6zuFxoU3vwBsriMU1fO34G6Fi395lA=
 github.com/go-pay/gopay v1.5.121/go.mod h1:RzP9+1bPzIMAXGRL5RvYsZjib7wV2fhA3JxT5sjoi2w=
+github.com/go-pay/smap v0.0.2 h1:kKflYor5T5FgZltPFBMTFfjJvqYMHr5VnIFSEyhVTcA=
+github.com/go-pay/smap v0.0.2/go.mod h1:HW9oAo0okuyDYsbpbj5fJFxnNj/BZorRGFw26SxrNWw=
 github.com/go-pay/util v0.0.4 h1:TuwSU9o3Qd7m9v1PbzFuIA/8uO9FJnA6P7neG/NwPyk=
 github.com/go-pay/util v0.0.4/go.mod h1:Tsdhs8Ib9J9b4+NKNO1PHh5hWHhlg98PthsX0ckq6PM=
 github.com/go-pay/xlog v0.0.3 h1:avyMhCL/JgBHreoGx/am/kHxfs1udDOAeVqbmzP/Yes=

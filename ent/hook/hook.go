@@ -92,6 +92,30 @@ func (f RoleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RoleMutation", m)
 }
 
+// The RoutingRuleFunc type is an adapter to allow the use of ordinary
+// function as RoutingRule mutator.
+type RoutingRuleFunc func(context.Context, *ent.RoutingRuleMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RoutingRuleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RoutingRuleMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RoutingRuleMutation", m)
+}
+
+// The RoutingTargetFunc type is an adapter to allow the use of ordinary
+// function as RoutingTarget mutator.
+type RoutingTargetFunc func(context.Context, *ent.RoutingTargetMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RoutingTargetFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RoutingTargetMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RoutingTargetMutation", m)
+}
+
 // The UserFunc type is an adapter to allow the use of ordinary
 // function as User mutator.
 type UserFunc func(context.Context, *ent.UserMutation) (ent.Value, error)

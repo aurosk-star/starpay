@@ -205,6 +205,101 @@ var (
 		Columns:    RolesColumns,
 		PrimaryKey: []*schema.Column{RolesColumns[0]},
 	}
+	// RoutingRulesColumns holds the columns for the "routing_rules" table.
+	RoutingRulesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "enabled", Type: field.TypeBool, Default: true},
+		{Name: "priority", Type: field.TypeInt, Default: 100},
+		{Name: "app_scope", Type: field.TypeString, Default: "all"},
+		{Name: "app_ids", Type: field.TypeJSON, Nullable: true},
+		{Name: "payment_method", Type: field.TypeString},
+		{Name: "pay_modes", Type: field.TypeJSON, Nullable: true},
+		{Name: "currency", Type: field.TypeString, Nullable: true},
+		{Name: "min_amount", Type: field.TypeInt64, Default: 0},
+		{Name: "max_amount", Type: field.TypeInt64, Default: 0},
+		{Name: "terminal", Type: field.TypeString, Default: "any"},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// RoutingRulesTable holds the schema information for the "routing_rules" table.
+	RoutingRulesTable = &schema.Table{
+		Name:       "routing_rules",
+		Columns:    RoutingRulesColumns,
+		PrimaryKey: []*schema.Column{RoutingRulesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "routingrule_enabled",
+				Unique:  false,
+				Columns: []*schema.Column{RoutingRulesColumns[2]},
+			},
+			{
+				Name:    "routingrule_priority",
+				Unique:  false,
+				Columns: []*schema.Column{RoutingRulesColumns[3]},
+			},
+			{
+				Name:    "routingrule_payment_method",
+				Unique:  false,
+				Columns: []*schema.Column{RoutingRulesColumns[6]},
+			},
+			{
+				Name:    "routingrule_currency",
+				Unique:  false,
+				Columns: []*schema.Column{RoutingRulesColumns[8]},
+			},
+			{
+				Name:    "routingrule_terminal",
+				Unique:  false,
+				Columns: []*schema.Column{RoutingRulesColumns[11]},
+			},
+			{
+				Name:    "routingrule_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{RoutingRulesColumns[13]},
+			},
+		},
+	}
+	// RoutingTargetsColumns holds the columns for the "routing_targets" table.
+	RoutingTargetsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "routing_rule_id", Type: field.TypeInt},
+		{Name: "channel_account_id", Type: field.TypeInt},
+		{Name: "enabled", Type: field.TypeBool, Default: true},
+		{Name: "priority", Type: field.TypeInt, Default: 100},
+		{Name: "weight", Type: field.TypeInt, Default: 100},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// RoutingTargetsTable holds the schema information for the "routing_targets" table.
+	RoutingTargetsTable = &schema.Table{
+		Name:       "routing_targets",
+		Columns:    RoutingTargetsColumns,
+		PrimaryKey: []*schema.Column{RoutingTargetsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "routingtarget_routing_rule_id",
+				Unique:  false,
+				Columns: []*schema.Column{RoutingTargetsColumns[1]},
+			},
+			{
+				Name:    "routingtarget_channel_account_id",
+				Unique:  false,
+				Columns: []*schema.Column{RoutingTargetsColumns[2]},
+			},
+			{
+				Name:    "routingtarget_enabled",
+				Unique:  false,
+				Columns: []*schema.Column{RoutingTargetsColumns[3]},
+			},
+			{
+				Name:    "routingtarget_priority",
+				Unique:  false,
+				Columns: []*schema.Column{RoutingTargetsColumns[4]},
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -360,6 +455,8 @@ var (
 		PaymentOrdersTable,
 		RefreshTokensTable,
 		RolesTable,
+		RoutingRulesTable,
+		RoutingTargetsTable,
 		UsersTable,
 		WebhookDeliveriesTable,
 		WebhookEventsTable,

@@ -13,6 +13,8 @@ import (
 	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
+	"payment-gateway/ent/routingrule"
+	"payment-gateway/ent/routingtarget"
 	"payment-gateway/ent/user"
 	"payment-gateway/ent/webhookdelivery"
 	"payment-gateway/ent/webhookevent"
@@ -89,6 +91,8 @@ func checkColumn(t, c string) error {
 			paymentorder.Table:    paymentorder.ValidColumn,
 			refreshtoken.Table:    refreshtoken.ValidColumn,
 			role.Table:            role.ValidColumn,
+			routingrule.Table:     routingrule.ValidColumn,
+			routingtarget.Table:   routingtarget.ValidColumn,
 			user.Table:            user.ValidColumn,
 			webhookdelivery.Table: webhookdelivery.ValidColumn,
 			webhookevent.Table:    webhookevent.ValidColumn,

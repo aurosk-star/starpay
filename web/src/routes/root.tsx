@@ -102,7 +102,7 @@ function ShellLayout() {
       items: [
         { label: t("nav.apps"), icon: Boxes, to: "/apps" },
         { label: t("nav.channels"), icon: CreditCard, to: "/channels" },
-        { label: t("nav.routing"), icon: GitBranch, disabled: true },
+        { label: t("nav.routing"), icon: GitBranch, to: "/routing" },
         {
           label: t("nav.gatewayConfig"),
           icon: Settings2,
@@ -197,6 +197,7 @@ function getPageTitle(pathname: string, t: ReturnType<typeof useTranslation>["t"
   if (pathname.startsWith("/webhooks/")) return t("webhooks.detailTitle");
   if (pathname === "/test-pay") return t("testPay.title");
   if (pathname.startsWith("/channels")) return t("channels.title");
+  if (pathname.startsWith("/routing")) return t("routing.title");
   if (pathname === "/config/gateway") return t("config.title");
   if (pathname.startsWith("/checkout/") && pathname.endsWith("/result")) {
     return t("checkout.paidTitle");

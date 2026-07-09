@@ -9,6 +9,8 @@ import (
 	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
+	"payment-gateway/ent/routingrule"
+	"payment-gateway/ent/routingtarget"
 	"payment-gateway/ent/schema"
 	"payment-gateway/ent/user"
 	"payment-gateway/ent/webhookdelivery"
@@ -134,6 +136,66 @@ func init() {
 	role.DefaultUpdatedAt = roleDescUpdatedAt.Default.(func() time.Time)
 	// role.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	role.UpdateDefaultUpdatedAt = roleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	routingruleFields := schema.RoutingRule{}.Fields()
+	_ = routingruleFields
+	// routingruleDescEnabled is the schema descriptor for enabled field.
+	routingruleDescEnabled := routingruleFields[1].Descriptor()
+	// routingrule.DefaultEnabled holds the default value on creation for the enabled field.
+	routingrule.DefaultEnabled = routingruleDescEnabled.Default.(bool)
+	// routingruleDescPriority is the schema descriptor for priority field.
+	routingruleDescPriority := routingruleFields[2].Descriptor()
+	// routingrule.DefaultPriority holds the default value on creation for the priority field.
+	routingrule.DefaultPriority = routingruleDescPriority.Default.(int)
+	// routingruleDescAppScope is the schema descriptor for app_scope field.
+	routingruleDescAppScope := routingruleFields[3].Descriptor()
+	// routingrule.DefaultAppScope holds the default value on creation for the app_scope field.
+	routingrule.DefaultAppScope = routingruleDescAppScope.Default.(string)
+	// routingruleDescMinAmount is the schema descriptor for min_amount field.
+	routingruleDescMinAmount := routingruleFields[8].Descriptor()
+	// routingrule.DefaultMinAmount holds the default value on creation for the min_amount field.
+	routingrule.DefaultMinAmount = routingruleDescMinAmount.Default.(int64)
+	// routingruleDescMaxAmount is the schema descriptor for max_amount field.
+	routingruleDescMaxAmount := routingruleFields[9].Descriptor()
+	// routingrule.DefaultMaxAmount holds the default value on creation for the max_amount field.
+	routingrule.DefaultMaxAmount = routingruleDescMaxAmount.Default.(int64)
+	// routingruleDescTerminal is the schema descriptor for terminal field.
+	routingruleDescTerminal := routingruleFields[10].Descriptor()
+	// routingrule.DefaultTerminal holds the default value on creation for the terminal field.
+	routingrule.DefaultTerminal = routingruleDescTerminal.Default.(string)
+	// routingruleDescCreatedAt is the schema descriptor for created_at field.
+	routingruleDescCreatedAt := routingruleFields[12].Descriptor()
+	// routingrule.DefaultCreatedAt holds the default value on creation for the created_at field.
+	routingrule.DefaultCreatedAt = routingruleDescCreatedAt.Default.(func() time.Time)
+	// routingruleDescUpdatedAt is the schema descriptor for updated_at field.
+	routingruleDescUpdatedAt := routingruleFields[13].Descriptor()
+	// routingrule.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	routingrule.DefaultUpdatedAt = routingruleDescUpdatedAt.Default.(func() time.Time)
+	// routingrule.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	routingrule.UpdateDefaultUpdatedAt = routingruleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	routingtargetFields := schema.RoutingTarget{}.Fields()
+	_ = routingtargetFields
+	// routingtargetDescEnabled is the schema descriptor for enabled field.
+	routingtargetDescEnabled := routingtargetFields[2].Descriptor()
+	// routingtarget.DefaultEnabled holds the default value on creation for the enabled field.
+	routingtarget.DefaultEnabled = routingtargetDescEnabled.Default.(bool)
+	// routingtargetDescPriority is the schema descriptor for priority field.
+	routingtargetDescPriority := routingtargetFields[3].Descriptor()
+	// routingtarget.DefaultPriority holds the default value on creation for the priority field.
+	routingtarget.DefaultPriority = routingtargetDescPriority.Default.(int)
+	// routingtargetDescWeight is the schema descriptor for weight field.
+	routingtargetDescWeight := routingtargetFields[4].Descriptor()
+	// routingtarget.DefaultWeight holds the default value on creation for the weight field.
+	routingtarget.DefaultWeight = routingtargetDescWeight.Default.(int)
+	// routingtargetDescCreatedAt is the schema descriptor for created_at field.
+	routingtargetDescCreatedAt := routingtargetFields[5].Descriptor()
+	// routingtarget.DefaultCreatedAt holds the default value on creation for the created_at field.
+	routingtarget.DefaultCreatedAt = routingtargetDescCreatedAt.Default.(func() time.Time)
+	// routingtargetDescUpdatedAt is the schema descriptor for updated_at field.
+	routingtargetDescUpdatedAt := routingtargetFields[6].Descriptor()
+	// routingtarget.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	routingtarget.DefaultUpdatedAt = routingtargetDescUpdatedAt.Default.(func() time.Time)
+	// routingtarget.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	routingtarget.UpdateDefaultUpdatedAt = routingtargetDescUpdatedAt.UpdateDefault.(func() time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescStatus is the schema descriptor for status field.

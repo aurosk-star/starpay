@@ -14,6 +14,8 @@ import (
 	"payment-gateway/ent/predicate"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
+	"payment-gateway/ent/routingrule"
+	"payment-gateway/ent/routingtarget"
 	"payment-gateway/ent/user"
 	"payment-gateway/ent/webhookdelivery"
 	"payment-gateway/ent/webhookevent"
@@ -40,6 +42,8 @@ const (
 	TypePaymentOrder    = "PaymentOrder"
 	TypeRefreshToken    = "RefreshToken"
 	TypeRole            = "Role"
+	TypeRoutingRule     = "RoutingRule"
+	TypeRoutingTarget   = "RoutingTarget"
 	TypeUser            = "User"
 	TypeWebhookDelivery = "WebhookDelivery"
 	TypeWebhookEvent    = "WebhookEvent"
@@ -6511,6 +6515,2034 @@ func (m *RoleMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Role edge %s", name)
+}
+
+// RoutingRuleMutation represents an operation that mutates the RoutingRule nodes in the graph.
+type RoutingRuleMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	name            *string
+	enabled         *bool
+	priority        *int
+	addpriority     *int
+	app_scope       *string
+	app_ids         *[]string
+	appendapp_ids   []string
+	payment_method  *string
+	pay_modes       *[]string
+	appendpay_modes []string
+	currency        *string
+	min_amount      *int64
+	addmin_amount   *int64
+	max_amount      *int64
+	addmax_amount   *int64
+	terminal        *string
+	metadata        *map[string]interface{}
+	created_at      *time.Time
+	updated_at      *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*RoutingRule, error)
+	predicates      []predicate.RoutingRule
+}
+
+var _ ent.Mutation = (*RoutingRuleMutation)(nil)
+
+// routingruleOption allows management of the mutation configuration using functional options.
+type routingruleOption func(*RoutingRuleMutation)
+
+// newRoutingRuleMutation creates new mutation for the RoutingRule entity.
+func newRoutingRuleMutation(c config, op Op, opts ...routingruleOption) *RoutingRuleMutation {
+	m := &RoutingRuleMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRoutingRule,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRoutingRuleID sets the ID field of the mutation.
+func withRoutingRuleID(id int) routingruleOption {
+	return func(m *RoutingRuleMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RoutingRule
+		)
+		m.oldValue = func(ctx context.Context) (*RoutingRule, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RoutingRule.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRoutingRule sets the old RoutingRule of the mutation.
+func withRoutingRule(node *RoutingRule) routingruleOption {
+	return func(m *RoutingRuleMutation) {
+		m.oldValue = func(context.Context) (*RoutingRule, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RoutingRuleMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RoutingRuleMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RoutingRuleMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RoutingRuleMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RoutingRule.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetName sets the "name" field.
+func (m *RoutingRuleMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *RoutingRuleMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *RoutingRuleMutation) ResetName() {
+	m.name = nil
+}
+
+// SetEnabled sets the "enabled" field.
+func (m *RoutingRuleMutation) SetEnabled(b bool) {
+	m.enabled = &b
+}
+
+// Enabled returns the value of the "enabled" field in the mutation.
+func (m *RoutingRuleMutation) Enabled() (r bool, exists bool) {
+	v := m.enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnabled returns the old "enabled" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnabled: %w", err)
+	}
+	return oldValue.Enabled, nil
+}
+
+// ResetEnabled resets all changes to the "enabled" field.
+func (m *RoutingRuleMutation) ResetEnabled() {
+	m.enabled = nil
+}
+
+// SetPriority sets the "priority" field.
+func (m *RoutingRuleMutation) SetPriority(i int) {
+	m.priority = &i
+	m.addpriority = nil
+}
+
+// Priority returns the value of the "priority" field in the mutation.
+func (m *RoutingRuleMutation) Priority() (r int, exists bool) {
+	v := m.priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPriority returns the old "priority" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldPriority(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPriority is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPriority requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPriority: %w", err)
+	}
+	return oldValue.Priority, nil
+}
+
+// AddPriority adds i to the "priority" field.
+func (m *RoutingRuleMutation) AddPriority(i int) {
+	if m.addpriority != nil {
+		*m.addpriority += i
+	} else {
+		m.addpriority = &i
+	}
+}
+
+// AddedPriority returns the value that was added to the "priority" field in this mutation.
+func (m *RoutingRuleMutation) AddedPriority() (r int, exists bool) {
+	v := m.addpriority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPriority resets all changes to the "priority" field.
+func (m *RoutingRuleMutation) ResetPriority() {
+	m.priority = nil
+	m.addpriority = nil
+}
+
+// SetAppScope sets the "app_scope" field.
+func (m *RoutingRuleMutation) SetAppScope(s string) {
+	m.app_scope = &s
+}
+
+// AppScope returns the value of the "app_scope" field in the mutation.
+func (m *RoutingRuleMutation) AppScope() (r string, exists bool) {
+	v := m.app_scope
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppScope returns the old "app_scope" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldAppScope(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppScope is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppScope requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppScope: %w", err)
+	}
+	return oldValue.AppScope, nil
+}
+
+// ResetAppScope resets all changes to the "app_scope" field.
+func (m *RoutingRuleMutation) ResetAppScope() {
+	m.app_scope = nil
+}
+
+// SetAppIds sets the "app_ids" field.
+func (m *RoutingRuleMutation) SetAppIds(s []string) {
+	m.app_ids = &s
+	m.appendapp_ids = nil
+}
+
+// AppIds returns the value of the "app_ids" field in the mutation.
+func (m *RoutingRuleMutation) AppIds() (r []string, exists bool) {
+	v := m.app_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppIds returns the old "app_ids" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldAppIds(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppIds: %w", err)
+	}
+	return oldValue.AppIds, nil
+}
+
+// AppendAppIds adds s to the "app_ids" field.
+func (m *RoutingRuleMutation) AppendAppIds(s []string) {
+	m.appendapp_ids = append(m.appendapp_ids, s...)
+}
+
+// AppendedAppIds returns the list of values that were appended to the "app_ids" field in this mutation.
+func (m *RoutingRuleMutation) AppendedAppIds() ([]string, bool) {
+	if len(m.appendapp_ids) == 0 {
+		return nil, false
+	}
+	return m.appendapp_ids, true
+}
+
+// ClearAppIds clears the value of the "app_ids" field.
+func (m *RoutingRuleMutation) ClearAppIds() {
+	m.app_ids = nil
+	m.appendapp_ids = nil
+	m.clearedFields[routingrule.FieldAppIds] = struct{}{}
+}
+
+// AppIdsCleared returns if the "app_ids" field was cleared in this mutation.
+func (m *RoutingRuleMutation) AppIdsCleared() bool {
+	_, ok := m.clearedFields[routingrule.FieldAppIds]
+	return ok
+}
+
+// ResetAppIds resets all changes to the "app_ids" field.
+func (m *RoutingRuleMutation) ResetAppIds() {
+	m.app_ids = nil
+	m.appendapp_ids = nil
+	delete(m.clearedFields, routingrule.FieldAppIds)
+}
+
+// SetPaymentMethod sets the "payment_method" field.
+func (m *RoutingRuleMutation) SetPaymentMethod(s string) {
+	m.payment_method = &s
+}
+
+// PaymentMethod returns the value of the "payment_method" field in the mutation.
+func (m *RoutingRuleMutation) PaymentMethod() (r string, exists bool) {
+	v := m.payment_method
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPaymentMethod returns the old "payment_method" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldPaymentMethod(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPaymentMethod is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPaymentMethod requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaymentMethod: %w", err)
+	}
+	return oldValue.PaymentMethod, nil
+}
+
+// ResetPaymentMethod resets all changes to the "payment_method" field.
+func (m *RoutingRuleMutation) ResetPaymentMethod() {
+	m.payment_method = nil
+}
+
+// SetPayModes sets the "pay_modes" field.
+func (m *RoutingRuleMutation) SetPayModes(s []string) {
+	m.pay_modes = &s
+	m.appendpay_modes = nil
+}
+
+// PayModes returns the value of the "pay_modes" field in the mutation.
+func (m *RoutingRuleMutation) PayModes() (r []string, exists bool) {
+	v := m.pay_modes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPayModes returns the old "pay_modes" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldPayModes(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPayModes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPayModes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPayModes: %w", err)
+	}
+	return oldValue.PayModes, nil
+}
+
+// AppendPayModes adds s to the "pay_modes" field.
+func (m *RoutingRuleMutation) AppendPayModes(s []string) {
+	m.appendpay_modes = append(m.appendpay_modes, s...)
+}
+
+// AppendedPayModes returns the list of values that were appended to the "pay_modes" field in this mutation.
+func (m *RoutingRuleMutation) AppendedPayModes() ([]string, bool) {
+	if len(m.appendpay_modes) == 0 {
+		return nil, false
+	}
+	return m.appendpay_modes, true
+}
+
+// ClearPayModes clears the value of the "pay_modes" field.
+func (m *RoutingRuleMutation) ClearPayModes() {
+	m.pay_modes = nil
+	m.appendpay_modes = nil
+	m.clearedFields[routingrule.FieldPayModes] = struct{}{}
+}
+
+// PayModesCleared returns if the "pay_modes" field was cleared in this mutation.
+func (m *RoutingRuleMutation) PayModesCleared() bool {
+	_, ok := m.clearedFields[routingrule.FieldPayModes]
+	return ok
+}
+
+// ResetPayModes resets all changes to the "pay_modes" field.
+func (m *RoutingRuleMutation) ResetPayModes() {
+	m.pay_modes = nil
+	m.appendpay_modes = nil
+	delete(m.clearedFields, routingrule.FieldPayModes)
+}
+
+// SetCurrency sets the "currency" field.
+func (m *RoutingRuleMutation) SetCurrency(s string) {
+	m.currency = &s
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *RoutingRuleMutation) Currency() (r string, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldCurrency(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (m *RoutingRuleMutation) ClearCurrency() {
+	m.currency = nil
+	m.clearedFields[routingrule.FieldCurrency] = struct{}{}
+}
+
+// CurrencyCleared returns if the "currency" field was cleared in this mutation.
+func (m *RoutingRuleMutation) CurrencyCleared() bool {
+	_, ok := m.clearedFields[routingrule.FieldCurrency]
+	return ok
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *RoutingRuleMutation) ResetCurrency() {
+	m.currency = nil
+	delete(m.clearedFields, routingrule.FieldCurrency)
+}
+
+// SetMinAmount sets the "min_amount" field.
+func (m *RoutingRuleMutation) SetMinAmount(i int64) {
+	m.min_amount = &i
+	m.addmin_amount = nil
+}
+
+// MinAmount returns the value of the "min_amount" field in the mutation.
+func (m *RoutingRuleMutation) MinAmount() (r int64, exists bool) {
+	v := m.min_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMinAmount returns the old "min_amount" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldMinAmount(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMinAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMinAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMinAmount: %w", err)
+	}
+	return oldValue.MinAmount, nil
+}
+
+// AddMinAmount adds i to the "min_amount" field.
+func (m *RoutingRuleMutation) AddMinAmount(i int64) {
+	if m.addmin_amount != nil {
+		*m.addmin_amount += i
+	} else {
+		m.addmin_amount = &i
+	}
+}
+
+// AddedMinAmount returns the value that was added to the "min_amount" field in this mutation.
+func (m *RoutingRuleMutation) AddedMinAmount() (r int64, exists bool) {
+	v := m.addmin_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetMinAmount resets all changes to the "min_amount" field.
+func (m *RoutingRuleMutation) ResetMinAmount() {
+	m.min_amount = nil
+	m.addmin_amount = nil
+}
+
+// SetMaxAmount sets the "max_amount" field.
+func (m *RoutingRuleMutation) SetMaxAmount(i int64) {
+	m.max_amount = &i
+	m.addmax_amount = nil
+}
+
+// MaxAmount returns the value of the "max_amount" field in the mutation.
+func (m *RoutingRuleMutation) MaxAmount() (r int64, exists bool) {
+	v := m.max_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMaxAmount returns the old "max_amount" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldMaxAmount(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMaxAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMaxAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMaxAmount: %w", err)
+	}
+	return oldValue.MaxAmount, nil
+}
+
+// AddMaxAmount adds i to the "max_amount" field.
+func (m *RoutingRuleMutation) AddMaxAmount(i int64) {
+	if m.addmax_amount != nil {
+		*m.addmax_amount += i
+	} else {
+		m.addmax_amount = &i
+	}
+}
+
+// AddedMaxAmount returns the value that was added to the "max_amount" field in this mutation.
+func (m *RoutingRuleMutation) AddedMaxAmount() (r int64, exists bool) {
+	v := m.addmax_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetMaxAmount resets all changes to the "max_amount" field.
+func (m *RoutingRuleMutation) ResetMaxAmount() {
+	m.max_amount = nil
+	m.addmax_amount = nil
+}
+
+// SetTerminal sets the "terminal" field.
+func (m *RoutingRuleMutation) SetTerminal(s string) {
+	m.terminal = &s
+}
+
+// Terminal returns the value of the "terminal" field in the mutation.
+func (m *RoutingRuleMutation) Terminal() (r string, exists bool) {
+	v := m.terminal
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTerminal returns the old "terminal" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldTerminal(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTerminal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTerminal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTerminal: %w", err)
+	}
+	return oldValue.Terminal, nil
+}
+
+// ResetTerminal resets all changes to the "terminal" field.
+func (m *RoutingRuleMutation) ResetTerminal() {
+	m.terminal = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *RoutingRuleMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *RoutingRuleMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *RoutingRuleMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[routingrule.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *RoutingRuleMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[routingrule.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *RoutingRuleMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, routingrule.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RoutingRuleMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RoutingRuleMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RoutingRuleMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RoutingRuleMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RoutingRuleMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RoutingRule entity.
+// If the RoutingRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingRuleMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RoutingRuleMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the RoutingRuleMutation builder.
+func (m *RoutingRuleMutation) Where(ps ...predicate.RoutingRule) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RoutingRuleMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RoutingRuleMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RoutingRule, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RoutingRuleMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RoutingRuleMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RoutingRule).
+func (m *RoutingRuleMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RoutingRuleMutation) Fields() []string {
+	fields := make([]string, 0, 14)
+	if m.name != nil {
+		fields = append(fields, routingrule.FieldName)
+	}
+	if m.enabled != nil {
+		fields = append(fields, routingrule.FieldEnabled)
+	}
+	if m.priority != nil {
+		fields = append(fields, routingrule.FieldPriority)
+	}
+	if m.app_scope != nil {
+		fields = append(fields, routingrule.FieldAppScope)
+	}
+	if m.app_ids != nil {
+		fields = append(fields, routingrule.FieldAppIds)
+	}
+	if m.payment_method != nil {
+		fields = append(fields, routingrule.FieldPaymentMethod)
+	}
+	if m.pay_modes != nil {
+		fields = append(fields, routingrule.FieldPayModes)
+	}
+	if m.currency != nil {
+		fields = append(fields, routingrule.FieldCurrency)
+	}
+	if m.min_amount != nil {
+		fields = append(fields, routingrule.FieldMinAmount)
+	}
+	if m.max_amount != nil {
+		fields = append(fields, routingrule.FieldMaxAmount)
+	}
+	if m.terminal != nil {
+		fields = append(fields, routingrule.FieldTerminal)
+	}
+	if m.metadata != nil {
+		fields = append(fields, routingrule.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, routingrule.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, routingrule.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RoutingRuleMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case routingrule.FieldName:
+		return m.Name()
+	case routingrule.FieldEnabled:
+		return m.Enabled()
+	case routingrule.FieldPriority:
+		return m.Priority()
+	case routingrule.FieldAppScope:
+		return m.AppScope()
+	case routingrule.FieldAppIds:
+		return m.AppIds()
+	case routingrule.FieldPaymentMethod:
+		return m.PaymentMethod()
+	case routingrule.FieldPayModes:
+		return m.PayModes()
+	case routingrule.FieldCurrency:
+		return m.Currency()
+	case routingrule.FieldMinAmount:
+		return m.MinAmount()
+	case routingrule.FieldMaxAmount:
+		return m.MaxAmount()
+	case routingrule.FieldTerminal:
+		return m.Terminal()
+	case routingrule.FieldMetadata:
+		return m.Metadata()
+	case routingrule.FieldCreatedAt:
+		return m.CreatedAt()
+	case routingrule.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RoutingRuleMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case routingrule.FieldName:
+		return m.OldName(ctx)
+	case routingrule.FieldEnabled:
+		return m.OldEnabled(ctx)
+	case routingrule.FieldPriority:
+		return m.OldPriority(ctx)
+	case routingrule.FieldAppScope:
+		return m.OldAppScope(ctx)
+	case routingrule.FieldAppIds:
+		return m.OldAppIds(ctx)
+	case routingrule.FieldPaymentMethod:
+		return m.OldPaymentMethod(ctx)
+	case routingrule.FieldPayModes:
+		return m.OldPayModes(ctx)
+	case routingrule.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case routingrule.FieldMinAmount:
+		return m.OldMinAmount(ctx)
+	case routingrule.FieldMaxAmount:
+		return m.OldMaxAmount(ctx)
+	case routingrule.FieldTerminal:
+		return m.OldTerminal(ctx)
+	case routingrule.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case routingrule.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case routingrule.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown RoutingRule field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RoutingRuleMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case routingrule.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case routingrule.FieldEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnabled(v)
+		return nil
+	case routingrule.FieldPriority:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPriority(v)
+		return nil
+	case routingrule.FieldAppScope:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppScope(v)
+		return nil
+	case routingrule.FieldAppIds:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppIds(v)
+		return nil
+	case routingrule.FieldPaymentMethod:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPaymentMethod(v)
+		return nil
+	case routingrule.FieldPayModes:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPayModes(v)
+		return nil
+	case routingrule.FieldCurrency:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	case routingrule.FieldMinAmount:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMinAmount(v)
+		return nil
+	case routingrule.FieldMaxAmount:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMaxAmount(v)
+		return nil
+	case routingrule.FieldTerminal:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTerminal(v)
+		return nil
+	case routingrule.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case routingrule.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case routingrule.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RoutingRule field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RoutingRuleMutation) AddedFields() []string {
+	var fields []string
+	if m.addpriority != nil {
+		fields = append(fields, routingrule.FieldPriority)
+	}
+	if m.addmin_amount != nil {
+		fields = append(fields, routingrule.FieldMinAmount)
+	}
+	if m.addmax_amount != nil {
+		fields = append(fields, routingrule.FieldMaxAmount)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RoutingRuleMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case routingrule.FieldPriority:
+		return m.AddedPriority()
+	case routingrule.FieldMinAmount:
+		return m.AddedMinAmount()
+	case routingrule.FieldMaxAmount:
+		return m.AddedMaxAmount()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RoutingRuleMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case routingrule.FieldPriority:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPriority(v)
+		return nil
+	case routingrule.FieldMinAmount:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddMinAmount(v)
+		return nil
+	case routingrule.FieldMaxAmount:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddMaxAmount(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RoutingRule numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RoutingRuleMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(routingrule.FieldAppIds) {
+		fields = append(fields, routingrule.FieldAppIds)
+	}
+	if m.FieldCleared(routingrule.FieldPayModes) {
+		fields = append(fields, routingrule.FieldPayModes)
+	}
+	if m.FieldCleared(routingrule.FieldCurrency) {
+		fields = append(fields, routingrule.FieldCurrency)
+	}
+	if m.FieldCleared(routingrule.FieldMetadata) {
+		fields = append(fields, routingrule.FieldMetadata)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RoutingRuleMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RoutingRuleMutation) ClearField(name string) error {
+	switch name {
+	case routingrule.FieldAppIds:
+		m.ClearAppIds()
+		return nil
+	case routingrule.FieldPayModes:
+		m.ClearPayModes()
+		return nil
+	case routingrule.FieldCurrency:
+		m.ClearCurrency()
+		return nil
+	case routingrule.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	}
+	return fmt.Errorf("unknown RoutingRule nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RoutingRuleMutation) ResetField(name string) error {
+	switch name {
+	case routingrule.FieldName:
+		m.ResetName()
+		return nil
+	case routingrule.FieldEnabled:
+		m.ResetEnabled()
+		return nil
+	case routingrule.FieldPriority:
+		m.ResetPriority()
+		return nil
+	case routingrule.FieldAppScope:
+		m.ResetAppScope()
+		return nil
+	case routingrule.FieldAppIds:
+		m.ResetAppIds()
+		return nil
+	case routingrule.FieldPaymentMethod:
+		m.ResetPaymentMethod()
+		return nil
+	case routingrule.FieldPayModes:
+		m.ResetPayModes()
+		return nil
+	case routingrule.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	case routingrule.FieldMinAmount:
+		m.ResetMinAmount()
+		return nil
+	case routingrule.FieldMaxAmount:
+		m.ResetMaxAmount()
+		return nil
+	case routingrule.FieldTerminal:
+		m.ResetTerminal()
+		return nil
+	case routingrule.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case routingrule.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case routingrule.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown RoutingRule field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RoutingRuleMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RoutingRuleMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RoutingRuleMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RoutingRuleMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RoutingRuleMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RoutingRuleMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RoutingRuleMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RoutingRule unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RoutingRuleMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RoutingRule edge %s", name)
+}
+
+// RoutingTargetMutation represents an operation that mutates the RoutingTarget nodes in the graph.
+type RoutingTargetMutation struct {
+	config
+	op                    Op
+	typ                   string
+	id                    *int
+	routing_rule_id       *int
+	addrouting_rule_id    *int
+	channel_account_id    *int
+	addchannel_account_id *int
+	enabled               *bool
+	priority              *int
+	addpriority           *int
+	weight                *int
+	addweight             *int
+	created_at            *time.Time
+	updated_at            *time.Time
+	clearedFields         map[string]struct{}
+	done                  bool
+	oldValue              func(context.Context) (*RoutingTarget, error)
+	predicates            []predicate.RoutingTarget
+}
+
+var _ ent.Mutation = (*RoutingTargetMutation)(nil)
+
+// routingtargetOption allows management of the mutation configuration using functional options.
+type routingtargetOption func(*RoutingTargetMutation)
+
+// newRoutingTargetMutation creates new mutation for the RoutingTarget entity.
+func newRoutingTargetMutation(c config, op Op, opts ...routingtargetOption) *RoutingTargetMutation {
+	m := &RoutingTargetMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRoutingTarget,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRoutingTargetID sets the ID field of the mutation.
+func withRoutingTargetID(id int) routingtargetOption {
+	return func(m *RoutingTargetMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RoutingTarget
+		)
+		m.oldValue = func(ctx context.Context) (*RoutingTarget, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RoutingTarget.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRoutingTarget sets the old RoutingTarget of the mutation.
+func withRoutingTarget(node *RoutingTarget) routingtargetOption {
+	return func(m *RoutingTargetMutation) {
+		m.oldValue = func(context.Context) (*RoutingTarget, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RoutingTargetMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RoutingTargetMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RoutingTargetMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RoutingTargetMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RoutingTarget.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetRoutingRuleID sets the "routing_rule_id" field.
+func (m *RoutingTargetMutation) SetRoutingRuleID(i int) {
+	m.routing_rule_id = &i
+	m.addrouting_rule_id = nil
+}
+
+// RoutingRuleID returns the value of the "routing_rule_id" field in the mutation.
+func (m *RoutingTargetMutation) RoutingRuleID() (r int, exists bool) {
+	v := m.routing_rule_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRoutingRuleID returns the old "routing_rule_id" field's value of the RoutingTarget entity.
+// If the RoutingTarget object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingTargetMutation) OldRoutingRuleID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRoutingRuleID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRoutingRuleID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRoutingRuleID: %w", err)
+	}
+	return oldValue.RoutingRuleID, nil
+}
+
+// AddRoutingRuleID adds i to the "routing_rule_id" field.
+func (m *RoutingTargetMutation) AddRoutingRuleID(i int) {
+	if m.addrouting_rule_id != nil {
+		*m.addrouting_rule_id += i
+	} else {
+		m.addrouting_rule_id = &i
+	}
+}
+
+// AddedRoutingRuleID returns the value that was added to the "routing_rule_id" field in this mutation.
+func (m *RoutingTargetMutation) AddedRoutingRuleID() (r int, exists bool) {
+	v := m.addrouting_rule_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRoutingRuleID resets all changes to the "routing_rule_id" field.
+func (m *RoutingTargetMutation) ResetRoutingRuleID() {
+	m.routing_rule_id = nil
+	m.addrouting_rule_id = nil
+}
+
+// SetChannelAccountID sets the "channel_account_id" field.
+func (m *RoutingTargetMutation) SetChannelAccountID(i int) {
+	m.channel_account_id = &i
+	m.addchannel_account_id = nil
+}
+
+// ChannelAccountID returns the value of the "channel_account_id" field in the mutation.
+func (m *RoutingTargetMutation) ChannelAccountID() (r int, exists bool) {
+	v := m.channel_account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChannelAccountID returns the old "channel_account_id" field's value of the RoutingTarget entity.
+// If the RoutingTarget object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingTargetMutation) OldChannelAccountID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChannelAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChannelAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannelAccountID: %w", err)
+	}
+	return oldValue.ChannelAccountID, nil
+}
+
+// AddChannelAccountID adds i to the "channel_account_id" field.
+func (m *RoutingTargetMutation) AddChannelAccountID(i int) {
+	if m.addchannel_account_id != nil {
+		*m.addchannel_account_id += i
+	} else {
+		m.addchannel_account_id = &i
+	}
+}
+
+// AddedChannelAccountID returns the value that was added to the "channel_account_id" field in this mutation.
+func (m *RoutingTargetMutation) AddedChannelAccountID() (r int, exists bool) {
+	v := m.addchannel_account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetChannelAccountID resets all changes to the "channel_account_id" field.
+func (m *RoutingTargetMutation) ResetChannelAccountID() {
+	m.channel_account_id = nil
+	m.addchannel_account_id = nil
+}
+
+// SetEnabled sets the "enabled" field.
+func (m *RoutingTargetMutation) SetEnabled(b bool) {
+	m.enabled = &b
+}
+
+// Enabled returns the value of the "enabled" field in the mutation.
+func (m *RoutingTargetMutation) Enabled() (r bool, exists bool) {
+	v := m.enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnabled returns the old "enabled" field's value of the RoutingTarget entity.
+// If the RoutingTarget object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingTargetMutation) OldEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnabled: %w", err)
+	}
+	return oldValue.Enabled, nil
+}
+
+// ResetEnabled resets all changes to the "enabled" field.
+func (m *RoutingTargetMutation) ResetEnabled() {
+	m.enabled = nil
+}
+
+// SetPriority sets the "priority" field.
+func (m *RoutingTargetMutation) SetPriority(i int) {
+	m.priority = &i
+	m.addpriority = nil
+}
+
+// Priority returns the value of the "priority" field in the mutation.
+func (m *RoutingTargetMutation) Priority() (r int, exists bool) {
+	v := m.priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPriority returns the old "priority" field's value of the RoutingTarget entity.
+// If the RoutingTarget object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingTargetMutation) OldPriority(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPriority is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPriority requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPriority: %w", err)
+	}
+	return oldValue.Priority, nil
+}
+
+// AddPriority adds i to the "priority" field.
+func (m *RoutingTargetMutation) AddPriority(i int) {
+	if m.addpriority != nil {
+		*m.addpriority += i
+	} else {
+		m.addpriority = &i
+	}
+}
+
+// AddedPriority returns the value that was added to the "priority" field in this mutation.
+func (m *RoutingTargetMutation) AddedPriority() (r int, exists bool) {
+	v := m.addpriority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPriority resets all changes to the "priority" field.
+func (m *RoutingTargetMutation) ResetPriority() {
+	m.priority = nil
+	m.addpriority = nil
+}
+
+// SetWeight sets the "weight" field.
+func (m *RoutingTargetMutation) SetWeight(i int) {
+	m.weight = &i
+	m.addweight = nil
+}
+
+// Weight returns the value of the "weight" field in the mutation.
+func (m *RoutingTargetMutation) Weight() (r int, exists bool) {
+	v := m.weight
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWeight returns the old "weight" field's value of the RoutingTarget entity.
+// If the RoutingTarget object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingTargetMutation) OldWeight(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWeight is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWeight requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWeight: %w", err)
+	}
+	return oldValue.Weight, nil
+}
+
+// AddWeight adds i to the "weight" field.
+func (m *RoutingTargetMutation) AddWeight(i int) {
+	if m.addweight != nil {
+		*m.addweight += i
+	} else {
+		m.addweight = &i
+	}
+}
+
+// AddedWeight returns the value that was added to the "weight" field in this mutation.
+func (m *RoutingTargetMutation) AddedWeight() (r int, exists bool) {
+	v := m.addweight
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWeight resets all changes to the "weight" field.
+func (m *RoutingTargetMutation) ResetWeight() {
+	m.weight = nil
+	m.addweight = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RoutingTargetMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RoutingTargetMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RoutingTarget entity.
+// If the RoutingTarget object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingTargetMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RoutingTargetMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RoutingTargetMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RoutingTargetMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RoutingTarget entity.
+// If the RoutingTarget object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RoutingTargetMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RoutingTargetMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the RoutingTargetMutation builder.
+func (m *RoutingTargetMutation) Where(ps ...predicate.RoutingTarget) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RoutingTargetMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RoutingTargetMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RoutingTarget, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RoutingTargetMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RoutingTargetMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RoutingTarget).
+func (m *RoutingTargetMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RoutingTargetMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.routing_rule_id != nil {
+		fields = append(fields, routingtarget.FieldRoutingRuleID)
+	}
+	if m.channel_account_id != nil {
+		fields = append(fields, routingtarget.FieldChannelAccountID)
+	}
+	if m.enabled != nil {
+		fields = append(fields, routingtarget.FieldEnabled)
+	}
+	if m.priority != nil {
+		fields = append(fields, routingtarget.FieldPriority)
+	}
+	if m.weight != nil {
+		fields = append(fields, routingtarget.FieldWeight)
+	}
+	if m.created_at != nil {
+		fields = append(fields, routingtarget.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, routingtarget.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RoutingTargetMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case routingtarget.FieldRoutingRuleID:
+		return m.RoutingRuleID()
+	case routingtarget.FieldChannelAccountID:
+		return m.ChannelAccountID()
+	case routingtarget.FieldEnabled:
+		return m.Enabled()
+	case routingtarget.FieldPriority:
+		return m.Priority()
+	case routingtarget.FieldWeight:
+		return m.Weight()
+	case routingtarget.FieldCreatedAt:
+		return m.CreatedAt()
+	case routingtarget.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RoutingTargetMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case routingtarget.FieldRoutingRuleID:
+		return m.OldRoutingRuleID(ctx)
+	case routingtarget.FieldChannelAccountID:
+		return m.OldChannelAccountID(ctx)
+	case routingtarget.FieldEnabled:
+		return m.OldEnabled(ctx)
+	case routingtarget.FieldPriority:
+		return m.OldPriority(ctx)
+	case routingtarget.FieldWeight:
+		return m.OldWeight(ctx)
+	case routingtarget.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case routingtarget.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown RoutingTarget field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RoutingTargetMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case routingtarget.FieldRoutingRuleID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRoutingRuleID(v)
+		return nil
+	case routingtarget.FieldChannelAccountID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChannelAccountID(v)
+		return nil
+	case routingtarget.FieldEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnabled(v)
+		return nil
+	case routingtarget.FieldPriority:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPriority(v)
+		return nil
+	case routingtarget.FieldWeight:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWeight(v)
+		return nil
+	case routingtarget.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case routingtarget.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RoutingTarget field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RoutingTargetMutation) AddedFields() []string {
+	var fields []string
+	if m.addrouting_rule_id != nil {
+		fields = append(fields, routingtarget.FieldRoutingRuleID)
+	}
+	if m.addchannel_account_id != nil {
+		fields = append(fields, routingtarget.FieldChannelAccountID)
+	}
+	if m.addpriority != nil {
+		fields = append(fields, routingtarget.FieldPriority)
+	}
+	if m.addweight != nil {
+		fields = append(fields, routingtarget.FieldWeight)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RoutingTargetMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case routingtarget.FieldRoutingRuleID:
+		return m.AddedRoutingRuleID()
+	case routingtarget.FieldChannelAccountID:
+		return m.AddedChannelAccountID()
+	case routingtarget.FieldPriority:
+		return m.AddedPriority()
+	case routingtarget.FieldWeight:
+		return m.AddedWeight()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RoutingTargetMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case routingtarget.FieldRoutingRuleID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRoutingRuleID(v)
+		return nil
+	case routingtarget.FieldChannelAccountID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddChannelAccountID(v)
+		return nil
+	case routingtarget.FieldPriority:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPriority(v)
+		return nil
+	case routingtarget.FieldWeight:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWeight(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RoutingTarget numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RoutingTargetMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RoutingTargetMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RoutingTargetMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown RoutingTarget nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RoutingTargetMutation) ResetField(name string) error {
+	switch name {
+	case routingtarget.FieldRoutingRuleID:
+		m.ResetRoutingRuleID()
+		return nil
+	case routingtarget.FieldChannelAccountID:
+		m.ResetChannelAccountID()
+		return nil
+	case routingtarget.FieldEnabled:
+		m.ResetEnabled()
+		return nil
+	case routingtarget.FieldPriority:
+		m.ResetPriority()
+		return nil
+	case routingtarget.FieldWeight:
+		m.ResetWeight()
+		return nil
+	case routingtarget.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case routingtarget.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown RoutingTarget field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RoutingTargetMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RoutingTargetMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RoutingTargetMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RoutingTargetMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RoutingTargetMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RoutingTargetMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RoutingTargetMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RoutingTarget unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RoutingTargetMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RoutingTarget edge %s", name)
 }
 
 // UserMutation represents an operation that mutates the User nodes in the graph.

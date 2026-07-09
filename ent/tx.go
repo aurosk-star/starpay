@@ -26,6 +26,10 @@ type Tx struct {
 	RefreshToken *RefreshTokenClient
 	// Role is the client for interacting with the Role builders.
 	Role *RoleClient
+	// RoutingRule is the client for interacting with the RoutingRule builders.
+	RoutingRule *RoutingRuleClient
+	// RoutingTarget is the client for interacting with the RoutingTarget builders.
+	RoutingTarget *RoutingTargetClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// WebhookDelivery is the client for interacting with the WebhookDelivery builders.
@@ -170,6 +174,8 @@ func (tx *Tx) init() {
 	tx.PaymentOrder = NewPaymentOrderClient(tx.config)
 	tx.RefreshToken = NewRefreshTokenClient(tx.config)
 	tx.Role = NewRoleClient(tx.config)
+	tx.RoutingRule = NewRoutingRuleClient(tx.config)
+	tx.RoutingTarget = NewRoutingTargetClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.WebhookDelivery = NewWebhookDeliveryClient(tx.config)
 	tx.WebhookEvent = NewWebhookEventClient(tx.config)

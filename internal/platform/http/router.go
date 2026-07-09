@@ -28,8 +28,12 @@ import (
 	paymenthandler "payment-gateway/internal/domain/payments/handler"
 	alipayprovider "payment-gateway/internal/domain/payments/provider/alipay"
 	paypalprovider "payment-gateway/internal/domain/payments/provider/paypal"
+	wechatprovider "payment-gateway/internal/domain/payments/provider/wechat"
 	paymentrouter "payment-gateway/internal/domain/payments/router"
 	paymentsvc "payment-gateway/internal/domain/payments/service"
+	routinghandler "payment-gateway/internal/domain/routing/handler"
+	routingrouter "payment-gateway/internal/domain/routing/router"
+	routingsvc "payment-gateway/internal/domain/routing/service"
 	userhandler "payment-gateway/internal/domain/users/handler"
 	userrouter "payment-gateway/internal/domain/users/router"
 	usersvc "payment-gateway/internal/domain/users/service"
@@ -66,6 +70,8 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 	channelService := channelsvc.New(client)
 	channelHandler := channelhandler.New(channelService)
 	channelrouter.Register(router.Group("/v1/admin"), channelHandler, userService, enforcer)
+	routingService := routingsvc.New(client)
+	routingrouter.Register(router.Group("/v1/admin"), routinghandler.New(routingService), userService, enforcer)
 	configService := configsvc.New(client)
 	configHandler := confighandler.New(configService)
 	configrouter.Register(router.Group("/v1/admin"), configHandler, userService, enforcer)
@@ -93,11 +99,13 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 		paymentsvc.WithChannelRepository(channelrepo.New(client)),
 		paymentsvc.WithProvider(alipayprovider.New()),
 		paymentsvc.WithProvider(paypalprovider.New()),
+		paymentsvc.WithProvider(wechatprovider.New()),
 	)
 	paymentrouter.RegisterNotify(router.Group("/v1/channel"), paymenthandler.NewNotify(paymentService, orderService))
 	orderrouter.RegisterCheckout(router.Group("/v1/checkout"), orderhandler.NewCheckout(
 		orderService,
 		orderhandler.WithChannelService(channelService),
+		orderhandler.WithRoutingService(routingService),
 		orderhandler.WithPaymentService(paymentService),
 		orderhandler.WithNotifyURLResolver(func(ctx *gin.Context) string {
 			gatewayConfig, err := configService.GetGatewayConfig(ctx.Request.Context())

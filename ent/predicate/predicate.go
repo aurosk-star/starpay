@@ -27,6 +27,12 @@ type RefreshToken func(*sql.Selector)
 // Role is the predicate function for role builders.
 type Role func(*sql.Selector)
 
+// RoutingRule is the predicate function for routingrule builders.
+type RoutingRule func(*sql.Selector)
+
+// RoutingTarget is the predicate function for routingtarget builders.
+type RoutingTarget func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
 
