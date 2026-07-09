@@ -2,10 +2,19 @@ package wechat
 
 import (
 	"context"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"strings"
 	"testing"
 
+	gopayaes "github.com/go-pay/crypto/aes"
 	"github.com/go-pay/gopay"
 	wechatv3 "github.com/go-pay/gopay/wechat/v3"
 
@@ -110,6 +119,9 @@ func TestStartPaymentNativeReturnsQRCode(t *testing.T) {
 	if got := amount.GetString("currency"); got != "CNY" {
 		t.Fatalf("amount.currency = %q", got)
 	}
+	if got := client.body.GetString("notify_url"); got != "https://gateway.example.com/v1/channel/notify" {
+		t.Fatalf("notify_url = %q, want unchanged notify url", got)
+	}
 }
 
 func TestStartPaymentH5ReturnsPayURLAndSceneInfo(t *testing.T) {
@@ -209,11 +221,63 @@ func TestStartPaymentNativeResponseErrorIncludesWechatDetail(t *testing.T) {
 	}
 }
 
+func TestParseNotifyVerifiesAndDecryptsSuccessfulWechatPayNotify(t *testing.T) {
+	publicKeyPEM, privateKey := generateWechatNotifyKey(t)
+	body := signedWechatPayNotifyBody(t, privateKey, "wechat-serial-1", "SUCCESS", "pay_notify", "4200000000000000001", 9900)
+	p := NewWithClientFactory(func(Config) (wechatClient, error) {
+		t.Fatal("client factory should not be called for notify parsing")
+		return nil, nil
+	})
+
+	result, err := p.ParseNotify(context.Background(), provider.NotifyRequest{
+		ChannelAccount: account(map[string]any{
+			"api_v3_key":                testAPIV3Key,
+			"wechat_pay_public_key":     publicKeyPEM,
+			"wechat_pay_public_key_id":  "wechat-serial-1",
+			"wechat_pay_public_key_id2": "ignored",
+		}),
+		Header:  body.header,
+		RawBody: body.raw,
+	})
+	if err != nil {
+		t.Fatalf("ParseNotify() error = %v", err)
+	}
+	if result.Channel != "wechat" || result.GatewayOrderNo != "pay_notify" || result.ChannelTradeNo != "4200000000000000001" {
+		t.Fatalf("result = %#v, want normalized wechat order ids", result)
+	}
+	if result.Status != "paid" || result.Amount != 9900 || result.Currency != "CNY" {
+		t.Fatalf("result = %#v, want paid CNY 9900", result)
+	}
+}
+
+func TestParseNotifyRejectsInvalidWechatSignature(t *testing.T) {
+	publicKeyPEM, privateKey := generateWechatNotifyKey(t)
+	body := signedWechatPayNotifyBody(t, privateKey, "wechat-serial-1", "SUCCESS", "pay_notify_bad", "4200000000000000002", 100)
+	body.raw = []byte(strings.Replace(string(body.raw), "支付成功", "签名篡改", 1))
+	p := NewWithClientFactory(func(Config) (wechatClient, error) {
+		t.Fatal("client factory should not be called for notify parsing")
+		return nil, nil
+	})
+
+	_, err := p.ParseNotify(context.Background(), provider.NotifyRequest{
+		ChannelAccount: account(map[string]any{
+			"api_v3_key":               testAPIV3Key,
+			"wechat_pay_public_key":    publicKeyPEM,
+			"wechat_pay_public_key_id": "wechat-serial-1",
+		}),
+		Header:  body.header,
+		RawBody: body.raw,
+	})
+	if err == nil {
+		t.Fatal("ParseNotify() error = nil, want invalid signature error")
+	}
+}
+
 func account(config map[string]any) *ent.ChannelAccount {
 	values := map[string]any{
 		"app_id":     "wx_app",
 		"mch_id":     "mch_1",
-		"api_v3_key": "12345678901234567890123456789012",
+		"api_v3_key": testAPIV3Key,
 		"serial_no":  "serial",
 		"private_key": "-----BEGIN PRIVATE KEY-----\n" +
 			"MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQD\n" +
@@ -226,5 +290,88 @@ func account(config map[string]any) *ent.ChannelAccount {
 		Channel: "wechat",
 		Env:     "prod",
 		Config:  values,
+	}
+}
+
+const testAPIV3Key = "12345678901234567890123456789012"
+
+type signedWechatNotify struct {
+	header map[string][]string
+	raw    []byte
+}
+
+func generateWechatNotifyKey(t *testing.T) (string, *rsa.PrivateKey) {
+	t.Helper()
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("GenerateKey() error = %v", err)
+	}
+	publicDER, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		t.Fatalf("MarshalPKIXPublicKey() error = %v", err)
+	}
+	publicPEM := string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicDER}))
+	return publicPEM, privateKey
+}
+
+func signedWechatPayNotifyBody(t *testing.T, privateKey *rsa.PrivateKey, serial string, tradeState string, outTradeNo string, transactionID string, amount int64) signedWechatNotify {
+	t.Helper()
+	resource := map[string]any{
+		"appid":            "wx_app",
+		"mchid":            "mch_1",
+		"out_trade_no":     outTradeNo,
+		"transaction_id":   transactionID,
+		"trade_state":      tradeState,
+		"trade_state_desc": "支付成功",
+		"amount": map[string]any{
+			"total":    amount,
+			"currency": "CNY",
+		},
+	}
+	resourceJSON, err := json.Marshal(resource)
+	if err != nil {
+		t.Fatalf("Marshal resource error = %v", err)
+	}
+	nonce := "notify-nonce"
+	associatedData := "transaction"
+	ciphertext, err := gopayaes.GCMEncrypt(resourceJSON, []byte(nonce), []byte(associatedData), []byte(testAPIV3Key))
+	if err != nil {
+		t.Fatalf("GCMEncrypt() error = %v", err)
+	}
+	payload := map[string]any{
+		"id":            "notify-id",
+		"create_time":   "2026-07-09T12:00:00+08:00",
+		"event_type":    "TRANSACTION.SUCCESS",
+		"resource_type": "encrypt-resource",
+		"summary":       "支付成功",
+		"resource": map[string]any{
+			"algorithm":       "AEAD_AES_256_GCM",
+			"ciphertext":      base64.StdEncoding.EncodeToString(ciphertext),
+			"associated_data": associatedData,
+			"nonce":           nonce,
+			"original_type":   "transaction",
+		},
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("Marshal payload error = %v", err)
+	}
+	timestamp := "1783588800"
+	headerNonce := "header-nonce"
+	message := timestamp + "\n" + headerNonce + "\n" + string(raw) + "\n"
+	digest := sha256.Sum256([]byte(message))
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, digest[:])
+	if err != nil {
+		t.Fatalf("SignPKCS1v15() error = %v", err)
+	}
+	return signedWechatNotify{
+		header: map[string][]string{
+			wechatv3.HeaderTimestamp: {timestamp},
+			wechatv3.HeaderNonce:     {headerNonce},
+			wechatv3.HeaderSignature: {base64.StdEncoding.EncodeToString(signature)},
+			wechatv3.HeaderSerial:    {serial},
+			"Content-Type":           {"application/json"},
+		},
+		raw: raw,
 	}
 }

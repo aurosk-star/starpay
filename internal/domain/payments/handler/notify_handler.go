@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -21,18 +24,21 @@ func NewNotify(paymentService paymentsvc.Service, orderService ordersvc.Service)
 }
 
 func (h NotifyHandler) Handle(ctx *gin.Context) {
-	if err := ctx.Request.ParseForm(); err != nil {
-		writeAlipayFail(ctx)
-		return
-	}
+	channel := notifyChannel(ctx)
 	rawBody, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
-		writeAlipayFail(ctx)
+		writeNotifyFail(ctx, channel)
 		return
 	}
-	channel := ctx.Query("channel")
-	if channel == "" {
-		channel = ctx.PostForm("channel")
+	if !isJSONNotify(ctx) {
+		ctx.Request.Body = io.NopCloser(bytes.NewReader(rawBody))
+		if err := ctx.Request.ParseForm(); err != nil {
+			writeNotifyFail(ctx, channel)
+			return
+		}
+		if channel == "" {
+			channel = ctx.PostForm("channel")
+		}
 	}
 	result, err := h.payments.HandleNotify(ctx.Request.Context(), paymentsvc.NotifyInput{
 		Channel: channel,
@@ -41,39 +47,77 @@ func (h NotifyHandler) Handle(ctx *gin.Context) {
 		RawBody: rawBody,
 	})
 	if err != nil || result.GatewayOrderNo == "" {
-		writeAlipayFail(ctx)
+		writeNotifyFail(ctx, channel)
 		return
 	}
 	order, err := h.orders.FindOrderByGatewayOrderNo(ctx.Request.Context(), result.GatewayOrderNo)
 	if err != nil {
-		writeAlipayFail(ctx)
+		writeNotifyFail(ctx, channel)
 		return
 	}
 	if result.Status == "paid" {
 		if order.Status == "paid" {
-			writeAlipaySuccess(ctx)
+			writeNotifySuccess(ctx, result.Channel)
 			return
 		}
 		if _, err := h.orders.MarkPaid(ctx.Request.Context(), order.ID, result.ChannelTradeNo); err != nil {
-			writeAlipayFail(ctx)
+			writeNotifyFail(ctx, result.Channel)
 			return
 		}
-		writeAlipaySuccess(ctx)
+		writeNotifySuccess(ctx, result.Channel)
 		return
 	}
 	if result.Status == "closed" {
 		if order.Status == "closed" {
-			writeAlipaySuccess(ctx)
+			writeNotifySuccess(ctx, result.Channel)
 			return
 		}
 		if _, err := h.orders.CloseOrder(ctx.Request.Context(), order.ID); err != nil && !errors.Is(err, ordersvc.ErrOrderCannotBeClosed) {
-			writeAlipayFail(ctx)
+			writeNotifyFail(ctx, result.Channel)
 			return
 		}
-		writeAlipaySuccess(ctx)
+		writeNotifySuccess(ctx, result.Channel)
+		return
+	}
+	writeNotifySuccess(ctx, result.Channel)
+}
+
+func notifyChannel(ctx *gin.Context) string {
+	channel := strings.TrimSpace(ctx.Query("channel"))
+	if channel != "" {
+		return channel
+	}
+	if isWechatNotify(ctx) {
+		return "wechat"
+	}
+	return ""
+}
+
+func isWechatNotify(ctx *gin.Context) bool {
+	return strings.TrimSpace(ctx.GetHeader("Wechatpay-Signature")) != "" &&
+		strings.TrimSpace(ctx.GetHeader("Wechatpay-Timestamp")) != "" &&
+		strings.TrimSpace(ctx.GetHeader("Wechatpay-Nonce")) != "" &&
+		strings.TrimSpace(ctx.GetHeader("Wechatpay-Serial")) != ""
+}
+
+func isJSONNotify(ctx *gin.Context) bool {
+	return strings.Contains(strings.ToLower(ctx.GetHeader("Content-Type")), "application/json")
+}
+
+func writeNotifySuccess(ctx *gin.Context, channel string) {
+	if strings.EqualFold(strings.TrimSpace(channel), "wechat") {
+		writeWechatSuccess(ctx)
 		return
 	}
 	writeAlipaySuccess(ctx)
+}
+
+func writeNotifyFail(ctx *gin.Context, channel string) {
+	if strings.EqualFold(strings.TrimSpace(channel), "wechat") {
+		writeWechatFail(ctx)
+		return
+	}
+	writeAlipayFail(ctx)
 }
 
 func writeAlipaySuccess(ctx *gin.Context) {
@@ -82,4 +126,13 @@ func writeAlipaySuccess(ctx *gin.Context) {
 
 func writeAlipayFail(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "fail")
+}
+
+func writeWechatSuccess(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, gin.H{"code": "SUCCESS", "message": "成功"})
+}
+
+func writeWechatFail(ctx *gin.Context) {
+	ctx.Status(http.StatusInternalServerError)
+	_ = json.NewEncoder(ctx.Writer).Encode(gin.H{"code": "FAIL", "message": "失败"})
 }

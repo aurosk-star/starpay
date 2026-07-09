@@ -1,10 +1,14 @@
 package wechat
 
 import (
+	"bytes"
 	"context"
+	"crypto/rsa"
 	"fmt"
+	"net/http"
 	"strings"
 
+	"github.com/go-pay/crypto/xpem"
 	"github.com/go-pay/gopay"
 	wechatv3 "github.com/go-pay/gopay/wechat/v3"
 
@@ -91,6 +95,85 @@ func (p Provider) StartPayment(ctx context.Context, req provider.StartPaymentReq
 		return result, nil
 	default:
 		return nil, fmt.Errorf("unsupported wechat payment mode: %s", cfg.Mode)
+	}
+}
+
+func (p Provider) ParseNotify(ctx context.Context, req provider.NotifyRequest) (*provider.NotifyResult, error) {
+	_ = ctx
+	cfg, err := ParseConfig(req.ChannelAccount.Config, req.ChannelAccount.Env)
+	if err != nil {
+		return nil, err
+	}
+	httpReq, err := http.NewRequest(http.MethodPost, "https://gateway.local/v1/channel/notify", bytes.NewReader(req.RawBody))
+	if err != nil {
+		return nil, err
+	}
+	for key, values := range req.Header {
+		for _, value := range values {
+			httpReq.Header.Add(key, value)
+		}
+	}
+	notifyReq, err := wechatv3.V3ParseNotify(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	publicKeys, err := wechatPublicKeyMap(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := notifyReq.VerifySignByPKMap(publicKeys); err != nil {
+		return nil, err
+	}
+	payResult, err := notifyReq.DecryptPayCipherText(cfg.APIV3Key)
+	if err != nil {
+		return nil, err
+	}
+	amount := int64(0)
+	currency := "CNY"
+	if payResult.Amount != nil {
+		amount = int64(payResult.Amount.Total)
+		if strings.TrimSpace(payResult.Amount.Currency) != "" {
+			currency = strings.TrimSpace(payResult.Amount.Currency)
+		}
+	}
+	return &provider.NotifyResult{
+		Channel:        "wechat",
+		GatewayOrderNo: strings.TrimSpace(payResult.OutTradeNo),
+		ChannelTradeNo: strings.TrimSpace(payResult.TransactionId),
+		Status:         mapWechatTradeState(payResult.TradeState),
+		Amount:         amount,
+		Currency:       currency,
+		Raw: map[string]any{
+			"event_type":  notifyReq.EventType,
+			"trade_state": payResult.TradeState,
+			"summary":     notifyReq.Summary,
+		},
+	}, nil
+}
+
+func wechatPublicKeyMap(cfg Config) (map[string]*rsa.PublicKey, error) {
+	publicKeyID := strings.TrimSpace(cfg.WechatPayPublicKeyID)
+	publicKeyContent := strings.TrimSpace(cfg.WechatPayPublicKey)
+	if publicKeyID == "" || publicKeyContent == "" {
+		return nil, fmt.Errorf("wechat notify public key and public key id are required")
+	}
+	publicKey, err := xpem.DecodePublicKey([]byte(publicKeyContent))
+	if err != nil {
+		return nil, err
+	}
+	return map[string]*rsa.PublicKey{publicKeyID: publicKey}, nil
+}
+
+func mapWechatTradeState(value string) string {
+	switch strings.ToUpper(strings.TrimSpace(value)) {
+	case "SUCCESS":
+		return "paid"
+	case "CLOSED", "REVOKED":
+		return "closed"
+	case "PAYERROR":
+		return "failed"
+	default:
+		return "pending"
 	}
 }
 
