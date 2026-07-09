@@ -20,7 +20,6 @@ func New(service appsvc.Service) Handler {
 }
 
 type manageAppRequest struct {
-	AppID            string   `json:"app_id"`
 	Name             string   `json:"name" binding:"required"`
 	NotifyURL        string   `json:"notify_url"`
 	DefaultReturnURL string   `json:"default_return_url"`
@@ -41,6 +40,20 @@ func (h Handler) ListApps(ctx *gin.Context) {
 	httpx.JSONOK(ctx, http.StatusOK, gin.H{"items": items})
 }
 
+func (h Handler) GetApp(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		httpx.JSONError(ctx, http.StatusBadRequest, "invalid_app_id", "invalid app id")
+		return
+	}
+	app, err := h.service.GetApp(ctx.Request.Context(), id)
+	if err != nil {
+		httpx.JSONError(ctx, http.StatusNotFound, "app_not_found", err.Error())
+		return
+	}
+	httpx.JSONOK(ctx, http.StatusOK, gin.H{"app": serializeApp(app)})
+}
+
 func (h Handler) CreateApp(ctx *gin.Context) {
 	var req manageAppRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -48,7 +61,6 @@ func (h Handler) CreateApp(ctx *gin.Context) {
 		return
 	}
 	result, err := h.service.CreateApp(ctx.Request.Context(), appsvc.ManageAppInput{
-		AppID:            req.AppID,
 		Name:             req.Name,
 		NotifyURL:        req.NotifyURL,
 		DefaultReturnURL: req.DefaultReturnURL,

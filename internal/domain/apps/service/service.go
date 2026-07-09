@@ -13,7 +13,6 @@ import (
 )
 
 var (
-	ErrAppIDRequired = errors.New("app_id is required")
 	ErrNameRequired  = errors.New("name is required")
 )
 
@@ -59,14 +58,22 @@ func (s Service) ListApps(ctx context.Context) ([]*ent.App, error) {
 	return s.apps.List(ctx)
 }
 
+func (s Service) GetApp(ctx context.Context, id int) (*ent.App, error) {
+	return s.apps.FindByID(ctx, id)
+}
+
 func (s Service) CreateApp(ctx context.Context, input ManageAppInput) (*AppWithSecret, error) {
-	appID := strings.TrimSpace(input.AppID)
 	name := strings.TrimSpace(input.Name)
-	if appID == "" {
-		return nil, ErrAppIDRequired
-	}
 	if name == "" {
 		return nil, ErrNameRequired
+	}
+	appID := strings.TrimSpace(input.AppID)
+	if appID == "" {
+		generated, err := newAppID()
+		if err != nil {
+			return nil, err
+		}
+		appID = generated
 	}
 	secret, hash, err := newAppSecret()
 	if err != nil {
@@ -145,6 +152,14 @@ func newAppSecret() (string, string, error) {
 		return "", "", err
 	}
 	return secret, hash, nil
+}
+
+func newAppID() (string, error) {
+	raw := make([]byte, 16)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	return "app_" + base64.RawURLEncoding.EncodeToString(raw), nil
 }
 
 func normalizeStatus(status string) string {

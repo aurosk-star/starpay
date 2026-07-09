@@ -8,6 +8,12 @@ export function listApps(accessToken: string) {
   });
 }
 
+export function getApp(accessToken: string, id: number) {
+  return apiRequest<{ app: GatewayApp }>(`/v1/admin/apps/${id}`, {
+    accessToken,
+  });
+}
+
 export function createApp(accessToken: string, payload: ManageAppPayload) {
   return apiRequest<{ app: GatewayApp; app_secret: string }>("/v1/admin/apps", {
     method: "POST",

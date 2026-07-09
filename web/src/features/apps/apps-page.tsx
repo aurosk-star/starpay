@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { KeyRound, Pencil, Plus, RefreshCw, ToggleLeft } from "lucide-react";
+import { Eye, KeyRound, Pencil, Plus, RefreshCw, ToggleLeft } from "lucide-react";
 
 import {
   createDataTable,
@@ -60,7 +61,6 @@ import type { GatewayApp } from "./types";
 const AppsDataTable = createDataTable<GatewayApp>();
 
 const emptyForm = {
-  appId: "",
   name: "",
   notifyUrl: "",
   defaultReturnUrl: "",
@@ -163,6 +163,19 @@ export function AppsPage() {
           <DataTableRowActions
             actions={[
               {
+                label: t("apps.view"),
+                asChild: true,
+                child: (
+                  <Link
+                    to="/apps/$appId"
+                    params={{ appId: String(row.original.id) }}
+                  >
+                    <Eye data-icon="inline-start" />
+                    {t("apps.view")}
+                  </Link>
+                ),
+              },
+              {
                 label: t("apps.edit"),
                 icon: Pencil,
                 onClick: () => openEdit(row.original),
@@ -215,7 +228,6 @@ export function AppsPage() {
   function openEdit(app: GatewayApp) {
     setEditingApp(app);
     setForm({
-      appId: app.app_id,
       name: app.name,
       notifyUrl: app.notify_url || "",
       defaultReturnUrl: app.default_return_url || "",
@@ -232,7 +244,6 @@ export function AppsPage() {
     setError(null);
     try {
       const payload = {
-        app_id: editingApp ? undefined : form.appId,
         name: form.name,
         notify_url: form.notifyUrl || undefined,
         default_return_url: form.defaultReturnUrl || undefined,
@@ -349,21 +360,12 @@ export function AppsPage() {
           </DialogHeader>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="app_id">{t("apps.appId")}</FieldLabel>
-                <Input
-                  id="app_id"
-                  value={form.appId}
-                  disabled={Boolean(editingApp)}
-                  required
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      appId: event.target.value,
-                    }))
-                  }
-                />
-              </Field>
+              {editingApp ? (
+                <Field>
+                  <FieldLabel htmlFor="app_id">{t("apps.appId")}</FieldLabel>
+                  <Input id="app_id" value={editingApp.app_id} disabled />
+                </Field>
+              ) : null}
               <Field>
                 <FieldLabel htmlFor="name">{t("apps.name")}</FieldLabel>
                 <Input

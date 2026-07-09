@@ -11,7 +11,6 @@ export type GatewayApp = {
 };
 
 export type ManageAppPayload = {
-  app_id?: string;
   name: string;
   notify_url?: string;
   default_return_url?: string;

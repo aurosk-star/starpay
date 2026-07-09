@@ -2,6 +2,7 @@ package appstest
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"entgo.io/ent/dialect"
@@ -22,7 +23,6 @@ func TestCreateAppHashesSecretAndReturnsPlaintextOnce(t *testing.T) {
 
 	svc := appsvc.New(client, appsvc.WithSecretEncryptionKey(testEncryptionKey))
 	result, err := svc.CreateApp(ctx, appsvc.ManageAppInput{
-		AppID:            "snsgo",
 		Name:             "snsgo",
 		NotifyURL:        "https://snsgo.example.com/payment/webhook",
 		DefaultReturnURL: "https://snsgo.example.com/payment/result",
@@ -34,6 +34,12 @@ func TestCreateAppHashesSecretAndReturnsPlaintextOnce(t *testing.T) {
 	}
 	if result.AppSecret == "" {
 		t.Fatal("AppSecret is empty")
+	}
+	if result.App.AppID == "" {
+		t.Fatal("AppID is empty")
+	}
+	if !strings.HasPrefix(result.App.AppID, "app_") {
+		t.Fatalf("AppID = %q, want generated app_ prefix", result.App.AppID)
 	}
 	if result.App.AppSecretHash == "" || result.App.AppSecretHash == result.AppSecret {
 		t.Fatalf("secret hash = %q, plaintext = %q", result.App.AppSecretHash, result.AppSecret)

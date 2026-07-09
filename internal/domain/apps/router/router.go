@@ -13,6 +13,7 @@ func Register(group *gin.RouterGroup, handler apphandler.Handler, userService us
 	protected := group.Group("")
 	protected.Use(httpx.AdminAuthMiddleware(userService, enforcer))
 	protected.GET("/apps", handler.ListApps)
+	protected.GET("/apps/:id", handler.GetApp)
 	protected.POST("/apps", handler.CreateApp)
 	protected.PUT("/apps/:id", handler.UpdateApp)
 	protected.POST("/apps/:id/enable", handler.EnableApp)
