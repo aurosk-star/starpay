@@ -386,7 +386,21 @@ function ChannelConfigFields({
           editing={editing}
           onChange={onChange}
         />
-        <ConfigInput name="mode" value={config.mode} onChange={onChange} />
+        <ConfigInput
+          name="wechat_pay_public_key_id"
+          value={config.wechat_pay_public_key_id}
+          onChange={onChange}
+        />
+        <CapabilitySwitch
+          name="enable_native_pay"
+          checked={config.enable_native_pay !== "false"}
+          onChange={onChange}
+        />
+        <CapabilitySwitch
+          name="enable_h5_pay"
+          checked={config.enable_h5_pay === "true"}
+          onChange={onChange}
+        />
       </>
     );
   }

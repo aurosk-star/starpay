@@ -90,6 +90,68 @@ func TestStartPaymentUsesEnabledAlipayProvider(t *testing.T) {
 	}
 }
 
+func TestStartPaymentUsesSelectedChannelAccountID(t *testing.T) {
+	ctx := context.Background()
+	client := enttest.Open(t, dialect.SQLite, "file:payment_provider_selected_account?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	createEnabledApp(t, client, "snsgo")
+
+	order := createPaymentOrder(t, client)
+	channels := channelrepo.New(client)
+	first, err := channels.Create(ctx, channelrepo.CreateChannelAccountInput{
+		Channel: "alipay",
+		Name:    "Alipay First",
+		Enabled: true,
+		Env:     "sandbox",
+		Config:  map[string]any{"app_id": "first"},
+	})
+	if err != nil {
+		t.Fatalf("Create first channel account error = %v", err)
+	}
+	second, err := channels.Create(ctx, channelrepo.CreateChannelAccountInput{
+		Channel: "alipay",
+		Name:    "Alipay Second",
+		Enabled: true,
+		Env:     "sandbox",
+		Config:  map[string]any{"app_id": "second"},
+	})
+	if err != nil {
+		t.Fatalf("Create second channel account error = %v", err)
+	}
+	provider := &fakeProvider{channel: "alipay"}
+	paymentService := paymentsvc.New(
+		paymentsvc.WithChannelRepository(channels),
+		paymentsvc.WithProvider(provider),
+	)
+
+	_, err = paymentService.StartPayment(ctx, paymentsvc.StartPaymentInput{
+		Order:            order,
+		PayMethod:        "alipay",
+		Channel:          "alipay",
+		ChannelAccountID: first.ID,
+	})
+	if err != nil {
+		t.Fatalf("StartPayment() error = %v", err)
+	}
+	if provider.req.ChannelAccount.ID != first.ID {
+		t.Fatalf("ChannelAccount.ID = %d, want first account %d", provider.req.ChannelAccount.ID, first.ID)
+	}
+
+	_, err = paymentService.StartPayment(ctx, paymentsvc.StartPaymentInput{
+		Order:            order,
+		PayMethod:        "alipay",
+		Channel:          "alipay",
+		ChannelAccountID: second.ID,
+	})
+	if err != nil {
+		t.Fatalf("StartPayment() second error = %v", err)
+	}
+	if provider.req.ChannelAccount.ID != second.ID {
+		t.Fatalf("ChannelAccount.ID = %d, want second account %d", provider.req.ChannelAccount.ID, second.ID)
+	}
+}
+
 func TestStartPaymentRejectsUnavailableAlipayAccount(t *testing.T) {
 	ctx := context.Background()
 	client := enttest.Open(t, dialect.SQLite, "file:payment_provider_unavailable?mode=memory&cache=shared&_fk=1")

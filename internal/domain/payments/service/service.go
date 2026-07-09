@@ -73,13 +73,14 @@ func ChannelSupportsCurrency(channel string, currency string) bool {
 }
 
 type StartPaymentInput struct {
-	Order     *ent.PaymentOrder
-	PayMethod string
-	Channel   string
-	PayMode   string
-	ClientIP  string
-	ReturnURL string
-	NotifyURL string
+	Order            *ent.PaymentOrder
+	PayMethod        string
+	Channel          string
+	ChannelAccountID int
+	PayMode          string
+	ClientIP         string
+	ReturnURL        string
+	NotifyURL        string
 }
 
 type PaymentResult struct {
@@ -144,14 +145,20 @@ func (s Service) StartPayment(ctx context.Context, input StartPaymentInput) (*Pa
 	paymentProvider := s.providers[channel]
 	var channelAccount *ent.ChannelAccount
 	if !s.channels.IsZero() {
-		account, err := s.channels.FindEnabledByChannel(ctx, channel)
+		var account *ent.ChannelAccount
+		var err error
+		if input.ChannelAccountID > 0 {
+			account, err = s.channels.FindEnabledByID(ctx, input.ChannelAccountID)
+		} else {
+			account, err = s.channels.FindEnabledByChannel(ctx, channel)
+		}
 		if err == nil {
 			channelAccount = account
 		} else if !ent.IsNotFound(err) {
 			return nil, err
 		}
 	}
-	if channelAccount == nil || paymentProvider == nil {
+	if channelAccount == nil || paymentProvider == nil || !strings.EqualFold(channelAccount.Channel, channel) {
 		return nil, ErrProviderUnavailable
 	}
 	channelAccount = withRuntimePayMode(channelAccount, input.PayMode)

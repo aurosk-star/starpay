@@ -45,6 +45,12 @@ func (r Repository) FindByID(ctx context.Context, id int) (*ent.ChannelAccount, 
 	return r.client.ChannelAccount.Get(ctx, id)
 }
 
+func (r Repository) FindEnabledByID(ctx context.Context, id int) (*ent.ChannelAccount, error) {
+	return r.client.ChannelAccount.Query().
+		Where(channelaccount.ID(id), channelaccount.Enabled(true)).
+		First(ctx)
+}
+
 func (r Repository) FindEnabledByChannel(ctx context.Context, channel string) (*ent.ChannelAccount, error) {
 	return r.client.ChannelAccount.Query().
 		Where(channelaccount.Channel(channel), channelaccount.Enabled(true)).

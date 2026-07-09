@@ -8,13 +8,15 @@ import (
 )
 
 const (
-	DefaultProductCode = "FAST_INSTANT_TRADE_PAY"
-	DefaultMode        = "page"
+	DefaultPageProductCode = "FAST_INSTANT_TRADE_PAY"
+	DefaultWapProductCode  = "QUICK_WAP_WAY"
+	DefaultMode            = "page"
 )
 
 var (
 	ErrAppIDRequired      = errors.New("alipay app_id is required")
 	ErrPrivateKeyRequired = errors.New("alipay private_key is required")
+	ErrModeUnsupported    = errors.New("alipay mode must be page, wap, or qr")
 )
 
 type Config struct {
@@ -49,13 +51,27 @@ func ParseConfig(values map[string]any, env string) (Config, error) {
 	if cfg.PrivateKey == "" {
 		return Config{}, ErrPrivateKeyRequired
 	}
-	if cfg.ProductCode == "" {
-		cfg.ProductCode = DefaultProductCode
-	}
 	if cfg.Mode == "" {
 		cfg.Mode = DefaultMode
 	}
+	if cfg.Mode != "page" && cfg.Mode != "wap" && cfg.Mode != "qr" {
+		return Config{}, ErrModeUnsupported
+	}
+	if cfg.ProductCode == "" {
+		cfg.ProductCode = defaultProductCode(cfg.Mode)
+	}
 	return cfg, nil
+}
+
+func defaultProductCode(mode string) string {
+	switch mode {
+	case "wap":
+		return DefaultWapProductCode
+	case "qr":
+		return ""
+	default:
+		return DefaultPageProductCode
+	}
 }
 
 func stringValue(value any) string {

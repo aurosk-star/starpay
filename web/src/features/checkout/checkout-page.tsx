@@ -86,8 +86,8 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
         setMethodsLocked(methodResult.locked);
         setLockedMethod(methodResult.selected_method ?? null);
         setSelected(
-          methodResult.selected_method?.pay_method ??
-            methodResult.methods.find((method) => method.enabled)?.pay_method ??
+          methodKey(methodResult.selected_method) ??
+            methodKey(methodResult.methods.find((method) => method.enabled)) ??
             "",
         );
       })
@@ -107,9 +107,49 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
     () =>
       methodsLocked
         ? lockedMethod
-        : methods.find((method) => method.pay_method === selected),
+        : methods.find((method) => methodKey(method) === selected),
     [lockedMethod, methods, methodsLocked, selected],
   );
+
+  useEffect(() => {
+    if (
+      !payment?.qr_code ||
+      !checkoutToken ||
+      orderData?.order.status !== "pending"
+    ) {
+      return;
+    }
+    let alive = true;
+    let timer: number | undefined;
+
+    const refreshOrder = async () => {
+      try {
+        const result = await getCheckoutOrder(gatewayOrderNo, checkoutToken);
+        if (!alive) return;
+        setOrderData(result);
+        if (result.order.status === "pending") {
+          timer = window.setTimeout(refreshOrder, 2000);
+        }
+      } catch {
+        if (alive) {
+          timer = window.setTimeout(refreshOrder, 4000);
+        }
+      }
+    };
+
+    timer = window.setTimeout(refreshOrder, 2000);
+    return () => {
+      alive = false;
+      if (timer !== undefined) {
+        window.clearTimeout(timer);
+      }
+    };
+  }, [
+    checkoutToken,
+    gatewayOrderNo,
+    orderData?.order.status,
+    payment?.qr_code,
+  ]);
 
   async function handlePay() {
     if (!selectedMethod) return;
@@ -119,6 +159,9 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
       const result = await startCheckoutPayment(gatewayOrderNo, checkoutToken, {
         pay_method: methodsLocked ? undefined : selectedMethod.pay_method,
         channel: methodsLocked ? undefined : selectedMethod.channel,
+        channel_account_id: methodsLocked
+          ? undefined
+          : selectedMethod.channel_account_id,
       });
       setPayment(result.payment);
       if (result.payment.form_html) {
@@ -229,14 +272,14 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
             ) : methods.length > 0 ? (
               methods.map((method) => (
                 <Button
-                  key={`${method.channel}:${method.pay_method}`}
+                  key={methodKey(method)}
                   type="button"
                   variant={
-                    selected === method.pay_method ? "default" : "outline"
+                    selected === methodKey(method) ? "default" : "outline"
                   }
                   className="justify-between"
                   disabled={!method.enabled || paying}
-                  onClick={() => setSelected(method.pay_method)}
+                  onClick={() => setSelected(methodKey(method))}
                 >
                   <span>{method.label}</span>
                   <Badge variant="secondary">{method.channel}</Badge>
@@ -302,6 +345,13 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
       </div>
     </CheckoutShell>
   );
+}
+
+function methodKey(method?: CheckoutPaymentMethod) {
+  if (!method) return "";
+  return method.channel_account_id
+    ? `${method.channel}:${method.pay_method}:${method.channel_account_id}`
+    : `${method.channel}:${method.pay_method}`;
 }
 
 function QrPreview({ value }: { value: string }) {

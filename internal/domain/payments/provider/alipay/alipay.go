@@ -143,10 +143,18 @@ func newGopayClient(cfg Config) (alipayClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	if cfg.ServerURL != "" {
-		client.SetProxyHost(strings.TrimRight(cfg.ServerURL, "/"))
+	if proxyHost := normalizeAlipayV3ProxyHost(cfg.ServerURL); proxyHost != "" {
+		client.SetProxyHost(proxyHost)
 	}
 	return &gopayClient{client: client}, nil
+}
+
+func normalizeAlipayV3ProxyHost(serverURL string) string {
+	serverURL = strings.TrimRight(strings.TrimSpace(serverURL), "/")
+	if serverURL == "" {
+		return ""
+	}
+	return strings.TrimSuffix(serverURL, "/gateway.do")
 }
 
 type gopayClient struct {

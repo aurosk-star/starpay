@@ -91,7 +91,7 @@ func TestParseConfigDefaultsProductCodeAndMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseConfig() error = %v", err)
 	}
-	if cfg.ProductCode != "FAST_INSTANT_TRADE_PAY" {
+	if cfg.ProductCode != DefaultPageProductCode {
 		t.Fatalf("ProductCode = %q, want default", cfg.ProductCode)
 	}
 	if cfg.Mode != "page" {
@@ -99,6 +99,44 @@ func TestParseConfigDefaultsProductCodeAndMode(t *testing.T) {
 	}
 	if cfg.IsProd {
 		t.Fatal("IsProd = true, want false for sandbox")
+	}
+}
+
+func TestParseConfigDefaultsProductCodeByMode(t *testing.T) {
+	tests := []struct {
+		name string
+		mode string
+		want string
+	}{
+		{name: "page", mode: "page", want: DefaultPageProductCode},
+		{name: "wap", mode: "wap", want: DefaultWapProductCode},
+		{name: "qr", mode: "qr", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := ParseConfig(map[string]any{
+				"app_id":      "app-1",
+				"private_key": "private",
+				"mode":        tt.mode,
+			}, "sandbox")
+			if err != nil {
+				t.Fatalf("ParseConfig() error = %v", err)
+			}
+			if cfg.ProductCode != tt.want {
+				t.Fatalf("ProductCode = %q, want %q", cfg.ProductCode, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseConfigRejectsUnsupportedMode(t *testing.T) {
+	_, err := ParseConfig(map[string]any{
+		"app_id":      "app-1",
+		"private_key": "private",
+		"mode":        "facepay",
+	}, "sandbox")
+	if err == nil {
+		t.Fatal("ParseConfig() error = nil, want unsupported mode error")
 	}
 }
 
@@ -112,6 +150,43 @@ func TestParseConfigDefaultsAlipayCapabilities(t *testing.T) {
 	}
 	if !cfg.EnablePagePay || !cfg.EnableWapPay || !cfg.EnableQRPay {
 		t.Fatalf("capabilities = page:%v wap:%v qr:%v, want all enabled by default", cfg.EnablePagePay, cfg.EnableWapPay, cfg.EnableQRPay)
+	}
+}
+
+func TestNormalizeAlipayV3ProxyHostStripsLegacyGatewayPath(t *testing.T) {
+	tests := []struct {
+		name      string
+		serverURL string
+		want      string
+	}{
+		{
+			name:      "legacy sandbox gateway",
+			serverURL: "https://openapi-sandbox.dl.alipaydev.com/gateway.do",
+			want:      "https://openapi-sandbox.dl.alipaydev.com",
+		},
+		{
+			name:      "host already valid",
+			serverURL: "https://openapi-sandbox.dl.alipaydev.com",
+			want:      "https://openapi-sandbox.dl.alipaydev.com",
+		},
+		{
+			name:      "trailing slash",
+			serverURL: "https://openapi-sandbox.dl.alipaydev.com/gateway.do/",
+			want:      "https://openapi-sandbox.dl.alipaydev.com",
+		},
+		{
+			name:      "empty",
+			serverURL: " ",
+			want:      "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := normalizeAlipayV3ProxyHost(tt.serverURL)
+			if got != tt.want {
+				t.Fatalf("normalizeAlipayV3ProxyHost() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -282,6 +357,7 @@ func TestProviderWapModeReturnsPayURL(t *testing.T) {
 		t.Fatalf("wap/page/precreate calls = %d/%d/%d, want 1/0/0", client.wapCalls, client.pageCalls, client.precreateCalls)
 	}
 	assertBody(t, client.wapBody, "return_url", "https://merchant.example.com/mobile-return")
+	assertBody(t, client.wapBody, "product_code", DefaultWapProductCode)
 }
 
 func TestGopayClientReturnsPrecreateGatewayError(t *testing.T) {

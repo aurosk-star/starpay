@@ -24,6 +24,10 @@ export type CheckoutOrderResponse = {
 export type CheckoutPaymentMethod = {
   pay_method: string;
   channel: string;
+  channel_account_id?: number;
+  pay_mode?: string;
+  rule_id?: number;
+  target_id?: number;
   label: string;
   enabled: boolean;
 };
@@ -37,6 +41,7 @@ export type CheckoutMethodsResponse = {
 export type StartCheckoutPaymentPayload = {
   pay_method?: string;
   channel?: string;
+  channel_account_id?: number;
   return_url?: string;
 };
 

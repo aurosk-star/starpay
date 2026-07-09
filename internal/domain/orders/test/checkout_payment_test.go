@@ -21,6 +21,7 @@ import (
 	ordersvc "payment-gateway/internal/domain/orders/service"
 	paymentprovider "payment-gateway/internal/domain/payments/provider"
 	paymentsvc "payment-gateway/internal/domain/payments/service"
+	routingsvc "payment-gateway/internal/domain/routing/service"
 )
 
 func TestCheckoutHandlerListsOnlyEnabledPaymentMethods(t *testing.T) {
@@ -141,6 +142,75 @@ func TestCheckoutHandlerFallsBackToAlipayQRCodeOnMobileWhenWapDisabled(t *testin
 	}
 }
 
+func TestCheckoutHandlerUsesWechatH5CapabilityFromMobileUserAgent(t *testing.T) {
+	router, created, orderService, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_wechat_mobile_h5")
+	created = createUnlockedCheckoutOrder(t, orderService, "checkout_methods_wechat_mobile_h5")
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "wechat",
+		Name:    "微信支付",
+		Enabled: true,
+		Env:     "sandbox",
+		Config: map[string]any{
+			"app_id":            "wx-1",
+			"enable_native_pay": "true",
+			"enable_h5_pay":     "true",
+		},
+	}); err != nil {
+		t.Fatalf("CreateChannelAccount(wechat) error = %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148")
+	req.Header.Set("X-Checkout-Token", checkoutTokenForOrder(t, orderService, created))
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	methods := decodeCheckoutMethods(t, recorder)
+	if len(methods) != 1 {
+		t.Fatalf("methods len = %d, want 1", len(methods))
+	}
+	first := methods[0].(map[string]any)
+	if first["channel"] != "wechat" || first["pay_mode"] != "h5" {
+		t.Fatalf("first method = %#v, want wechat h5 for mobile UA", first)
+	}
+}
+
+func TestCheckoutHandlerUsesWechatNativeOnDesktopWhenEnabled(t *testing.T) {
+	router, created, orderService, channelService := newCheckoutPaymentTestRouter(t, "checkout_methods_wechat_desktop_native")
+	created = createUnlockedCheckoutOrder(t, orderService, "checkout_methods_wechat_desktop_native")
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "wechat",
+		Name:    "微信支付",
+		Enabled: true,
+		Env:     "sandbox",
+		Config: map[string]any{
+			"app_id":            "wx-1",
+			"enable_native_pay": "true",
+			"enable_h5_pay":     "true",
+		},
+	}); err != nil {
+		t.Fatalf("CreateChannelAccount(wechat) error = %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, created, http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	methods := decodeCheckoutMethods(t, recorder)
+	if len(methods) != 1 {
+		t.Fatalf("methods len = %d, want 1", len(methods))
+	}
+	first := methods[0].(map[string]any)
+	if first["channel"] != "wechat" || first["pay_mode"] != "native" {
+		t.Fatalf("first method = %#v, want wechat native for desktop UA", first)
+	}
+}
+
 func TestCheckoutHandlerPassesAlipayQRModeWhenMobileWapDisabled(t *testing.T) {
 	gin.SetMode(gin.ReleaseMode)
 	client := enttest.Open(t, dialect.SQLite, "file:checkout_pay_mobile_qr_fallback?mode=memory&cache=shared&_fk=1")
@@ -204,6 +274,71 @@ func TestCheckoutHandlerPassesAlipayQRModeWhenMobileWapDisabled(t *testing.T) {
 	}
 	if provider.req.ChannelAccount.Config["mode"] != "qr" {
 		t.Fatalf("provider config mode = %#v, want qr fallback", provider.req.ChannelAccount.Config["mode"])
+	}
+}
+
+func TestCheckoutHandlerPassesWechatH5ModeForMobileUserAgent(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_pay_wechat_mobile_h5?mode=memory&cache=shared&_fk=1")
+	t.Cleanup(func() { client.Close() })
+	createEnabledApp(t, client, "snsgo")
+
+	orderService := ordersvc.New(client)
+	order, err := orderService.CreateOrder(t.Context(), ordersvc.ManageOrderInput{
+		AppID:           "snsgo",
+		MerchantOrderNo: "biz_checkout_pay_wechat_mobile_h5",
+		Subject:         "Pro 会员",
+		Amount:          9900,
+		Currency:        "CNY",
+		PayMethod:       "wechat",
+		Channel:         "wechat",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+
+	channelService := channelsvc.New(client)
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "wechat",
+		Name:    "微信支付",
+		Enabled: true,
+		Env:     "sandbox",
+		Config: map[string]any{
+			"app_id":            "wx-1",
+			"enable_native_pay": "true",
+			"enable_h5_pay":     "true",
+		},
+	}); err != nil {
+		t.Fatalf("CreateChannelAccount(wechat) error = %v", err)
+	}
+	provider := &checkoutFakeProvider{channel: "wechat"}
+	paymentService := paymentsvc.New(
+		paymentsvc.WithChannelRepository(channelrepo.New(client)),
+		paymentsvc.WithProvider(provider),
+	)
+
+	router := gin.New()
+	checkoutHandler := orderhandler.NewCheckout(
+		orderService,
+		orderhandler.WithChannelService(channelService),
+		orderhandler.WithPaymentService(paymentService),
+	)
+	router.POST("/orders/:gateway_order_no/pay", checkoutHandler.StartPayment)
+
+	recorder := httptest.NewRecorder()
+	req := jsonRequest(http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
+		"pay_method": "wechat",
+		"channel":    "wechat",
+	})
+	req.Header.Set("X-Checkout-Token", checkoutTokenForOrder(t, orderService, order))
+	req.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148")
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if provider.req.ChannelAccount.Config["mode"] != "h5" {
+		t.Fatalf("provider config mode = %#v, want h5 for mobile UA", provider.req.ChannelAccount.Config["mode"])
 	}
 }
 
@@ -407,6 +542,227 @@ func TestCheckoutHandlerStartsPaymentThroughPaymentService(t *testing.T) {
 	}
 	if payment["pay_url"] == "" {
 		t.Fatalf("payment = %#v, want pay_url", payment)
+	}
+}
+
+func TestCheckoutHandlerUsesRoutingRulesForUnlockedOrder(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_routing_unlocked?mode=memory&cache=shared&_fk=1")
+	t.Cleanup(func() { client.Close() })
+	createEnabledApp(t, client, "snsgo")
+
+	orderService := ordersvc.New(client)
+	order, err := orderService.CreateOrder(t.Context(), ordersvc.ManageOrderInput{
+		AppID:           "snsgo",
+		MerchantOrderNo: "biz_checkout_routing_unlocked",
+		Subject:         "Pro 会员",
+		Amount:          9900,
+		Currency:        "CNY",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	channelService := channelsvc.New(client)
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "alipay",
+		Name:    "支付宝",
+		Enabled: true,
+		Env:     "sandbox",
+		Config:  map[string]any{"app_id": "app-1"},
+	}); err != nil {
+		t.Fatalf("CreateChannelAccount(alipay) error = %v", err)
+	}
+	wechatAccount, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "wechat",
+		Name:    "微信",
+		Enabled: true,
+		Env:     "prod",
+		Config:  map[string]any{"app_id": "wx-1", "mode": "native"},
+	})
+	if err != nil {
+		t.Fatalf("CreateChannelAccount(wechat) error = %v", err)
+	}
+	routingService := routingsvc.New(client)
+	if _, err := routingService.CreateRule(t.Context(), routingsvc.ManageRuleInput{
+		Name:          "CNY 微信优先",
+		Enabled:       true,
+		Priority:      100,
+		Currency:      "CNY",
+		Terminal:      "any",
+		PaymentMethod: "wechat",
+		PayModes:      []string{"native"},
+		Targets: []routingsvc.ManageTargetInput{{
+			ChannelAccountID: wechatAccount.ID,
+			Enabled:          true,
+		}},
+	}); err != nil {
+		t.Fatalf("CreateRule() error = %v", err)
+	}
+
+	router := gin.New()
+	checkoutHandler := orderhandler.NewCheckout(
+		orderService,
+		orderhandler.WithChannelService(channelService),
+		orderhandler.WithRoutingService(routingService),
+	)
+	router.GET("/orders/:gateway_order_no/methods", checkoutHandler.ListPaymentMethods)
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, order, http.MethodGet, "/orders/"+order.GatewayOrderNo+"/methods", nil))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	methods := decodeCheckoutMethods(t, recorder)
+	if len(methods) != 1 {
+		t.Fatalf("methods len = %d, want routed single method", len(methods))
+	}
+	first := methods[0].(map[string]any)
+	if first["channel"] != "wechat" || first["pay_method"] != "wechat" || first["pay_mode"] != "native" {
+		t.Fatalf("first method = %#v, want routed wechat native", first)
+	}
+	if first["channel_account_id"].(float64) != float64(wechatAccount.ID) {
+		t.Fatalf("first method = %#v, want routed account %d", first, wechatAccount.ID)
+	}
+}
+
+func TestCheckoutHandlerFallsBackToEnabledChannelsWhenNoRoutingRulesExist(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_routing_fallback?mode=memory&cache=shared&_fk=1")
+	t.Cleanup(func() { client.Close() })
+	createEnabledApp(t, client, "snsgo")
+
+	orderService := ordersvc.New(client)
+	order, err := orderService.CreateOrder(t.Context(), ordersvc.ManageOrderInput{
+		AppID:           "snsgo",
+		MerchantOrderNo: "biz_checkout_routing_fallback",
+		Subject:         "Pro 会员",
+		Amount:          9900,
+		Currency:        "CNY",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	channelService := channelsvc.New(client)
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "alipay",
+		Name:    "支付宝",
+		Enabled: true,
+		Env:     "sandbox",
+		Config:  map[string]any{"app_id": "app-1"},
+	}); err != nil {
+		t.Fatalf("CreateChannelAccount(alipay) error = %v", err)
+	}
+	router := gin.New()
+	checkoutHandler := orderhandler.NewCheckout(
+		orderService,
+		orderhandler.WithChannelService(channelService),
+		orderhandler.WithRoutingService(routingsvc.New(client)),
+	)
+	router.GET("/orders/:gateway_order_no/methods", checkoutHandler.ListPaymentMethods)
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, order, http.MethodGet, "/orders/"+order.GatewayOrderNo+"/methods", nil))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	methods := decodeCheckoutMethods(t, recorder)
+	if len(methods) != 1 {
+		t.Fatalf("methods len = %d, want fallback enabled channels", len(methods))
+	}
+}
+
+func TestCheckoutHandlerKeepsLockedOrderIndependentFromRoutingRules(t *testing.T) {
+	router, created, orderService, channelService := newCheckoutPaymentTestRouter(t, "checkout_routing_locked")
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "alipay",
+		Name:    "支付宝",
+		Enabled: true,
+		Env:     "sandbox",
+		Config:  map[string]any{"app_id": "app-1"},
+	}); err != nil {
+		t.Fatalf("CreateChannelAccount(alipay) error = %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, created, http.MethodGet, "/orders/"+created.GatewayOrderNo+"/methods", nil))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	methods := decodeCheckoutMethods(t, recorder)
+	if len(methods) != 1 {
+		t.Fatalf("methods len = %d, want locked single method", len(methods))
+	}
+	first := methods[0].(map[string]any)
+	if first["channel"] != "alipay" {
+		t.Fatalf("first method = %#v, want locked alipay", first)
+	}
+}
+
+func TestCheckoutHandlerSkipsRoutedChannelWhenAccountDisabled(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_routing_disabled_account?mode=memory&cache=shared&_fk=1")
+	t.Cleanup(func() { client.Close() })
+	createEnabledApp(t, client, "snsgo")
+
+	orderService := ordersvc.New(client)
+	order, err := orderService.CreateOrder(t.Context(), ordersvc.ManageOrderInput{
+		AppID:           "snsgo",
+		MerchantOrderNo: "biz_checkout_routing_disabled_account",
+		Subject:         "Pro 会员",
+		Amount:          9900,
+		Currency:        "CNY",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	channelService := channelsvc.New(client)
+	disabledAccount, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "wechat",
+		Name:    "微信",
+		Enabled: false,
+		Env:     "prod",
+		Config:  map[string]any{"app_id": "wx-1"},
+	})
+	if err != nil {
+		t.Fatalf("CreateChannelAccount(wechat) error = %v", err)
+	}
+	routingService := routingsvc.New(client)
+	if _, err := routingService.CreateRule(t.Context(), routingsvc.ManageRuleInput{
+		Name:          "CNY 微信",
+		Enabled:       true,
+		Priority:      100,
+		Currency:      "CNY",
+		Terminal:      "any",
+		PaymentMethod: "wechat",
+		PayModes:      []string{"native"},
+		Targets: []routingsvc.ManageTargetInput{{
+			ChannelAccountID: disabledAccount.ID,
+			Enabled:          true,
+		}},
+	}); err != nil {
+		t.Fatalf("CreateRule() error = %v", err)
+	}
+
+	router := gin.New()
+	checkoutHandler := orderhandler.NewCheckout(
+		orderService,
+		orderhandler.WithChannelService(channelService),
+		orderhandler.WithRoutingService(routingService),
+	)
+	router.GET("/orders/:gateway_order_no/methods", checkoutHandler.ListPaymentMethods)
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, order, http.MethodGet, "/orders/"+order.GatewayOrderNo+"/methods", nil))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	methods := decodeCheckoutMethods(t, recorder)
+	if len(methods) != 0 {
+		t.Fatalf("methods len = %d, want routed disabled channel skipped", len(methods))
 	}
 }
 
@@ -862,6 +1218,21 @@ func checkoutTokenForOrder(t *testing.T, service ordersvc.Service, order *ent.Pa
 		t.Fatalf("SetCheckoutTokenHash() error = %v", err)
 	}
 	return token
+}
+
+func createUnlockedCheckoutOrder(t *testing.T, service ordersvc.Service, suffix string) *ent.PaymentOrder {
+	t.Helper()
+	order, err := service.CreateOrder(t.Context(), ordersvc.ManageOrderInput{
+		AppID:           "snsgo",
+		MerchantOrderNo: "biz_unlocked_" + suffix,
+		Subject:         "Pro 会员",
+		Amount:          9900,
+		Currency:        "CNY",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder(unlocked) error = %v", err)
+	}
+	return order
 }
 
 type checkoutFakeProvider struct {

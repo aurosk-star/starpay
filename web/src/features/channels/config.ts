@@ -8,10 +8,13 @@ export type ChannelConfig = {
   private_key?: string;
   cert?: string;
   wechat_pay_public_key?: string;
+  wechat_pay_public_key_id?: string;
   alipay_public_key?: string;
   server_url?: string;
   product_code?: string;
   mode?: string;
+  enable_native_pay?: string;
+  enable_h5_pay?: string;
   enable_page_pay?: string;
   enable_wap_pay?: string;
   enable_qr_pay?: string;
@@ -31,7 +34,10 @@ export const emptyChannelConfig: Record<PaymentChannel, ChannelConfig> = {
     private_key: "",
     cert: "",
     wechat_pay_public_key: "",
+    wechat_pay_public_key_id: "",
     mode: "native",
+    enable_native_pay: "true",
+    enable_h5_pay: "false",
   },
   alipay: {
     app_id: "",
