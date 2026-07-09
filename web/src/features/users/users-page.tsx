@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  AlertTriangle,
   Plus,
   RefreshCw,
   ShieldCheck,
@@ -9,8 +8,8 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
+import { toast } from "sonner";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -89,7 +88,7 @@ export function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -180,7 +179,6 @@ export function UsersPage() {
   async function load() {
     if (!accessToken) return;
     setLoading(true);
-    setError(null);
     try {
       const [userResult, roleResult] = await Promise.all([
         listUsers(accessToken),
@@ -190,9 +188,9 @@ export function UsersPage() {
       setRoles(roleResult.items);
     } catch (err) {
       if (err instanceof APIError) {
-        setError(err.message);
+        toast.error(err.message);
       } else {
-        setError(t("users.loadFailed"));
+        toast.error(t("users.loadFailed"));
       }
     } finally {
       setLoading(false);
@@ -205,12 +203,14 @@ export function UsersPage() {
 
   function openCreate() {
     setEditingUser(null);
+    setFormError(null);
     setForm(emptyForm);
     setDialogOpen(true);
   }
 
   function openEdit(user: AdminUser) {
     setEditingUser(user);
+    setFormError(null);
     setForm({
       username: user.username,
       email: user.email,
@@ -228,6 +228,7 @@ export function UsersPage() {
     event.preventDefault();
     if (!accessToken) return;
     setSaving(true);
+    setFormError(null);
     try {
       const payload = {
         username: form.username,
@@ -251,7 +252,9 @@ export function UsersPage() {
       setEditingUser(null);
       setForm(emptyForm);
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("users.saveFailed"));
+      setFormError(
+        err instanceof APIError ? err.message : t("users.saveFailed"),
+      );
     } finally {
       setSaving(false);
     }
@@ -268,7 +271,9 @@ export function UsersPage() {
       );
       setDeleteTarget(null);
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("users.deleteFailed"));
+      toast.error(
+        err instanceof APIError ? err.message : t("users.deleteFailed"),
+      );
     }
   }
 
@@ -299,14 +304,6 @@ export function UsersPage() {
           </Button>
         </div>
       </section>
-
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTriangle />
-          <AlertTitle>{t("users.loadFailed")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
 
       <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <CardPanel
@@ -484,7 +481,7 @@ export function UsersPage() {
               </Field>
             </FieldGroup>
             <div className="flex items-center justify-between gap-3">
-              <FieldError>{error}</FieldError>
+              <FieldError>{formError}</FieldError>
               <div className="flex items-center gap-2">
                 <Button
                   type="button"

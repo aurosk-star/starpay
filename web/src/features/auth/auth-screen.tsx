@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { GalleryVerticalEnd } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,13 +22,11 @@ type Mode = "login" | "setup";
 export function AuthScreen() {
   const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>("login");
-  const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const setSession = useAuthStore((state) => state.setSession);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
     setPending(true);
 
     const form = new FormData(event.currentTarget);
@@ -48,9 +47,9 @@ export function AuthScreen() {
       setSession(result.access_token, result.user);
     } catch (err) {
       if (err instanceof APIError) {
-        setError(err.message);
+        toast.error(err.message);
       } else {
-        setError(t("auth.requestFailed"));
+        toast.error(t("auth.requestFailed"));
       }
     } finally {
       setPending(false);
@@ -136,10 +135,6 @@ export function AuthScreen() {
                   />
                 </Field>
 
-                {error ? (
-                  <p className="text-sm text-destructive">{error}</p>
-                ) : null}
-
                 <Field>
                   <Button type="submit" disabled={pending}>
                     {pending
@@ -157,7 +152,6 @@ export function AuthScreen() {
                     variant="outline"
                     type="button"
                     onClick={() => {
-                      setError(null);
                       setMode(mode === "setup" ? "login" : "setup");
                     }}
                   >

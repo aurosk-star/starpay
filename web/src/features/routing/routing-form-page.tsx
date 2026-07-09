@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -103,7 +104,6 @@ export function RoutingFormPage({ mode }: { mode: "create" | "edit" }) {
   const [accounts, setAccounts] = useState<ChannelAccount[]>([]);
   const [loading, setLoading] = useState(mode === "edit");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const availableAccounts = useMemo(
     () =>
@@ -116,7 +116,7 @@ export function RoutingFormPage({ mode }: { mode: "create" | "edit" }) {
     void listChannelAccounts(accessToken)
       .then((result) => setAccounts(result.items))
       .catch((err) => {
-        setError(
+        toast.error(
           err instanceof APIError ? err.message : t("channels.loadFailed"),
         );
       });
@@ -125,7 +125,6 @@ export function RoutingFormPage({ mode }: { mode: "create" | "edit" }) {
   useEffect(() => {
     if (mode !== "edit" || !accessToken || !ruleId) return;
     setLoading(true);
-    setError(null);
     void getRoutingRule(accessToken, ruleId)
       .then((result) => {
         const rule = result.routing_rule;
@@ -153,7 +152,7 @@ export function RoutingFormPage({ mode }: { mode: "create" | "edit" }) {
         });
       })
       .catch((err) => {
-        setError(
+        toast.error(
           err instanceof APIError ? err.message : t("routing.loadFailed"),
         );
       })
@@ -194,7 +193,6 @@ export function RoutingFormPage({ mode }: { mode: "create" | "edit" }) {
     event.preventDefault();
     if (!accessToken) return;
     setSaving(true);
-    setError(null);
     const payload: ManageRoutingRulePayload = {
       name: form.name,
       enabled: form.enabled,
@@ -223,7 +221,7 @@ export function RoutingFormPage({ mode }: { mode: "create" | "edit" }) {
       }
       await navigate({ to: "/routing" });
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("routing.saveFailed"));
+      toast.error(err instanceof APIError ? err.message : t("routing.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -251,13 +249,6 @@ export function RoutingFormPage({ mode }: { mode: "create" | "edit" }) {
           </p>
         </div>
       </div>
-
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("routing.saveFailed")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
 
       {loading ? (
         <RoutingFormSkeleton />

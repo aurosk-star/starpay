@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Eye, RefreshCw, RotateCcw, Search } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   createDataTable,
   DataTableRowActions,
   type DataTableColumn,
 } from "@/components/data-table";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,7 +49,6 @@ export function WebhooksPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const [items, setItems] = useState<WebhookDelivery[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState(defaultFilters);
   const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
 
@@ -149,7 +148,6 @@ export function WebhooksPage() {
   async function load(nextFilters = appliedFilters) {
     if (!accessToken) return;
     setLoading(true);
-    setError(null);
     try {
       const result = await listWebhookDeliveries(accessToken, {
         app_id: nextFilters.appId,
@@ -161,7 +159,7 @@ export function WebhooksPage() {
       });
       setItems(result.items);
     } catch (err) {
-      setError(
+      toast.error(
         err instanceof APIError ? err.message : t("webhooks.loadFailed"),
       );
     } finally {
@@ -185,7 +183,7 @@ export function WebhooksPage() {
         ),
       );
     } catch (err) {
-      setError(
+      toast.error(
         err instanceof APIError ? err.message : t("webhooks.retryFailed"),
       );
     }
@@ -221,12 +219,6 @@ export function WebhooksPage() {
           {t("common.refresh")}
         </Button>
       </div>
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("webhooks.loadFailed")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
       <Card className="min-w-0 max-w-full">
         <CardHeader>
           <CardTitle>{t("webhooks.filters")}</CardTitle>

@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Eye, KeyRound, Pencil, Plus, RefreshCw, ToggleLeft } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   createDataTable,
   DataTableRowActions,
   type DataTableColumn,
 } from "@/components/data-table";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,7 +75,6 @@ export function AppsPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const [apps, setApps] = useState<GatewayApp[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingApp, setEditingApp] = useState<GatewayApp | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -204,12 +203,11 @@ export function AppsPage() {
   async function load() {
     if (!accessToken) return;
     setLoading(true);
-    setError(null);
     try {
       const result = await listApps(accessToken);
       setApps(result.items);
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("apps.loadFailed"));
+      toast.error(err instanceof APIError ? err.message : t("apps.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -241,7 +239,6 @@ export function AppsPage() {
     event.preventDefault();
     if (!accessToken) return;
     setSaving(true);
-    setError(null);
     try {
       const payload = {
         name: form.name,
@@ -269,7 +266,7 @@ export function AppsPage() {
       setEditingApp(null);
       setForm(emptyForm);
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("apps.saveFailed"));
+      toast.error(err instanceof APIError ? err.message : t("apps.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -286,7 +283,7 @@ export function AppsPage() {
         current.map((item) => (item.id === result.app.id ? result.app : item)),
       );
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("apps.statusFailed"));
+      toast.error(err instanceof APIError ? err.message : t("apps.statusFailed"));
     }
   }
 
@@ -300,7 +297,7 @@ export function AppsPage() {
       setSecret(result.app_secret);
       setResetTarget(null);
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("apps.resetFailed"));
+      toast.error(err instanceof APIError ? err.message : t("apps.resetFailed"));
     }
   }
 
@@ -326,13 +323,6 @@ export function AppsPage() {
           </Button>
         </div>
       </div>
-
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("apps.loadFailed")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
 
       <Card>
         <CardHeader>

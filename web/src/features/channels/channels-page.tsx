@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Pencil, Plus, RefreshCw, ToggleLeft } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   createDataTable,
   DataTableRowActions,
   type DataTableColumn,
 } from "@/components/data-table";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +35,6 @@ export function ChannelsPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const [channels, setChannels] = useState<ChannelAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const columns = useMemo<DataTableColumn<ChannelAccount>[]>(
     () => [
@@ -134,12 +133,11 @@ export function ChannelsPage() {
   async function load() {
     if (!accessToken) return;
     setLoading(true);
-    setError(null);
     try {
       const result = await listChannelAccounts(accessToken);
       setChannels(result.items);
     } catch (err) {
-      setError(
+      toast.error(
         err instanceof APIError ? err.message : t("channels.loadFailed"),
       );
     } finally {
@@ -163,7 +161,7 @@ export function ChannelsPage() {
         ),
       );
     } catch (err) {
-      setError(
+      toast.error(
         err instanceof APIError ? err.message : t("channels.statusFailed"),
       );
     }
@@ -193,13 +191,6 @@ export function ChannelsPage() {
           </Button>
         </div>
       </div>
-
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("channels.loadFailed")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
 
       <Card>
         <CardHeader>

@@ -7,6 +7,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -62,15 +63,16 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
   const [payment, setPayment] = useState<CheckoutPaymentResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    setError(null);
+    setLoadFailed(false);
     if (!checkoutToken) {
       setLoading(false);
-      setError(t("checkout.invalidLink"));
+      setLoadFailed(true);
+      toast.error(t("checkout.invalidLink"));
       return () => {
         alive = false;
       };
@@ -93,7 +95,8 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
       })
       .catch((err: Error) => {
         if (!alive) return;
-        setError(err.message || t("checkout.loadFailed"));
+        setLoadFailed(true);
+        toast.error(err.message || t("checkout.loadFailed"));
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -110,6 +113,15 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
         : methods.find((method) => methodKey(method) === selected),
     [lockedMethod, methods, methodsLocked, selected],
   );
+  const lockedMethodUnavailable = Boolean(
+    methodsLocked && lockedMethod && !lockedMethod.enabled,
+  );
+
+  useEffect(() => {
+    if (lockedMethodUnavailable) {
+      toast.error(t("checkout.lockedMethodUnavailableHint"));
+    }
+  }, [lockedMethodUnavailable, t]);
 
   useEffect(() => {
     if (
@@ -154,7 +166,6 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
   async function handlePay() {
     if (!selectedMethod) return;
     setPaying(true);
-    setError(null);
     try {
       const result = await startCheckoutPayment(gatewayOrderNo, checkoutToken, {
         pay_method: methodsLocked ? undefined : selectedMethod.pay_method,
@@ -170,7 +181,7 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
         window.location.assign(result.payment.pay_url);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("checkout.payFailed"));
+      toast.error(err instanceof Error ? err.message : t("checkout.payFailed"));
     } finally {
       setPaying(false);
     }
@@ -180,14 +191,15 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
     return <CheckoutSkeleton />;
   }
 
-  if (error && !orderData) {
+  if (loadFailed && !orderData) {
     return (
       <CheckoutShell>
-        <Alert variant="destructive">
-          <AlertCircle />
-          <AlertTitle>{t("checkout.loadFailed")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("checkout.loadFailed")}</CardTitle>
+            <CardDescription>{t("checkout.title")}</CardDescription>
+          </CardHeader>
+        </Card>
       </CheckoutShell>
     );
   }
@@ -294,22 +306,6 @@ export function CheckoutPage({ gatewayOrderNo }: CheckoutPageProps) {
                 </AlertDescription>
               </Alert>
             )}
-            {methodsLocked && lockedMethod && !lockedMethod.enabled ? (
-              <Alert variant="destructive">
-                <AlertCircle />
-                <AlertTitle>{t("checkout.lockedMethodUnavailable")}</AlertTitle>
-                <AlertDescription>
-                  {t("checkout.lockedMethodUnavailableHint")}
-                </AlertDescription>
-              </Alert>
-            ) : null}
-            {error ? (
-              <Alert variant="destructive">
-                <AlertCircle />
-                <AlertTitle>{t("checkout.payFailed")}</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
             {payment ? (
               <Alert>
                 <CheckCircle2 />

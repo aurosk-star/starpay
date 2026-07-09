@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, XCircle } from "lucide-react";
+import { toast } from "sonner";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,7 +33,6 @@ export function OrderDetailPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const [order, setOrder] = useState<PaymentOrder | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
 
   const baseRows = useMemo<Array<[string, string]>>(
@@ -93,12 +92,11 @@ export function OrderDetailPage() {
   async function load() {
     if (!accessToken) return;
     setLoading(true);
-    setError(null);
     try {
       const result = await getOrder(accessToken, Number(orderId));
       setOrder(result.order);
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("orders.loadFailed"));
+      toast.error(err instanceof APIError ? err.message : t("orders.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -115,7 +113,7 @@ export function OrderDetailPage() {
       setOrder(result.order);
       setCloseConfirmOpen(false);
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("orders.closeFailed"));
+      toast.error(err instanceof APIError ? err.message : t("orders.closeFailed"));
     }
   }
 
@@ -154,13 +152,6 @@ export function OrderDetailPage() {
           {t("orders.close")}
         </Button>
       </div>
-
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("orders.loadFailed")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
 
       {loading ? (
         <DetailSkeleton />

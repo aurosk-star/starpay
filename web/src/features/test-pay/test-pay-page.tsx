@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, ArrowRight, RefreshCw } from "lucide-react";
+import { ArrowRight, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -93,7 +92,6 @@ export function TestPayPage() {
   const [apps, setApps] = useState<GatewayApp[]>([]);
   const [loadingApps, setLoadingApps] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -110,7 +108,9 @@ export function TestPayPage() {
         });
       })
       .catch((err: Error) => {
-        if (alive) setError(err.message || t("testPay.errors.loadAppsFailed"));
+        if (alive) {
+          toast.error(err.message || t("testPay.errors.loadAppsFailed"));
+        }
       })
       .finally(() => {
         if (alive) setLoadingApps(false);
@@ -154,11 +154,10 @@ export function TestPayPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!accessToken) {
-      setError(t("testPay.errors.authRequired"));
+      toast.error(t("testPay.errors.authRequired"));
       return;
     }
     setSubmitting(true);
-    setError(null);
     try {
       const amount = parseMajorAmount(form.amountMajor, form.currency);
       if (amount <= 0) {
@@ -199,7 +198,7 @@ export function TestPayPage() {
         throw new Error(t("testPay.errors.missingPayUrl"));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("testPay.errors.failed"));
+      toast.error(err instanceof Error ? err.message : t("testPay.errors.failed"));
     } finally {
       setSubmitting(false);
     }
@@ -223,14 +222,6 @@ export function TestPayPage() {
             <CardDescription>{t("testPay.formDescription")}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
-            {error ? (
-              <Alert variant="destructive">
-                <AlertCircle />
-                <AlertTitle>{t("testPay.errors.title")}</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
-
             <FieldGroup className="grid gap-5 md:grid-cols-2">
               <Field>
                 <FieldLabel htmlFor="test_pay_app_id">

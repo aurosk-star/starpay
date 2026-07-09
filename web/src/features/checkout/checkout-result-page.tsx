@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertCircle, CheckCircle2, Clock3, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,11 +42,12 @@ export function CheckoutResultPage({
     null,
   );
   const [seconds, setSeconds] = useState(REDIRECT_SECONDS);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     if (!checkoutToken) {
-      setError(t("checkout.invalidLink"));
+      setLoadFailed(true);
+      toast.error(t("checkout.invalidLink"));
       return;
     }
     let alive = true;
@@ -55,7 +56,9 @@ export function CheckoutResultPage({
         if (alive) setOrderData(result);
       })
       .catch((err: Error) => {
-        if (alive) setError(err.message || t("checkout.result.loadFailed"));
+        if (!alive) return;
+        setLoadFailed(true);
+        toast.error(err.message || t("checkout.result.loadFailed"));
       });
     return () => {
       alive = false;
@@ -65,7 +68,7 @@ export function CheckoutResultPage({
   const merchantReturnURL = orderData?.order.return_url?.trim() ?? "";
 
   useEffect(() => {
-    if (!merchantReturnURL || error) return;
+    if (!merchantReturnURL || loadFailed) return;
     if (seconds <= 0) {
       window.location.assign(
         withResultParams(
@@ -82,7 +85,7 @@ export function CheckoutResultPage({
     );
     return () => window.clearTimeout(timer);
   }, [
-    error,
+    loadFailed,
     gatewayOrderNo,
     merchantReturnURL,
     orderData?.order.status,
@@ -91,7 +94,8 @@ export function CheckoutResultPage({
 
   const order = orderData?.order;
   const isPaid = order?.status === "paid";
-  const isClosed = order?.status === "closed" || order?.status === "failed";
+  const isClosed =
+    loadFailed || order?.status === "closed" || order?.status === "failed";
 
   return (
     <CheckoutShell>
@@ -120,13 +124,6 @@ export function CheckoutResultPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {error ? (
-            <Alert variant="destructive">
-              <AlertCircle />
-              <AlertTitle>{t("checkout.result.loadFailed")}</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
           {order ? (
             <div className="rounded-lg border p-4 text-sm">
               <div className="flex items-center justify-between gap-4">

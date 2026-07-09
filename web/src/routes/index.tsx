@@ -22,9 +22,9 @@ import {
   TimerReset,
   Webhook,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { createDataTable, type DataTableColumn } from "@/components/data-table";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -105,7 +105,6 @@ function HomePage() {
   const [recentOrderApi, setRecentOrderApi] = useState<CarouselApi>();
   const [recentOrderPaused, setRecentOrderPaused] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const webhookDeliveryColumns = useMemo(
     () =>
@@ -360,7 +359,6 @@ function HomePage() {
   async function load() {
     if (!accessToken) return;
     setLoading(true);
-    setError(null);
     try {
       const [ordersResult, channelsResult, deliveriesResult, monitoringResult] =
         await Promise.all([
@@ -376,7 +374,7 @@ function HomePage() {
       setWebhookTotal(deliveriesResult.total);
       setMonitoring(monitoringResult.monitoring);
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("home.loadFailed"));
+      toast.error(err instanceof APIError ? err.message : t("home.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -534,13 +532,6 @@ function HomePage() {
             <CardTitle>{t("home.operationalChecks")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {error ? (
-              <Alert variant="destructive">
-                <AlertTriangle />
-                <AlertTitle>{t("home.loadFailed")}</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
             {monitorItems.map((item) => (
               <QueueItem
                 key={item.title}

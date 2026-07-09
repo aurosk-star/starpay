@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, KeyRound } from "lucide-react";
+import { toast } from "sonner";
 
 import { DetailCard, DetailSkeleton, DetailTable } from "@/components/detail";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,18 +37,18 @@ export function AppDetailPage() {
   const appId = "appId" in params ? Number(params.appId) : 0;
   const [app, setApp] = useState<GatewayApp | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [secret, setSecret] = useState<string | null>(null);
 
   useEffect(() => {
     if (!accessToken || !appId) return;
     setLoading(true);
-    setError(null);
     void getApp(accessToken, appId)
       .then((result) => setApp(result.app))
       .catch((err) =>
-        setError(err instanceof APIError ? err.message : t("apps.loadFailed")),
+        toast.error(
+          err instanceof APIError ? err.message : t("apps.loadFailed"),
+        ),
       )
       .finally(() => setLoading(false));
   }, [accessToken, appId, t]);
@@ -61,7 +61,7 @@ export function AppDetailPage() {
       setSecret(result.app_secret);
       setResetOpen(false);
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("apps.resetFailed"));
+      toast.error(err instanceof APIError ? err.message : t("apps.resetFailed"));
     }
   }
 
@@ -94,13 +94,6 @@ export function AppDetailPage() {
           {t("apps.resetSecret")}
         </Button>
       </div>
-
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("apps.loadFailed")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
 
       {loading ? (
         <DetailSkeleton />

@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -75,12 +75,10 @@ export function ChannelFormPage({ mode }: { mode: "create" | "edit" }) {
   );
   const [loading, setLoading] = useState(mode === "edit");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (mode !== "edit" || !accessToken || !channelId) return;
     setLoading(true);
-    setError(null);
     void getChannelAccount(accessToken, channelId)
       .then((result) => {
         const config = normalizeConfig(
@@ -97,7 +95,7 @@ export function ChannelFormPage({ mode }: { mode: "create" | "edit" }) {
         setInitialConfig(config);
       })
       .catch((err) => {
-        setError(
+        toast.error(
           err instanceof APIError ? err.message : t("channels.loadFailed"),
         );
       })
@@ -128,7 +126,6 @@ export function ChannelFormPage({ mode }: { mode: "create" | "edit" }) {
     event.preventDefault();
     if (!accessToken) return;
     setSaving(true);
-    setError(null);
     try {
       const payload = {
         channel: form.channel,
@@ -147,7 +144,7 @@ export function ChannelFormPage({ mode }: { mode: "create" | "edit" }) {
       }
       await navigate({ to: "/channels" });
     } catch (err) {
-      setError(
+      toast.error(
         err instanceof APIError ? err.message : t("channels.saveFailed"),
       );
     } finally {
@@ -172,13 +169,6 @@ export function ChannelFormPage({ mode }: { mode: "create" | "edit" }) {
           <Link to="/channels">{t("channels.cancel")}</Link>
         </Button>
       </div>
-
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("channels.saveFailed")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
 
       {loading ? (
         <Card>

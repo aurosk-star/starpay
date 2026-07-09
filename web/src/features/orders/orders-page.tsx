@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Eye, RefreshCw, Search, XCircle } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   createDataTable,
   DataTableRowActions,
   type DataTableColumn,
 } from "@/components/data-table";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,7 +65,6 @@ export function OrdersPage() {
   const [orders, setOrders] = useState<PaymentOrder[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [appliedFilters, setAppliedFilters] =
     useState<FilterState>(defaultFilters);
@@ -185,13 +184,12 @@ export function OrdersPage() {
   async function load(nextFilters = appliedFilters) {
     if (!accessToken) return;
     setLoading(true);
-    setError(null);
     try {
       const result = await listOrders(accessToken, toListParams(nextFilters));
       setOrders(result.items);
       setTotal(result.total);
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("orders.loadFailed"));
+      toast.error(err instanceof APIError ? err.message : t("orders.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -222,7 +220,7 @@ export function OrdersPage() {
       );
       setCloseTarget(null);
     } catch (err) {
-      setError(err instanceof APIError ? err.message : t("orders.closeFailed"));
+      toast.error(err instanceof APIError ? err.message : t("orders.closeFailed"));
     }
   }
 
@@ -246,13 +244,6 @@ export function OrdersPage() {
           {t("common.refresh")}
         </Button>
       </div>
-
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("orders.loadFailed")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
 
       <Card className="min-w-0 max-w-full">
         <CardHeader>

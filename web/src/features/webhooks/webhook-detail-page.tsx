@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,7 +29,6 @@ export function WebhookDetailPage() {
   const [delivery, setDelivery] = useState<WebhookDelivery | null>(null);
   const [loading, setLoading] = useState(true);
   const [retrying, setRetrying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const overviewRows = useMemo<Array<[string, string]>>(
     () =>
@@ -83,12 +82,11 @@ export function WebhookDetailPage() {
   async function load() {
     if (!accessToken) return;
     setLoading(true);
-    setError(null);
     try {
       const result = await getWebhookDelivery(accessToken, Number(deliveryId));
       setDelivery(result.webhook_delivery);
     } catch (err) {
-      setError(
+      toast.error(
         err instanceof APIError ? err.message : t("webhooks.detail.loadFailed"),
       );
     } finally {
@@ -103,12 +101,11 @@ export function WebhookDetailPage() {
   async function retry() {
     if (!accessToken || !delivery) return;
     setRetrying(true);
-    setError(null);
     try {
       const result = await retryWebhookDelivery(accessToken, delivery.id);
       setDelivery(result.webhook_delivery);
     } catch (err) {
-      setError(
+      toast.error(
         err instanceof APIError ? err.message : t("webhooks.retryFailed"),
       );
     } finally {
@@ -151,13 +148,6 @@ export function WebhookDetailPage() {
           {t("webhooks.retry")}
         </Button>
       </div>
-
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t("webhooks.loadFailed")}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
 
       {loading ? (
         <DetailSkeleton />
