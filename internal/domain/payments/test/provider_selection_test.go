@@ -19,9 +19,11 @@ import (
 )
 
 type fakeProvider struct {
-	channel string
-	called  bool
-	req     paymentprovider.StartPaymentRequest
+	channel     string
+	called      bool
+	req         paymentprovider.StartPaymentRequest
+	queryReq    paymentprovider.QueryPaymentRequest
+	queryResult *paymentprovider.QueryPaymentResult
 }
 
 func (p *fakeProvider) Channel() string {
@@ -39,6 +41,12 @@ func (p *fakeProvider) StartPayment(ctx context.Context, req paymentprovider.Sta
 		ProviderOrderNo: "provider_" + req.Order.GatewayOrderNo,
 		PayURL:          "https://pay.example.com/" + req.Order.GatewayOrderNo,
 	}, nil
+}
+
+func (p *fakeProvider) QueryPayment(ctx context.Context, req paymentprovider.QueryPaymentRequest) (*paymentprovider.QueryPaymentResult, error) {
+	_ = ctx
+	p.queryReq = req
+	return p.queryResult, nil
 }
 
 func TestStartPaymentUsesEnabledAlipayProvider(t *testing.T) {
@@ -185,6 +193,55 @@ func TestStartPaymentRejectsUnavailableAlipayAccount(t *testing.T) {
 	})
 	if !errors.Is(err, paymentsvc.ErrProviderUnavailable) {
 		t.Fatalf("StartPayment() error = %v, want ErrProviderUnavailable", err)
+	}
+}
+
+func TestQueryPaymentUsesOrderBoundChannelAccount(t *testing.T) {
+	ctx := context.Background()
+	client := enttest.Open(t, dialect.SQLite, "file:payment_query_bound_account?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	createEnabledApp(t, client, "snsgo")
+	channels := channelrepo.New(client)
+	first, err := channels.Create(ctx, channelrepo.CreateChannelAccountInput{
+		Channel: "alipay", Name: "First", Enabled: true, Env: "sandbox", Config: map[string]any{"app_id": "first"},
+	})
+	if err != nil {
+		t.Fatalf("Create first channel account error = %v", err)
+	}
+	if _, err := channels.Create(ctx, channelrepo.CreateChannelAccountInput{
+		Channel: "alipay", Name: "Second", Enabled: true, Env: "sandbox", Config: map[string]any{"app_id": "second"},
+	}); err != nil {
+		t.Fatalf("Create second channel account error = %v", err)
+	}
+	order := createPaymentOrder(t, client)
+	order, err = client.PaymentOrder.UpdateOneID(order.ID).
+		SetChannelAccountID(first.ID).
+		SetProviderOrderNo(order.GatewayOrderNo).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("bind payment order error = %v", err)
+	}
+	provider := &fakeProvider{
+		channel: "alipay",
+		queryResult: &paymentprovider.QueryPaymentResult{
+			Channel: "alipay", GatewayOrderNo: order.GatewayOrderNo, Status: "pending", Amount: order.Amount, Currency: order.Currency,
+		},
+	}
+	service := paymentsvc.New(
+		paymentsvc.WithChannelRepository(channels),
+		paymentsvc.WithProvider(provider),
+	)
+
+	result, err := service.QueryPayment(ctx, paymentsvc.QueryPaymentInput{Order: order})
+	if err != nil {
+		t.Fatalf("QueryPayment() error = %v", err)
+	}
+	if provider.queryReq.ChannelAccount == nil || provider.queryReq.ChannelAccount.ID != first.ID {
+		t.Fatalf("query account = %#v, want bound account %d", provider.queryReq.ChannelAccount, first.ID)
+	}
+	if result.Status != "pending" || result.ChannelAccountID != first.ID {
+		t.Fatalf("result = %#v, want pending result for account %d", result, first.ID)
 	}
 }
 

@@ -105,7 +105,7 @@ go test ./internal/domain/webhooks/test ./internal/platform/database
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit the webhook migration unit**
+- [x] **Step 6: Commit the webhook migration unit**
 
 ```bash
 git add ent internal/domain/webhooks internal/platform/database
@@ -132,7 +132,7 @@ git commit -m "Migrate webhooks to resource identity"
 - Produces service methods: `QueryPayment`, `ClosePayment`, `CreateRefund`, and `QueryRefund`.
 - All service methods resolve the exact bound channel account ID before calling a provider.
 
-- [ ] **Step 1: Write failing provider mapping tests**
+- [x] **Step 1: Write failing provider mapping tests**
 
 Cover these normalized mappings:
 
@@ -141,13 +141,13 @@ Cover these normalized mappings:
 - PayPal completed capture -> paid, voided -> closed, denied -> failed, approved/created -> pending.
 - Refund results map provider terminal and pending states without converting ambiguous errors to failed.
 
-- [ ] **Step 2: Run provider tests and verify capability methods are absent**
+- [x] **Step 2: Run provider tests and verify capability methods are absent**
 
 Run: `go test ./internal/domain/payments/provider/... ./internal/domain/payments/test`
 
 Expected: FAIL on missing query/refund client methods and capability interfaces.
 
-- [ ] **Step 3: Add normalized provider request and result types**
+- [x] **Step 3: Add normalized provider request and result types**
 
 ```go
 type QueryPaymentRequest struct { ChannelAccount *ent.ChannelAccount; Order *ent.PaymentOrder }
@@ -169,19 +169,19 @@ type QueryRefundRequest struct {
 type RefundResult struct { Channel, RefundNo, ChannelRefundNo, Status, Currency, FailureReason string; Amount int64; Raw map[string]any }
 ```
 
-- [ ] **Step 4: Implement Alipay capabilities using go-pay v3**
+- [x] **Step 4: Implement Alipay capabilities using go-pay v3**
 
 Extend the test client interface with `TradeQuery`, `TradeClose`, `TradeRefund`, and `TradeFastPayRefundQuery`. Build requests with `out_trade_no`, `trade_no`, `refund_amount`, and `out_request_no`. Reject non-200 responses with provider details and parse amounts without floats.
 
-- [ ] **Step 5: Implement WeChat API v3 capabilities**
+- [x] **Step 5: Implement WeChat API v3 capabilities**
 
 Extend the client interface with transaction query, close, refund, and refund query. Use `OutTradeNo`, `out_refund_no=refund_no`, original/ refund integer amounts, and CNY. Validate response bodies and normalize WeChat refund states.
 
-- [ ] **Step 6: Implement PayPal capabilities**
+- [x] **Step 6: Implement PayPal capabilities**
 
 Extend the client interface with order detail, capture refund, and refund detail. Use the stored capture ID as `channel_trade_no`; set `PayPal-Request-Id` to `refund_no`; set `invoice_id`, amount, and currency. Parse PayPal amounts with the existing zero-decimal currency rules.
 
-- [ ] **Step 7: Add service-level account resolution and capability errors**
+- [x] **Step 7: Add service-level account resolution and capability errors**
 
 Return explicit `ErrQueryUnsupported`, `ErrCloseUnsupported`, `ErrRefundUnsupported`, and `ErrRefundQueryUnsupported`. Never fall back to another account when an order has `channel_account_id`.
 

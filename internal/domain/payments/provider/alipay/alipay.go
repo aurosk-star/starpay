@@ -13,6 +13,7 @@ import (
 	gopayalipay "github.com/go-pay/gopay/alipay"
 	gopayalipayv3 "github.com/go-pay/gopay/alipay/v3"
 
+	"payment-gateway/ent"
 	"payment-gateway/internal/domain/payments/provider"
 )
 
@@ -26,6 +27,17 @@ type v3PrecreateClient interface {
 	TradePagePay(ctx context.Context, body gopay.BodyMap) (string, error)
 	TradeWapPay(ctx context.Context, body gopay.BodyMap) (string, error)
 	TradePrecreate(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradePrecreateRsp, error)
+	TradeQuery(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeQueryRsp, error)
+	TradeClose(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeCloseRsp, error)
+	TradeRefund(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeRefundRsp, error)
+	TradeFastPayRefundQuery(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeFastPayRefundQueryRsp, error)
+}
+
+type alipayOperationsClient interface {
+	TradeQuery(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeQueryRsp, error)
+	TradeClose(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeCloseRsp, error)
+	TradeRefund(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeRefundRsp, error)
+	TradeFastPayRefundQuery(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeFastPayRefundQueryRsp, error)
 }
 
 type clientFactory func(Config) (alipayClient, error)
@@ -159,6 +171,150 @@ func (p Provider) ParseNotify(ctx context.Context, req provider.NotifyRequest) (
 	}, nil
 }
 
+func (p Provider) QueryPayment(ctx context.Context, req provider.QueryPaymentRequest) (*provider.QueryPaymentResult, error) {
+	if req.Order == nil {
+		return nil, fmt.Errorf("alipay order is required")
+	}
+	client, err := p.operationsClient(req.ChannelAccount)
+	if err != nil {
+		return nil, err
+	}
+	body := gopay.BodyMap{}
+	body.Set("out_trade_no", req.Order.GatewayOrderNo)
+	rsp, err := client.TradeQuery(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	if rsp == nil || rsp.StatusCode != http.StatusOK {
+		return nil, alipayAPIError("trade query", alipayQueryStatusCode(rsp), alipayQueryError(rsp))
+	}
+	amount, err := parseAlipayAmount(rsp.TotalAmount)
+	if err != nil {
+		return nil, err
+	}
+	return &provider.QueryPaymentResult{
+		Channel:         "alipay",
+		GatewayOrderNo:  strings.TrimSpace(rsp.OutTradeNo),
+		ProviderOrderNo: strings.TrimSpace(req.Order.ProviderOrderNo),
+		ChannelTradeNo:  strings.TrimSpace(rsp.TradeNo),
+		Status:          normalizeTradeStatus(rsp.TradeStatus),
+		Amount:          amount,
+		Currency:        "CNY",
+		FailureReason:   strings.TrimSpace(rsp.TradeStatus),
+		Raw: map[string]any{
+			"trade_no": rsp.TradeNo, "out_trade_no": rsp.OutTradeNo,
+			"trade_status": rsp.TradeStatus, "total_amount": rsp.TotalAmount,
+		},
+	}, nil
+}
+
+func (p Provider) ClosePayment(ctx context.Context, req provider.ClosePaymentRequest) error {
+	if req.Order == nil {
+		return fmt.Errorf("alipay order is required")
+	}
+	client, err := p.operationsClient(req.ChannelAccount)
+	if err != nil {
+		return err
+	}
+	body := gopay.BodyMap{}
+	body.Set("out_trade_no", req.Order.GatewayOrderNo)
+	if strings.TrimSpace(req.Order.ChannelTradeNo) != "" {
+		body.Set("trade_no", req.Order.ChannelTradeNo)
+	}
+	rsp, err := client.TradeClose(ctx, body)
+	if err != nil {
+		return err
+	}
+	if rsp == nil || rsp.StatusCode != http.StatusOK {
+		return alipayAPIError("trade close", alipayCloseStatusCode(rsp), alipayCloseError(rsp))
+	}
+	return nil
+}
+
+func (p Provider) CreateRefund(ctx context.Context, req provider.CreateRefundRequest) (*provider.RefundResult, error) {
+	client, err := p.operationsClient(req.ChannelAccount)
+	if err != nil {
+		return nil, err
+	}
+	body := gopay.BodyMap{}
+	body.Set("out_trade_no", req.GatewayOrderNo).
+		Set("refund_amount", formatAmount(req.Amount)).
+		Set("out_request_no", req.RefundNo)
+	if strings.TrimSpace(req.ChannelTradeNo) != "" {
+		body.Set("trade_no", req.ChannelTradeNo)
+	}
+	if strings.TrimSpace(req.Reason) != "" {
+		body.Set("refund_reason", strings.TrimSpace(req.Reason))
+	}
+	rsp, err := client.TradeRefund(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	if rsp == nil || rsp.StatusCode != http.StatusOK {
+		return nil, alipayAPIError("trade refund", alipayRefundStatusCode(rsp), alipayRefundError(rsp))
+	}
+	amount, err := parseAlipayAmount(rsp.RefundFee)
+	if err != nil {
+		return nil, err
+	}
+	return &provider.RefundResult{
+		Channel: "alipay", RefundNo: req.RefundNo, ChannelRefundNo: req.RefundNo,
+		Status: "succeeded", Amount: amount, Currency: "CNY",
+		Raw: map[string]any{"trade_no": rsp.TradeNo, "out_trade_no": rsp.OutTradeNo, "fund_change": rsp.FundChange, "refund_fee": rsp.RefundFee},
+	}, nil
+}
+
+func (p Provider) QueryRefund(ctx context.Context, req provider.QueryRefundRequest) (*provider.RefundResult, error) {
+	client, err := p.operationsClient(req.ChannelAccount)
+	if err != nil {
+		return nil, err
+	}
+	body := gopay.BodyMap{}
+	body.Set("out_trade_no", req.GatewayOrderNo).Set("out_request_no", req.RefundNo)
+	if strings.TrimSpace(req.ChannelTradeNo) != "" {
+		body.Set("trade_no", req.ChannelTradeNo)
+	}
+	rsp, err := client.TradeFastPayRefundQuery(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	if rsp == nil || rsp.StatusCode != http.StatusOK {
+		return nil, alipayAPIError("refund query", alipayRefundQueryStatusCode(rsp), alipayRefundQueryError(rsp))
+	}
+	amount, err := parseAlipayAmount(rsp.RefundAmount)
+	if err != nil {
+		return nil, err
+	}
+	status := "pending"
+	if strings.EqualFold(strings.TrimSpace(rsp.RefundStatus), "REFUND_SUCCESS") {
+		status = "succeeded"
+	}
+	return &provider.RefundResult{
+		Channel: "alipay", RefundNo: strings.TrimSpace(rsp.OutRequestNo), ChannelRefundNo: req.RefundNo,
+		Status: status, Amount: amount, Currency: "CNY", FailureReason: strings.TrimSpace(rsp.RefundStatus),
+		Raw: map[string]any{"trade_no": rsp.TradeNo, "out_trade_no": rsp.OutTradeNo, "out_request_no": rsp.OutRequestNo, "refund_status": rsp.RefundStatus, "refund_amount": rsp.RefundAmount},
+	}, nil
+}
+
+func (p Provider) operationsClient(account *ent.ChannelAccount) (alipayOperationsClient, error) {
+	if account == nil {
+		return nil, fmt.Errorf("alipay channel account is required")
+	}
+	cfg, err := ParseConfig(account.Config, account.Env)
+	if err != nil {
+		return nil, err
+	}
+	client, err := p.newClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+	operations, ok := client.(alipayOperationsClient)
+	if !ok {
+		return nil, fmt.Errorf("alipay client does not support payment operations")
+	}
+	return operations, nil
+}
+
 func newGopayClient(cfg Config) (alipayClient, error) {
 	client, err := gopayalipayv3.NewClientV3(cfg.AppID, cfg.PrivateKey, cfg.IsProd)
 	if err != nil {
@@ -202,6 +358,82 @@ func (c *gopayClient) TradePrecreate(ctx context.Context, body gopay.BodyMap) (s
 		return "", fmt.Errorf("alipay precreate response is empty")
 	}
 	return rsp.QrCode, nil
+}
+
+func (c *gopayClient) TradeQuery(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeQueryRsp, error) {
+	return c.client.TradeQuery(ctx, body)
+}
+
+func (c *gopayClient) TradeClose(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeCloseRsp, error) {
+	return c.client.TradeClose(ctx, body)
+}
+
+func (c *gopayClient) TradeRefund(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeRefundRsp, error) {
+	return c.client.TradeRefund(ctx, body)
+}
+
+func (c *gopayClient) TradeFastPayRefundQuery(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeFastPayRefundQueryRsp, error) {
+	return c.client.TradeFastPayRefundQuery(ctx, body)
+}
+
+func alipayAPIError(action string, status int, errResp gopayalipayv3.ErrResponse) error {
+	parts := []string{fmt.Sprintf("alipay %s failed: status_code=%d", action, status)}
+	if strings.TrimSpace(errResp.Code) != "" {
+		parts = append(parts, "code="+strings.TrimSpace(errResp.Code))
+	}
+	if strings.TrimSpace(errResp.Message) != "" {
+		parts = append(parts, "message="+strings.TrimSpace(errResp.Message))
+	}
+	return errors.New(strings.Join(parts, ", "))
+}
+
+func alipayQueryStatusCode(rsp *gopayalipayv3.TradeQueryRsp) int {
+	if rsp == nil {
+		return 0
+	}
+	return rsp.StatusCode
+}
+func alipayQueryError(rsp *gopayalipayv3.TradeQueryRsp) gopayalipayv3.ErrResponse {
+	if rsp == nil {
+		return gopayalipayv3.ErrResponse{}
+	}
+	return rsp.ErrResponse
+}
+func alipayCloseStatusCode(rsp *gopayalipayv3.TradeCloseRsp) int {
+	if rsp == nil {
+		return 0
+	}
+	return rsp.StatusCode
+}
+func alipayCloseError(rsp *gopayalipayv3.TradeCloseRsp) gopayalipayv3.ErrResponse {
+	if rsp == nil {
+		return gopayalipayv3.ErrResponse{}
+	}
+	return rsp.ErrResponse
+}
+func alipayRefundStatusCode(rsp *gopayalipayv3.TradeRefundRsp) int {
+	if rsp == nil {
+		return 0
+	}
+	return rsp.StatusCode
+}
+func alipayRefundError(rsp *gopayalipayv3.TradeRefundRsp) gopayalipayv3.ErrResponse {
+	if rsp == nil {
+		return gopayalipayv3.ErrResponse{}
+	}
+	return rsp.ErrResponse
+}
+func alipayRefundQueryStatusCode(rsp *gopayalipayv3.TradeFastPayRefundQueryRsp) int {
+	if rsp == nil {
+		return 0
+	}
+	return rsp.StatusCode
+}
+func alipayRefundQueryError(rsp *gopayalipayv3.TradeFastPayRefundQueryRsp) gopayalipayv3.ErrResponse {
+	if rsp == nil {
+		return gopayalipayv3.ErrResponse{}
+	}
+	return rsp.ErrResponse
 }
 
 func alipayV3ResponseError(rsp *gopayalipayv3.TradePrecreateRsp) error {

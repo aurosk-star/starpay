@@ -20,12 +20,20 @@ import (
 )
 
 type fakeClient struct {
-	pageBody       gopay.BodyMap
-	wapBody        gopay.BodyMap
-	precreateBody  gopay.BodyMap
-	pageCalls      int
-	wapCalls       int
-	precreateCalls int
+	pageBody        gopay.BodyMap
+	wapBody         gopay.BodyMap
+	precreateBody   gopay.BodyMap
+	pageCalls       int
+	wapCalls        int
+	precreateCalls  int
+	queryBody       gopay.BodyMap
+	queryRsp        *gopayalipayv3.TradeQueryRsp
+	closeBody       gopay.BodyMap
+	closeRsp        *gopayalipayv3.TradeCloseRsp
+	refundBody      gopay.BodyMap
+	refundRsp       *gopayalipayv3.TradeRefundRsp
+	refundQueryBody gopay.BodyMap
+	refundQueryRsp  *gopayalipayv3.TradeFastPayRefundQueryRsp
 }
 
 func (c *fakeClient) TradePagePay(ctx context.Context, body gopay.BodyMap) (string, error) {
@@ -49,6 +57,84 @@ func (c *fakeClient) TradePrecreate(ctx context.Context, body gopay.BodyMap) (st
 	return "https://qr.alipay.com/test", nil
 }
 
+func (c *fakeClient) TradeQuery(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeQueryRsp, error) {
+	c.queryBody = body
+	return c.queryRsp, nil
+}
+
+func (c *fakeClient) TradeClose(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeCloseRsp, error) {
+	c.closeBody = body
+	return c.closeRsp, nil
+}
+
+func (c *fakeClient) TradeRefund(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeRefundRsp, error) {
+	c.refundBody = body
+	return c.refundRsp, nil
+}
+
+func (c *fakeClient) TradeFastPayRefundQuery(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeFastPayRefundQueryRsp, error) {
+	c.refundQueryBody = body
+	return c.refundQueryRsp, nil
+}
+
+func TestQueryPaymentNormalizesPaidAlipayTrade(t *testing.T) {
+	client := &fakeClient{queryRsp: &gopayalipayv3.TradeQueryRsp{StatusCode: http.StatusOK, TradeNo: "ali_trade_1", OutTradeNo: "gw_1", TradeStatus: "TRADE_SUCCESS", TotalAmount: "99.00"}}
+	p := NewWithClientFactory(func(Config) (alipayClient, error) { return client, nil })
+	result, err := p.QueryPayment(context.Background(), provider.QueryPaymentRequest{
+		ChannelAccount: alipayAccount(),
+		Order:          &ent.PaymentOrder{GatewayOrderNo: "gw_1", ProviderOrderNo: "gw_1", Amount: 9900, Currency: "CNY"},
+	})
+	if err != nil {
+		t.Fatalf("QueryPayment() error = %v", err)
+	}
+	if result.Status != "paid" || result.Amount != 9900 || result.Currency != "CNY" || result.ChannelTradeNo != "ali_trade_1" {
+		t.Fatalf("result = %#v, want paid 9900 CNY", result)
+	}
+	assertBody(t, client.queryBody, "out_trade_no", "gw_1")
+}
+
+func TestCreateRefundUsesOutRequestNoAndMinorAmount(t *testing.T) {
+	client := &fakeClient{refundRsp: &gopayalipayv3.TradeRefundRsp{StatusCode: http.StatusOK, TradeNo: "ali_trade_1", OutTradeNo: "gw_1", FundChange: "Y", RefundFee: "12.34"}}
+	p := NewWithClientFactory(func(Config) (alipayClient, error) { return client, nil })
+	result, err := p.CreateRefund(context.Background(), provider.CreateRefundRequest{
+		ChannelAccount: alipayAccount(), GatewayOrderNo: "gw_1", ChannelTradeNo: "ali_trade_1", RefundNo: "rf_1", Amount: 1234, Currency: "CNY", Reason: "duplicate",
+	})
+	if err != nil {
+		t.Fatalf("CreateRefund() error = %v", err)
+	}
+	if result.Status != "succeeded" || result.Amount != 1234 || result.ChannelRefundNo != "rf_1" {
+		t.Fatalf("result = %#v, want succeeded refund", result)
+	}
+	assertBody(t, client.refundBody, "out_request_no", "rf_1")
+	assertBody(t, client.refundBody, "refund_amount", "12.34")
+}
+
+func TestQueryRefundNormalizesSuccessfulAlipayRefund(t *testing.T) {
+	client := &fakeClient{refundQueryRsp: &gopayalipayv3.TradeFastPayRefundQueryRsp{StatusCode: http.StatusOK, TradeNo: "ali_trade_1", OutTradeNo: "gw_1", OutRequestNo: "rf_1", RefundAmount: "12.34", RefundStatus: "REFUND_SUCCESS"}}
+	p := NewWithClientFactory(func(Config) (alipayClient, error) { return client, nil })
+	result, err := p.QueryRefund(context.Background(), provider.QueryRefundRequest{ChannelAccount: alipayAccount(), GatewayOrderNo: "gw_1", ChannelTradeNo: "ali_trade_1", RefundNo: "rf_1"})
+	if err != nil {
+		t.Fatalf("QueryRefund() error = %v", err)
+	}
+	if result.Status != "succeeded" || result.Amount != 1234 || result.RefundNo != "rf_1" {
+		t.Fatalf("result = %#v, want succeeded refund query", result)
+	}
+}
+
+func TestClosePaymentUsesGatewayOrderNumber(t *testing.T) {
+	client := &fakeClient{closeRsp: &gopayalipayv3.TradeCloseRsp{StatusCode: http.StatusOK}}
+	p := NewWithClientFactory(func(Config) (alipayClient, error) { return client, nil })
+	err := p.ClosePayment(context.Background(), provider.ClosePaymentRequest{ChannelAccount: alipayAccount(), Order: &ent.PaymentOrder{GatewayOrderNo: "gw_1"}})
+	if err != nil {
+		t.Fatalf("ClosePayment() error = %v", err)
+	}
+	assertBody(t, client.closeBody, "out_trade_no", "gw_1")
+}
+
+func alipayAccount() *ent.ChannelAccount {
+	return &ent.ChannelAccount{Channel: "alipay", Env: "sandbox", Config: map[string]any{"app_id": "app", "private_key": "private"}}
+}
+
 type fakeV3Transport struct {
 	rsp *gopayalipayv3.TradePrecreateRsp
 	err error
@@ -67,6 +153,22 @@ func (c *fakeV3Transport) TradePagePay(ctx context.Context, body gopay.BodyMap) 
 func (c *fakeV3Transport) TradeWapPay(ctx context.Context, body gopay.BodyMap) (string, error) {
 	_ = ctx
 	return "https://openapi-sandbox.dl.alipaydev.com/gateway.do?wap=1", c.err
+}
+
+func (c *fakeV3Transport) TradeQuery(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeQueryRsp, error) {
+	return nil, c.err
+}
+
+func (c *fakeV3Transport) TradeClose(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeCloseRsp, error) {
+	return nil, c.err
+}
+
+func (c *fakeV3Transport) TradeRefund(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeRefundRsp, error) {
+	return nil, c.err
+}
+
+func (c *fakeV3Transport) TradeFastPayRefundQuery(ctx context.Context, body gopay.BodyMap) (*gopayalipayv3.TradeFastPayRefundQueryRsp, error) {
+	return nil, c.err
 }
 
 func TestParseConfigRequiresAppID(t *testing.T) {

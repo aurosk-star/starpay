@@ -21,6 +21,10 @@ var (
 	ErrProviderUnavailable    = errors.New("payment provider unavailable")
 	ErrNotifyUnsupported      = errors.New("payment notify unsupported")
 	ErrCaptureUnsupported     = errors.New("payment capture unsupported")
+	ErrQueryUnsupported       = errors.New("payment query unsupported")
+	ErrCloseUnsupported       = errors.New("payment close unsupported")
+	ErrRefundUnsupported      = errors.New("payment refund unsupported")
+	ErrRefundQueryUnsupported = errors.New("payment refund query unsupported")
 	ErrChannelAccountRequired = errors.New("channel_account_id is required when multiple channel accounts are enabled")
 )
 
@@ -123,6 +127,48 @@ type CapturePaymentInput struct {
 	ChannelAccountID int
 	ProviderOrderNo  string
 	GatewayOrderNo   string
+}
+
+type QueryPaymentInput struct {
+	Order *ent.PaymentOrder
+}
+
+type ClosePaymentInput struct {
+	Order *ent.PaymentOrder
+}
+
+type CreateRefundInput struct {
+	Channel          string
+	ChannelAccountID int
+	GatewayOrderNo   string
+	ProviderOrderNo  string
+	ChannelTradeNo   string
+	RefundNo         string
+	Amount           int64
+	OriginalAmount   int64
+	Currency         string
+	Reason           string
+}
+
+type QueryRefundInput struct {
+	Channel          string
+	ChannelAccountID int
+	GatewayOrderNo   string
+	ChannelTradeNo   string
+	RefundNo         string
+	ChannelRefundNo  string
+}
+
+type RefundResult struct {
+	Channel          string         `json:"channel"`
+	ChannelAccountID int            `json:"channel_account_id"`
+	RefundNo         string         `json:"refund_no"`
+	ChannelRefundNo  string         `json:"channel_refund_no"`
+	Status           string         `json:"status"`
+	Amount           int64          `json:"amount"`
+	Currency         string         `json:"currency"`
+	FailureReason    string         `json:"failure_reason,omitempty"`
+	Raw              map[string]any `json:"raw,omitempty"`
 }
 
 func (s Service) StartPayment(ctx context.Context, input StartPaymentInput) (*PaymentResult, error) {
@@ -334,4 +380,132 @@ func (s Service) CapturePayment(ctx context.Context, input CapturePaymentInput) 
 		Currency:         result.Currency,
 		Raw:              result.Raw,
 	}, nil
+}
+
+func (s Service) QueryPayment(ctx context.Context, input QueryPaymentInput) (*NotifyResult, error) {
+	if input.Order == nil {
+		return nil, ErrOrderRequired
+	}
+	channel := strings.ToLower(strings.TrimSpace(input.Order.Channel))
+	queryProvider, ok := s.providers[channel].(provider.QueryProvider)
+	if !ok {
+		return nil, ErrQueryUnsupported
+	}
+	account, err := s.resolveBoundAccount(ctx, channel, input.Order.ChannelAccountID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := queryProvider.QueryPayment(ctx, provider.QueryPaymentRequest{ChannelAccount: account, Order: input.Order})
+	if err != nil {
+		return nil, err
+	}
+	return &NotifyResult{
+		Channel:          result.Channel,
+		ChannelAccountID: account.ID,
+		ProviderOrderNo:  result.ProviderOrderNo,
+		GatewayOrderNo:   result.GatewayOrderNo,
+		ChannelTradeNo:   result.ChannelTradeNo,
+		Status:           result.Status,
+		Amount:           result.Amount,
+		Currency:         result.Currency,
+		FailureReason:    result.FailureReason,
+		Raw:              result.Raw,
+	}, nil
+}
+
+func (s Service) ClosePayment(ctx context.Context, input ClosePaymentInput) error {
+	if input.Order == nil {
+		return ErrOrderRequired
+	}
+	channel := strings.ToLower(strings.TrimSpace(input.Order.Channel))
+	closeProvider, ok := s.providers[channel].(provider.CloseProvider)
+	if !ok {
+		return ErrCloseUnsupported
+	}
+	account, err := s.resolveBoundAccount(ctx, channel, input.Order.ChannelAccountID)
+	if err != nil {
+		return err
+	}
+	return closeProvider.ClosePayment(ctx, provider.ClosePaymentRequest{ChannelAccount: account, Order: input.Order})
+}
+
+func (s Service) CreateRefund(ctx context.Context, input CreateRefundInput) (*RefundResult, error) {
+	channel := strings.ToLower(strings.TrimSpace(input.Channel))
+	refundProvider, ok := s.providers[channel].(provider.RefundProvider)
+	if !ok {
+		return nil, ErrRefundUnsupported
+	}
+	account, err := s.resolveBoundAccount(ctx, channel, input.ChannelAccountID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := refundProvider.CreateRefund(ctx, provider.CreateRefundRequest{
+		ChannelAccount:  account,
+		GatewayOrderNo:  strings.TrimSpace(input.GatewayOrderNo),
+		ProviderOrderNo: strings.TrimSpace(input.ProviderOrderNo),
+		ChannelTradeNo:  strings.TrimSpace(input.ChannelTradeNo),
+		RefundNo:        strings.TrimSpace(input.RefundNo),
+		Amount:          input.Amount,
+		OriginalAmount:  input.OriginalAmount,
+		Currency:        strings.ToUpper(strings.TrimSpace(input.Currency)),
+		Reason:          strings.TrimSpace(input.Reason),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return refundResult(account.ID, result), nil
+}
+
+func (s Service) QueryRefund(ctx context.Context, input QueryRefundInput) (*RefundResult, error) {
+	channel := strings.ToLower(strings.TrimSpace(input.Channel))
+	queryProvider, ok := s.providers[channel].(provider.RefundQueryProvider)
+	if !ok {
+		return nil, ErrRefundQueryUnsupported
+	}
+	account, err := s.resolveBoundAccount(ctx, channel, input.ChannelAccountID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := queryProvider.QueryRefund(ctx, provider.QueryRefundRequest{
+		ChannelAccount:  account,
+		GatewayOrderNo:  strings.TrimSpace(input.GatewayOrderNo),
+		ChannelTradeNo:  strings.TrimSpace(input.ChannelTradeNo),
+		RefundNo:        strings.TrimSpace(input.RefundNo),
+		ChannelRefundNo: strings.TrimSpace(input.ChannelRefundNo),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return refundResult(account.ID, result), nil
+}
+
+func (s Service) resolveBoundAccount(ctx context.Context, channel string, accountID int) (*ent.ChannelAccount, error) {
+	if s.channels.IsZero() || accountID <= 0 {
+		return nil, ErrProviderUnavailable
+	}
+	account, err := s.channels.FindEnabledByID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.EqualFold(strings.TrimSpace(account.Channel), channel) {
+		return nil, ErrProviderUnavailable
+	}
+	return account, nil
+}
+
+func refundResult(accountID int, result *provider.RefundResult) *RefundResult {
+	if result == nil {
+		return nil
+	}
+	return &RefundResult{
+		Channel:          result.Channel,
+		ChannelAccountID: accountID,
+		RefundNo:         result.RefundNo,
+		ChannelRefundNo:  result.ChannelRefundNo,
+		Status:           result.Status,
+		Amount:           result.Amount,
+		Currency:         result.Currency,
+		FailureReason:    result.FailureReason,
+		Raw:              result.Raw,
+	}
 }

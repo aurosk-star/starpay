@@ -23,11 +23,18 @@ import (
 )
 
 type fakeWechatClient struct {
-	nativeRsp *wechatv3.NativeRsp
-	h5Rsp     *wechatv3.H5Rsp
-	err       error
-	body      gopay.BodyMap
-	calls     int
+	nativeRsp      *wechatv3.NativeRsp
+	h5Rsp          *wechatv3.H5Rsp
+	err            error
+	body           gopay.BodyMap
+	calls          int
+	queryRsp       *wechatv3.QueryOrderRsp
+	closeRsp       *wechatv3.EmptyRsp
+	refundRsp      *wechatv3.RefundRsp
+	refundQueryRsp *wechatv3.RefundQueryRsp
+	queryNo        string
+	closeNo        string
+	refundNo       string
 }
 
 func (c *fakeWechatClient) V3TransactionNative(ctx context.Context, body gopay.BodyMap) (*wechatv3.NativeRsp, error) {
@@ -40,6 +47,77 @@ func (c *fakeWechatClient) V3TransactionH5(ctx context.Context, body gopay.BodyM
 	c.calls++
 	c.body = body
 	return c.h5Rsp, c.err
+}
+
+func (c *fakeWechatClient) V3TransactionQueryOrder(ctx context.Context, orderNoType wechatv3.OrderNoType, orderNo string) (*wechatv3.QueryOrderRsp, error) {
+	c.queryNo = orderNo
+	return c.queryRsp, c.err
+}
+
+func (c *fakeWechatClient) V3TransactionCloseOrder(ctx context.Context, tradeNo string) (*wechatv3.EmptyRsp, error) {
+	c.closeNo = tradeNo
+	return c.closeRsp, c.err
+}
+
+func (c *fakeWechatClient) V3Refund(ctx context.Context, body gopay.BodyMap) (*wechatv3.RefundRsp, error) {
+	c.body = body
+	return c.refundRsp, c.err
+}
+
+func (c *fakeWechatClient) V3RefundQuery(ctx context.Context, outRefundNo string, body gopay.BodyMap) (*wechatv3.RefundQueryRsp, error) {
+	c.refundNo = outRefundNo
+	return c.refundQueryRsp, c.err
+}
+
+func TestQueryPaymentNormalizesPaidWechatTrade(t *testing.T) {
+	client := &fakeWechatClient{queryRsp: &wechatv3.QueryOrderRsp{Code: wechatv3.Success, Response: &wechatv3.QueryOrder{OutTradeNo: "gw_1", TransactionId: "wx_trade_1", TradeState: "SUCCESS", Amount: &wechatv3.Amount{Total: 9900, Currency: "CNY"}}}}
+	p := NewWithClientFactory(func(Config) (wechatClient, error) { return client, nil })
+	result, err := p.QueryPayment(context.Background(), provider.QueryPaymentRequest{ChannelAccount: account(nil), Order: &ent.PaymentOrder{GatewayOrderNo: "gw_1", Amount: 9900, Currency: "CNY"}})
+	if err != nil {
+		t.Fatalf("QueryPayment() error = %v", err)
+	}
+	if result.Status != "paid" || result.Amount != 9900 || result.ChannelTradeNo != "wx_trade_1" {
+		t.Fatalf("result = %#v, want paid wechat trade", result)
+	}
+}
+
+func TestCreateRefundUsesWechatRefundIdentityAndAmounts(t *testing.T) {
+	client := &fakeWechatClient{refundRsp: &wechatv3.RefundRsp{Code: wechatv3.Success, Response: &wechatv3.RefundOrderResponse{RefundId: "wx_refund_1", OutRefundNo: "rf_1", Status: "PROCESSING", Amount: &wechatv3.RefundOrderAmount{Refund: 1234, Total: 9900, Currency: "CNY"}}}}
+	p := NewWithClientFactory(func(Config) (wechatClient, error) { return client, nil })
+	result, err := p.CreateRefund(context.Background(), provider.CreateRefundRequest{ChannelAccount: account(nil), GatewayOrderNo: "gw_1", ChannelTradeNo: "wx_trade_1", RefundNo: "rf_1", Amount: 1234, OriginalAmount: 9900, Currency: "CNY"})
+	if err != nil {
+		t.Fatalf("CreateRefund() error = %v", err)
+	}
+	if result.Status != "pending" || result.ChannelRefundNo != "wx_refund_1" || result.Amount != 1234 {
+		t.Fatalf("result = %#v, want pending wechat refund", result)
+	}
+	if client.body.GetString("out_refund_no") != "rf_1" {
+		t.Fatalf("out_refund_no = %q", client.body.GetString("out_refund_no"))
+	}
+}
+
+func TestQueryRefundNormalizesSuccessfulWechatRefund(t *testing.T) {
+	client := &fakeWechatClient{refundQueryRsp: &wechatv3.RefundQueryRsp{Code: wechatv3.Success, Response: &wechatv3.RefundQueryResponse{RefundId: "wx_refund_1", OutRefundNo: "rf_1", Status: "SUCCESS", Amount: &wechatv3.RefundOrderAmount{Refund: 1234, Currency: "CNY"}}}}
+	p := NewWithClientFactory(func(Config) (wechatClient, error) { return client, nil })
+	result, err := p.QueryRefund(context.Background(), provider.QueryRefundRequest{ChannelAccount: account(nil), RefundNo: "rf_1"})
+	if err != nil {
+		t.Fatalf("QueryRefund() error = %v", err)
+	}
+	if result.Status != "succeeded" || result.Amount != 1234 || client.refundNo != "rf_1" {
+		t.Fatalf("result = %#v queryNo=%q, want succeeded refund", result, client.refundNo)
+	}
+}
+
+func TestClosePaymentUsesGatewayOrderNumber(t *testing.T) {
+	client := &fakeWechatClient{closeRsp: &wechatv3.EmptyRsp{Code: wechatv3.Success}}
+	p := NewWithClientFactory(func(Config) (wechatClient, error) { return client, nil })
+	err := p.ClosePayment(context.Background(), provider.ClosePaymentRequest{ChannelAccount: account(nil), Order: &ent.PaymentOrder{GatewayOrderNo: "gw_1"}})
+	if err != nil {
+		t.Fatalf("ClosePayment() error = %v", err)
+	}
+	if client.closeNo != "gw_1" {
+		t.Fatalf("close order no = %q, want gw_1", client.closeNo)
+	}
 }
 
 func TestParseConfigRequiresWechatCredentials(t *testing.T) {

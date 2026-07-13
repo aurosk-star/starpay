@@ -12,6 +12,7 @@ import (
 	"github.com/go-pay/gopay"
 	gopaypaypal "github.com/go-pay/gopay/paypal"
 
+	"payment-gateway/ent"
 	"payment-gateway/internal/domain/payments/provider"
 )
 
@@ -19,6 +20,17 @@ type paypalClient interface {
 	CreateOrder(ctx context.Context, body gopay.BodyMap) (*gopaypaypal.CreateOrderRsp, error)
 	OrderCapture(ctx context.Context, orderID string, body gopay.BodyMap) (*gopaypaypal.OrderCaptureRsp, error)
 	VerifyWebhookSignature(ctx context.Context, body gopay.BodyMap) (*gopaypaypal.VerifyWebhookResponse, error)
+}
+
+type paypalOperationsClient interface {
+	OrderDetail(ctx context.Context, orderID string, body gopay.BodyMap) (*gopaypaypal.OrderDetailRsp, error)
+	PaymentCaptureRefund(ctx context.Context, captureID string, body gopay.BodyMap) (*gopaypaypal.PaymentCaptureRefundRsp, error)
+	PaymentRefundDetail(ctx context.Context, refundID string) (*gopaypaypal.PaymentRefundDetailRsp, error)
+}
+
+type paypalRequestHeaderClient interface {
+	SetRequestHeader(key string, defaultValue ...string)
+	ClearRequestHeader()
 }
 
 type clientFactory func(Config) (paypalClient, error)
@@ -217,6 +229,218 @@ func (p Provider) ParseNotify(ctx context.Context, req provider.NotifyRequest) (
 			"resource_raw": event.Resource,
 		},
 	}, nil
+}
+
+func (p Provider) QueryPayment(ctx context.Context, req provider.QueryPaymentRequest) (*provider.QueryPaymentResult, error) {
+	if req.Order == nil {
+		return nil, fmt.Errorf("paypal order is required")
+	}
+	client, _, err := p.operationsClient(req.ChannelAccount)
+	if err != nil {
+		return nil, err
+	}
+	providerOrderNo := strings.TrimSpace(req.Order.ProviderOrderNo)
+	if providerOrderNo == "" {
+		return nil, fmt.Errorf("paypal order id is required")
+	}
+	rsp, err := client.OrderDetail(ctx, providerOrderNo, nil)
+	if err != nil {
+		return nil, err
+	}
+	if rsp == nil || rsp.Code != gopaypaypal.Success {
+		return nil, paypalOrderDetailError(rsp)
+	}
+	if rsp.Response == nil {
+		return nil, fmt.Errorf("paypal order detail response is empty")
+	}
+	gatewayOrderNo, amount, currency, channelTradeNo, err := captureDetails(rsp.Response)
+	if err != nil {
+		return nil, err
+	}
+	if gatewayOrderNo == "" {
+		gatewayOrderNo = strings.TrimSpace(req.Order.GatewayOrderNo)
+	}
+	if channelTradeNo == "" {
+		channelTradeNo = strings.TrimSpace(req.Order.ChannelTradeNo)
+	}
+	return &provider.QueryPaymentResult{
+		Channel: "paypal", GatewayOrderNo: gatewayOrderNo, ProviderOrderNo: providerOrderNo,
+		ChannelTradeNo: channelTradeNo, Status: normalizePaypalOrderStatus(rsp.Response.Status),
+		Amount: amount, Currency: currency, FailureReason: strings.TrimSpace(rsp.Response.Status),
+		Raw: map[string]any{"paypal_order_id": rsp.Response.Id, "paypal_status": rsp.Response.Status},
+	}, nil
+}
+
+func (p Provider) CreateRefund(ctx context.Context, req provider.CreateRefundRequest) (*provider.RefundResult, error) {
+	client, headers, err := p.operationsClient(req.ChannelAccount)
+	if err != nil {
+		return nil, err
+	}
+	captureID := strings.TrimSpace(req.ChannelTradeNo)
+	if captureID == "" {
+		return nil, fmt.Errorf("paypal capture id is required")
+	}
+	refundNo := strings.TrimSpace(req.RefundNo)
+	if refundNo == "" {
+		return nil, fmt.Errorf("refund number is required")
+	}
+	headers.SetRequestHeader("PayPal-Request-Id", refundNo)
+	defer headers.ClearRequestHeader()
+	body := gopay.BodyMap{}
+	body.Set("amount", &gopaypaypal.Amount{CurrencyCode: strings.ToUpper(req.Currency), Value: formatAmount(req.Amount, req.Currency)}).
+		Set("invoice_id", refundNo)
+	if strings.TrimSpace(req.Reason) != "" {
+		body.Set("note_to_payer", strings.TrimSpace(req.Reason))
+	}
+	rsp, err := client.PaymentCaptureRefund(ctx, captureID, body)
+	if err != nil {
+		return nil, err
+	}
+	if rsp == nil || rsp.Code != gopaypaypal.Success {
+		return nil, paypalRefundError("create refund", refundResponseCode(rsp), refundErrorText(rsp))
+	}
+	if rsp.Response == nil {
+		return nil, fmt.Errorf("paypal refund response is empty")
+	}
+	return normalizePaypalRefund(refundNo, rsp.Response)
+}
+
+func (p Provider) QueryRefund(ctx context.Context, req provider.QueryRefundRequest) (*provider.RefundResult, error) {
+	client, _, err := p.operationsClient(req.ChannelAccount)
+	if err != nil {
+		return nil, err
+	}
+	channelRefundNo := strings.TrimSpace(req.ChannelRefundNo)
+	if channelRefundNo == "" {
+		return nil, fmt.Errorf("paypal refund id is required")
+	}
+	rsp, err := client.PaymentRefundDetail(ctx, channelRefundNo)
+	if err != nil {
+		return nil, err
+	}
+	if rsp == nil || rsp.Code != gopaypaypal.Success {
+		return nil, paypalRefundError("query refund", refundDetailResponseCode(rsp), refundDetailErrorText(rsp))
+	}
+	if rsp.Response == nil {
+		return nil, fmt.Errorf("paypal refund detail response is empty")
+	}
+	return normalizePaypalRefund(req.RefundNo, rsp.Response)
+}
+
+func (p Provider) operationsClient(account *ent.ChannelAccount) (paypalOperationsClient, paypalRequestHeaderClient, error) {
+	if account == nil {
+		return nil, nil, fmt.Errorf("paypal channel account is required")
+	}
+	cfg, err := ParseConfig(account.Config, account.Env)
+	if err != nil {
+		return nil, nil, err
+	}
+	client, err := p.newClient(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	operations, ok := client.(paypalOperationsClient)
+	if !ok {
+		return nil, nil, fmt.Errorf("paypal client does not support payment operations")
+	}
+	headers, ok := client.(paypalRequestHeaderClient)
+	if !ok {
+		return nil, nil, fmt.Errorf("paypal client does not support idempotency headers")
+	}
+	return operations, headers, nil
+}
+
+func normalizePaypalOrderStatus(value string) string {
+	switch strings.ToUpper(strings.TrimSpace(value)) {
+	case "COMPLETED":
+		return "paid"
+	case "VOIDED", "CANCELLED":
+		return "closed"
+	case "DENIED", "FAILED":
+		return "failed"
+	default:
+		return "pending"
+	}
+}
+
+func normalizePaypalRefund(fallbackRefundNo string, response *gopaypaypal.PaymentCaptureRefund) (*provider.RefundResult, error) {
+	amount := int64(0)
+	currency := ""
+	var err error
+	if response.Amount != nil {
+		currency = strings.ToUpper(strings.TrimSpace(response.Amount.CurrencyCode))
+		amount, err = parsePayPalAmount(response.Amount.Value, currency)
+		if err != nil {
+			return nil, err
+		}
+	}
+	refundNo := strings.TrimSpace(response.InvoiceId)
+	if refundNo == "" {
+		refundNo = strings.TrimSpace(fallbackRefundNo)
+	}
+	return &provider.RefundResult{
+		Channel: "paypal", RefundNo: refundNo, ChannelRefundNo: strings.TrimSpace(response.Id),
+		Status: normalizePaypalRefundStatus(response.Status), Amount: amount, Currency: currency,
+		FailureReason: strings.TrimSpace(response.Status),
+		Raw:           map[string]any{"paypal_refund_id": response.Id, "paypal_status": response.Status, "invoice_id": response.InvoiceId},
+	}, nil
+}
+
+func normalizePaypalRefundStatus(value string) string {
+	switch strings.ToUpper(strings.TrimSpace(value)) {
+	case "COMPLETED":
+		return "succeeded"
+	case "CANCELLED", "FAILED", "DENIED":
+		return "failed"
+	default:
+		return "pending"
+	}
+}
+
+func paypalOrderDetailError(rsp *gopaypaypal.OrderDetailRsp) error {
+	if rsp == nil {
+		return fmt.Errorf("paypal order detail failed: empty response")
+	}
+	message := strings.TrimSpace(rsp.Error)
+	if rsp.ErrorResponse != nil {
+		message = strings.TrimSpace(rsp.ErrorResponse.Name + ": " + rsp.ErrorResponse.Message + formatErrorDetails(rsp.ErrorResponse.Details))
+	}
+	return fmt.Errorf("paypal order detail failed: code=%d, %s", rsp.Code, message)
+}
+
+func paypalRefundError(action string, code int, detail string) error {
+	return fmt.Errorf("paypal %s failed: code=%d, %s", action, code, strings.TrimSpace(detail))
+}
+
+func refundResponseCode(rsp *gopaypaypal.PaymentCaptureRefundRsp) int {
+	if rsp == nil {
+		return 0
+	}
+	return rsp.Code
+}
+func refundErrorText(rsp *gopaypaypal.PaymentCaptureRefundRsp) string {
+	if rsp == nil {
+		return "empty response"
+	}
+	if rsp.ErrorResponse != nil {
+		return strings.TrimSpace(rsp.ErrorResponse.Name + ": " + rsp.ErrorResponse.Message + formatErrorDetails(rsp.ErrorResponse.Details))
+	}
+	return strings.TrimSpace(rsp.Error)
+}
+func refundDetailResponseCode(rsp *gopaypaypal.PaymentRefundDetailRsp) int {
+	if rsp == nil {
+		return 0
+	}
+	return rsp.Code
+}
+func refundDetailErrorText(rsp *gopaypaypal.PaymentRefundDetailRsp) string {
+	if rsp == nil {
+		return "empty response"
+	}
+	if rsp.ErrorResponse != nil {
+		return strings.TrimSpace(rsp.ErrorResponse.Name + ": " + rsp.ErrorResponse.Message + formatErrorDetails(rsp.ErrorResponse.Details))
+	}
+	return strings.TrimSpace(rsp.Error)
 }
 
 func newGopayClient(cfg Config) (paypalClient, error) {

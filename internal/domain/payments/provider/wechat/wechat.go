@@ -12,12 +12,20 @@ import (
 	"github.com/go-pay/gopay"
 	wechatv3 "github.com/go-pay/gopay/wechat/v3"
 
+	"payment-gateway/ent"
 	"payment-gateway/internal/domain/payments/provider"
 )
 
 type wechatClient interface {
 	V3TransactionNative(ctx context.Context, body gopay.BodyMap) (*wechatv3.NativeRsp, error)
 	V3TransactionH5(ctx context.Context, body gopay.BodyMap) (*wechatv3.H5Rsp, error)
+}
+
+type wechatOperationsClient interface {
+	V3TransactionQueryOrder(ctx context.Context, orderNoType wechatv3.OrderNoType, orderNo string) (*wechatv3.QueryOrderRsp, error)
+	V3TransactionCloseOrder(ctx context.Context, tradeNo string) (*wechatv3.EmptyRsp, error)
+	V3Refund(ctx context.Context, body gopay.BodyMap) (*wechatv3.RefundRsp, error)
+	V3RefundQuery(ctx context.Context, outRefundNo string, body gopay.BodyMap) (*wechatv3.RefundQueryRsp, error)
 }
 
 type clientFactory func(Config) (wechatClient, error)
@@ -164,6 +172,231 @@ func (p Provider) ParseNotify(ctx context.Context, req provider.NotifyRequest) (
 			"summary":     notifyReq.Summary,
 		},
 	}, nil
+}
+
+func (p Provider) QueryPayment(ctx context.Context, req provider.QueryPaymentRequest) (*provider.QueryPaymentResult, error) {
+	if req.Order == nil {
+		return nil, fmt.Errorf("wechat order is required")
+	}
+	client, err := p.operationsClient(req.ChannelAccount)
+	if err != nil {
+		return nil, err
+	}
+	rsp, err := client.V3TransactionQueryOrder(ctx, wechatv3.OutTradeNo, req.Order.GatewayOrderNo)
+	if err != nil {
+		return nil, err
+	}
+	if rsp == nil || rsp.Code != wechatv3.Success {
+		return nil, wechatResponseError("query order", wechatQueryCode(rsp), wechatQueryError(rsp))
+	}
+	if rsp.Response == nil {
+		return nil, fmt.Errorf("wechat query order response is empty")
+	}
+	amount := int64(0)
+	currency := "CNY"
+	if rsp.Response.Amount != nil {
+		amount = int64(rsp.Response.Amount.Total)
+		if strings.TrimSpace(rsp.Response.Amount.Currency) != "" {
+			currency = strings.ToUpper(strings.TrimSpace(rsp.Response.Amount.Currency))
+		}
+	}
+	return &provider.QueryPaymentResult{
+		Channel: "wechat", GatewayOrderNo: strings.TrimSpace(rsp.Response.OutTradeNo),
+		ProviderOrderNo: strings.TrimSpace(req.Order.ProviderOrderNo), ChannelTradeNo: strings.TrimSpace(rsp.Response.TransactionId),
+		Status: mapWechatTradeState(rsp.Response.TradeState), Amount: amount, Currency: currency,
+		FailureReason: strings.TrimSpace(rsp.Response.TradeStateDesc),
+		Raw:           map[string]any{"out_trade_no": rsp.Response.OutTradeNo, "transaction_id": rsp.Response.TransactionId, "trade_state": rsp.Response.TradeState, "trade_state_desc": rsp.Response.TradeStateDesc},
+	}, nil
+}
+
+func (p Provider) ClosePayment(ctx context.Context, req provider.ClosePaymentRequest) error {
+	if req.Order == nil {
+		return fmt.Errorf("wechat order is required")
+	}
+	client, err := p.operationsClient(req.ChannelAccount)
+	if err != nil {
+		return err
+	}
+	rsp, err := client.V3TransactionCloseOrder(ctx, req.Order.GatewayOrderNo)
+	if err != nil {
+		return err
+	}
+	if rsp == nil || rsp.Code != wechatv3.Success {
+		return wechatResponseError("close order", wechatEmptyCode(rsp), wechatEmptyError(rsp))
+	}
+	return nil
+}
+
+func (p Provider) CreateRefund(ctx context.Context, req provider.CreateRefundRequest) (*provider.RefundResult, error) {
+	if req.Amount <= 0 || req.OriginalAmount <= 0 {
+		return nil, fmt.Errorf("wechat refund and original amounts must be positive")
+	}
+	if !strings.EqualFold(strings.TrimSpace(req.Currency), "CNY") {
+		return nil, fmt.Errorf("wechat refunds only support CNY currency")
+	}
+	client, err := p.operationsClient(req.ChannelAccount)
+	if err != nil {
+		return nil, err
+	}
+	body := gopay.BodyMap{}
+	body.Set("out_trade_no", req.GatewayOrderNo).
+		Set("out_refund_no", req.RefundNo).
+		SetBodyMap("amount", func(amount gopay.BodyMap) {
+			amount.Set("refund", req.Amount).Set("total", req.OriginalAmount).Set("currency", "CNY")
+		})
+	if strings.TrimSpace(req.ChannelTradeNo) != "" {
+		body.Set("transaction_id", req.ChannelTradeNo)
+	}
+	if strings.TrimSpace(req.Reason) != "" {
+		body.Set("reason", strings.TrimSpace(req.Reason))
+	}
+	rsp, err := client.V3Refund(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	if rsp == nil || rsp.Code != wechatv3.Success {
+		return nil, wechatResponseError("refund", wechatRefundCode(rsp), wechatRefundError(rsp))
+	}
+	if rsp.Response == nil {
+		return nil, fmt.Errorf("wechat refund response is empty")
+	}
+	return normalizeWechatRefund(req.RefundNo, rsp.Response), nil
+}
+
+func (p Provider) QueryRefund(ctx context.Context, req provider.QueryRefundRequest) (*provider.RefundResult, error) {
+	client, err := p.operationsClient(req.ChannelAccount)
+	if err != nil {
+		return nil, err
+	}
+	rsp, err := client.V3RefundQuery(ctx, req.RefundNo, nil)
+	if err != nil {
+		return nil, err
+	}
+	if rsp == nil || rsp.Code != wechatv3.Success {
+		return nil, wechatResponseError("refund query", wechatRefundQueryCode(rsp), wechatRefundQueryError(rsp))
+	}
+	if rsp.Response == nil {
+		return nil, fmt.Errorf("wechat refund query response is empty")
+	}
+	return normalizeWechatRefundQuery(req.RefundNo, rsp.Response), nil
+}
+
+func (p Provider) operationsClient(account *ent.ChannelAccount) (wechatOperationsClient, error) {
+	if account == nil {
+		return nil, fmt.Errorf("wechat channel account is required")
+	}
+	cfg, err := ParseConfig(account.Config, account.Env)
+	if err != nil {
+		return nil, err
+	}
+	client, err := p.newClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+	operations, ok := client.(wechatOperationsClient)
+	if !ok {
+		return nil, fmt.Errorf("wechat client does not support payment operations")
+	}
+	return operations, nil
+}
+
+func normalizeWechatRefund(fallbackRefundNo string, response *wechatv3.RefundOrderResponse) *provider.RefundResult {
+	amount, currency := wechatRefundAmount(response.Amount)
+	refundNo := strings.TrimSpace(response.OutRefundNo)
+	if refundNo == "" {
+		refundNo = strings.TrimSpace(fallbackRefundNo)
+	}
+	return &provider.RefundResult{
+		Channel: "wechat", RefundNo: refundNo, ChannelRefundNo: strings.TrimSpace(response.RefundId),
+		Status: mapWechatRefundState(response.Status), Amount: amount, Currency: currency,
+		FailureReason: strings.TrimSpace(response.Status),
+		Raw:           map[string]any{"refund_id": response.RefundId, "out_refund_no": response.OutRefundNo, "out_trade_no": response.OutTradeNo, "transaction_id": response.TransactionId, "status": response.Status},
+	}
+}
+
+func normalizeWechatRefundQuery(fallbackRefundNo string, response *wechatv3.RefundQueryResponse) *provider.RefundResult {
+	amount, currency := wechatRefundAmount(response.Amount)
+	refundNo := strings.TrimSpace(response.OutRefundNo)
+	if refundNo == "" {
+		refundNo = strings.TrimSpace(fallbackRefundNo)
+	}
+	return &provider.RefundResult{
+		Channel: "wechat", RefundNo: refundNo, ChannelRefundNo: strings.TrimSpace(response.RefundId),
+		Status: mapWechatRefundState(response.Status), Amount: amount, Currency: currency,
+		FailureReason: strings.TrimSpace(response.Status),
+		Raw:           map[string]any{"refund_id": response.RefundId, "out_refund_no": response.OutRefundNo, "out_trade_no": response.OutTradeNo, "transaction_id": response.TransactionId, "status": response.Status},
+	}
+}
+
+func wechatRefundAmount(amount *wechatv3.RefundOrderAmount) (int64, string) {
+	if amount == nil {
+		return 0, "CNY"
+	}
+	currency := strings.ToUpper(strings.TrimSpace(amount.Currency))
+	if currency == "" {
+		currency = "CNY"
+	}
+	return int64(amount.Refund), currency
+}
+
+func mapWechatRefundState(value string) string {
+	switch strings.ToUpper(strings.TrimSpace(value)) {
+	case "SUCCESS":
+		return "succeeded"
+	case "CLOSED", "ABNORMAL":
+		return "failed"
+	default:
+		return "pending"
+	}
+}
+
+func wechatQueryCode(rsp *wechatv3.QueryOrderRsp) int {
+	if rsp == nil {
+		return 0
+	}
+	return rsp.Code
+}
+func wechatQueryError(rsp *wechatv3.QueryOrderRsp) string {
+	if rsp == nil {
+		return "empty response"
+	}
+	return formatWechatError(rsp.ErrResponse, rsp.Error)
+}
+func wechatEmptyCode(rsp *wechatv3.EmptyRsp) int {
+	if rsp == nil {
+		return 0
+	}
+	return rsp.Code
+}
+func wechatEmptyError(rsp *wechatv3.EmptyRsp) string {
+	if rsp == nil {
+		return "empty response"
+	}
+	return formatWechatError(rsp.ErrResponse, rsp.Error)
+}
+func wechatRefundCode(rsp *wechatv3.RefundRsp) int {
+	if rsp == nil {
+		return 0
+	}
+	return rsp.Code
+}
+func wechatRefundError(rsp *wechatv3.RefundRsp) string {
+	if rsp == nil {
+		return "empty response"
+	}
+	return formatWechatError(rsp.ErrResponse, rsp.Error)
+}
+func wechatRefundQueryCode(rsp *wechatv3.RefundQueryRsp) int {
+	if rsp == nil {
+		return 0
+	}
+	return rsp.Code
+}
+func wechatRefundQueryError(rsp *wechatv3.RefundQueryRsp) string {
+	if rsp == nil {
+		return "empty response"
+	}
+	return formatWechatError(rsp.ErrResponse, rsp.Error)
 }
 
 func wechatPublicKeyMap(cfg Config) (map[string]*rsa.PublicKey, error) {

@@ -14,11 +14,15 @@ import (
 )
 
 type fakeClient struct {
-	body       gopay.BodyMap
-	verifyBM   gopay.BodyMap
-	rsp        *gopaypaypal.CreateOrderRsp
-	captureRsp *gopaypaypal.OrderCaptureRsp
-	verifyRsp  *gopaypaypal.VerifyWebhookResponse
+	body            gopay.BodyMap
+	verifyBM        gopay.BodyMap
+	rsp             *gopaypaypal.CreateOrderRsp
+	captureRsp      *gopaypaypal.OrderCaptureRsp
+	verifyRsp       *gopaypaypal.VerifyWebhookResponse
+	detailRsp       *gopaypaypal.OrderDetailRsp
+	refundRsp       *gopaypaypal.PaymentCaptureRefundRsp
+	refundDetailRsp *gopaypaypal.PaymentRefundDetailRsp
+	requestHeaders  map[string]string
 }
 
 func (c *fakeClient) CreateOrder(ctx context.Context, body gopay.BodyMap) (*gopaypaypal.CreateOrderRsp, error) {
@@ -38,6 +42,72 @@ func (c *fakeClient) VerifyWebhookSignature(ctx context.Context, body gopay.Body
 	_ = ctx
 	c.verifyBM = body
 	return c.verifyRsp, nil
+}
+
+func (c *fakeClient) OrderDetail(ctx context.Context, orderID string, body gopay.BodyMap) (*gopaypaypal.OrderDetailRsp, error) {
+	return c.detailRsp, nil
+}
+
+func (c *fakeClient) PaymentCaptureRefund(ctx context.Context, captureID string, body gopay.BodyMap) (*gopaypaypal.PaymentCaptureRefundRsp, error) {
+	c.body = body
+	return c.refundRsp, nil
+}
+
+func (c *fakeClient) PaymentRefundDetail(ctx context.Context, refundID string) (*gopaypaypal.PaymentRefundDetailRsp, error) {
+	return c.refundDetailRsp, nil
+}
+
+func (c *fakeClient) SetRequestHeader(key string, values ...string) {
+	if c.requestHeaders == nil {
+		c.requestHeaders = map[string]string{}
+	}
+	value := ""
+	if len(values) > 0 {
+		value = values[0]
+	}
+	c.requestHeaders[key] = value
+}
+
+func (c *fakeClient) ClearRequestHeader() {}
+
+func TestQueryPaymentNormalizesCompletedPaypalOrder(t *testing.T) {
+	client := &fakeClient{detailRsp: &gopaypaypal.OrderDetailRsp{Code: gopaypaypal.Success, Response: &gopaypaypal.OrderDetail{Id: "PP_ORDER_1", Status: "COMPLETED", PurchaseUnits: []*gopaypaypal.PurchaseUnit{{CustomId: "gw_1", Payments: &gopaypaypal.Payments{Captures: []*gopaypaypal.Capture{{Id: "CAPTURE_1", Status: "COMPLETED", Amount: &gopaypaypal.Amount{CurrencyCode: "USD", Value: "99.00"}}}}}}}}}
+	p := NewWithClientFactory(func(Config) (paypalClient, error) { return client, nil })
+	result, err := p.QueryPayment(context.Background(), provider.QueryPaymentRequest{ChannelAccount: paypalAccount(), Order: &ent.PaymentOrder{GatewayOrderNo: "gw_1", ProviderOrderNo: "PP_ORDER_1", Amount: 9900, Currency: "USD"}})
+	if err != nil {
+		t.Fatalf("QueryPayment() error = %v", err)
+	}
+	if result.Status != "paid" || result.ChannelTradeNo != "CAPTURE_1" || result.Amount != 9900 {
+		t.Fatalf("result = %#v, want completed PayPal capture", result)
+	}
+}
+
+func TestCreateRefundSetsPaypalRequestID(t *testing.T) {
+	client := &fakeClient{refundRsp: &gopaypaypal.PaymentCaptureRefundRsp{Code: gopaypaypal.Success, Response: &gopaypaypal.PaymentCaptureRefund{Id: "PP_REFUND_1", Status: "COMPLETED", Amount: &gopaypaypal.Amount{CurrencyCode: "USD", Value: "12.34"}}}}
+	p := NewWithClientFactory(func(Config) (paypalClient, error) { return client, nil })
+	result, err := p.CreateRefund(context.Background(), provider.CreateRefundRequest{ChannelAccount: paypalAccount(), GatewayOrderNo: "gw_1", ChannelTradeNo: "CAPTURE_1", RefundNo: "rf_1", Amount: 1234, Currency: "USD"})
+	if err != nil {
+		t.Fatalf("CreateRefund() error = %v", err)
+	}
+	if result.Status != "succeeded" || result.ChannelRefundNo != "PP_REFUND_1" || client.requestHeaders["PayPal-Request-Id"] != "rf_1" {
+		t.Fatalf("result=%#v headers=%#v, want idempotent completed refund", result, client.requestHeaders)
+	}
+}
+
+func TestQueryRefundNormalizesPendingPaypalRefund(t *testing.T) {
+	client := &fakeClient{refundDetailRsp: &gopaypaypal.PaymentRefundDetailRsp{Code: gopaypaypal.Success, Response: &gopaypaypal.PaymentCaptureRefund{Id: "PP_REFUND_1", Status: "PENDING", InvoiceId: "rf_1", Amount: &gopaypaypal.Amount{CurrencyCode: "USD", Value: "12.34"}}}}
+	p := NewWithClientFactory(func(Config) (paypalClient, error) { return client, nil })
+	result, err := p.QueryRefund(context.Background(), provider.QueryRefundRequest{ChannelAccount: paypalAccount(), RefundNo: "rf_1", ChannelRefundNo: "PP_REFUND_1"})
+	if err != nil {
+		t.Fatalf("QueryRefund() error = %v", err)
+	}
+	if result.Status != "pending" || result.Amount != 1234 || result.ChannelRefundNo != "PP_REFUND_1" {
+		t.Fatalf("result = %#v, want pending refund query", result)
+	}
+}
+
+func paypalAccount() *ent.ChannelAccount {
+	return &ent.ChannelAccount{Channel: "paypal", Env: "sandbox", Config: map[string]any{"client_id": "client", "client_secret": "secret"}}
 }
 
 func TestParseConfigRequiresClientID(t *testing.T) {

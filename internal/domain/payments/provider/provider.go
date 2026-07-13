@@ -78,3 +78,76 @@ type NotifyProvider interface {
 	Provider
 	ParseNotify(ctx context.Context, req NotifyRequest) (*NotifyResult, error)
 }
+
+type QueryPaymentRequest struct {
+	ChannelAccount *ent.ChannelAccount
+	Order          *ent.PaymentOrder
+}
+
+type QueryPaymentResult struct {
+	Channel         string
+	GatewayOrderNo  string
+	ProviderOrderNo string
+	ChannelTradeNo  string
+	Status          string
+	Amount          int64
+	Currency        string
+	FailureReason   string
+	Raw             map[string]any
+}
+
+type QueryProvider interface {
+	Provider
+	QueryPayment(ctx context.Context, req QueryPaymentRequest) (*QueryPaymentResult, error)
+}
+
+type ClosePaymentRequest struct {
+	ChannelAccount *ent.ChannelAccount
+	Order          *ent.PaymentOrder
+}
+
+type CloseProvider interface {
+	Provider
+	ClosePayment(ctx context.Context, req ClosePaymentRequest) error
+}
+
+type CreateRefundRequest struct {
+	ChannelAccount  *ent.ChannelAccount
+	GatewayOrderNo  string
+	ProviderOrderNo string
+	ChannelTradeNo  string
+	RefundNo        string
+	Amount          int64
+	OriginalAmount  int64
+	Currency        string
+	Reason          string
+}
+
+type QueryRefundRequest struct {
+	ChannelAccount  *ent.ChannelAccount
+	GatewayOrderNo  string
+	ChannelTradeNo  string
+	RefundNo        string
+	ChannelRefundNo string
+}
+
+type RefundResult struct {
+	Channel         string
+	RefundNo        string
+	ChannelRefundNo string
+	Status          string
+	Amount          int64
+	Currency        string
+	FailureReason   string
+	Raw             map[string]any
+}
+
+type RefundProvider interface {
+	Provider
+	CreateRefund(ctx context.Context, req CreateRefundRequest) (*RefundResult, error)
+}
+
+type RefundQueryProvider interface {
+	Provider
+	QueryRefund(ctx context.Context, req QueryRefundRequest) (*RefundResult, error)
+}
