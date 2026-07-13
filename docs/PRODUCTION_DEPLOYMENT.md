@@ -280,6 +280,9 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d --bui
 - 创建测试订单后能打开收银台。
 - 支付成功后能进入网关结果页，并跳转到商户返回地址。
 - Webhook 中心能看到业务通知投递记录。
+- 支付补偿页面能看到 `pending`、`processing`、`resolved` 和 `manual_required` 任务。
+- 退款中心能创建退款、查看渠道退款号并重试未完成退款。
+- Redis 中存在 `payment:reconciliations` 和 `refund:processing` 消费组。
 
 ## 11. 常见问题
 

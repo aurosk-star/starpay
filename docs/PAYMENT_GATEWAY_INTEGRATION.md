@@ -278,6 +278,17 @@ POST /v1/channel/notify?channel=paypal&channel_account_id={channel_account_id}
 
 ## 9. 业务 Webhook
 
+所有新事件都包含资源幂等字段：
+
+```json
+{
+  "resource_type": "payment_order",
+  "resource_id": "gw_..."
+}
+```
+
+退款事件使用 `resource_type=refund`、`resource_id=refund_no`，同一支付订单的多次退款不会互相去重。
+
 网关向业务方 `notify_url` 投递事件。
 
 ### 9.1 支付成功
@@ -350,7 +361,11 @@ POST /v1/channel/notify?channel=paypal&channel_account_id={channel_account_id}
 }
 ```
 
-### 9.4 请求头
+### 9.4 退款事件
+
+退款成功投递 `refund.succeeded`，退款失败投递 `refund.failed`。关键字段包括 `refund_no`、`merchant_refund_no`、`gateway_order_no`、整数最小单位金额、币种、渠道交易号和渠道退款号。
+
+### 9.5 请求头
 
 ```text
 X-Pay-Gateway-Event-Id
@@ -360,9 +375,9 @@ X-Pay-Gateway-Event-Type
 X-Pay-Gateway-Delivery-No
 ```
 
-### 9.5 幂等要求
+### 9.6 幂等要求
 
-业务方必须按 `event_id` 或 `gateway_order_no` 做幂等处理。
+业务方必须按 `event_id` 做幂等处理。
 
 验签方式：
 
@@ -374,7 +389,33 @@ signature = HMAC-SHA256(app_secret, timestamp + "." + raw_body)
 
 业务方成功处理后返回任意 2xx 状态码即可。非 2xx 或网络错误会进入重试。
 
-## 10. 支持的渠道与币种
+## 10. 退款 API
+
+```text
+POST /v1/open/refunds
+GET  /v1/open/refunds/:refund_no
+GET  /v1/open/refunds/by-merchant/:merchant_refund_no
+```
+
+创建参数示例：
+
+```json
+{
+  "gateway_order_no": "gw_...",
+  "merchant_refund_no": "merchant_refund_001",
+  "amount": 9900,
+  "currency": "CNY",
+  "reason": "duplicate purchase"
+}
+```
+
+只允许已支付订单退款。`pending` 和 `succeeded` 退款都会占用可退额度；同一 `merchant_refund_no` 参数一致时返回原退款单，参数冲突返回 `IDEMPOTENCY_CONFLICT`。
+
+## 11. 主动查单补偿
+
+支付发起成功后网关创建补偿记录。Worker 在回调缺失时主动查询支付宝、微信或 PayPal，并修正本地 `paid`、`failed`、`closed` 状态。连续八次无法确认后进入 `manual_required`，管理员可在支付补偿页面立即重试。
+
+## 12. 支持的渠道与币种
 
 当前内置校验：
 
@@ -384,7 +425,7 @@ signature = HMAC-SHA256(app_secret, timestamp + "." + raw_body)
 
 如果订单创建时指定 `channel` 或 `pay_method`，网关会校验币种是否匹配。不指定时，收银台只展示可用且匹配币种的渠道。
 
-## 11. 推荐对接流程
+## 13. 推荐对接流程
 
 1. 业务方创建订单。
 2. 业务方调用收银台发起支付。
@@ -394,7 +435,7 @@ signature = HMAC-SHA256(app_secret, timestamp + "." + raw_body)
 6. 网关投递 `payment.succeeded` webhook。
 7. 业务方确认后发放权益。
 
-## 12. 过期订单
+## 14. 过期订单
 
 订单未支付且超过有效期后：
 
@@ -407,7 +448,7 @@ signature = HMAC-SHA256(app_secret, timestamp + "." + raw_body)
 - 前端状态刷新
 - 资源释放
 
-## 13. 常见错误
+## 15. 常见错误
 
 | 错误码 | HTTP | 场景 | 建议处理 |
 | --- | --- | --- | --- |
@@ -448,7 +489,7 @@ signature = HMAC-SHA256(app_secret, timestamp + "." + raw_body)
 }
 ```
 
-## 14. 接入验收清单
+## 16. 接入验收清单
 
 - 能成功创建订单。
 - 重复创建相同业务单号时返回原订单。
@@ -459,7 +500,7 @@ signature = HMAC-SHA256(app_secret, timestamp + "." + raw_body)
 - webhook 能按事件 ID 幂等。
 - webhook 签名校验失败时拒绝处理。
 
-## 15. 测试建议
+## 17. 测试建议
 
 推荐先跑最小链路：
 
@@ -471,7 +512,7 @@ signature = HMAC-SHA256(app_secret, timestamp + "." + raw_body)
 
 测试支付页面可用于联调，生产环境请改为真实业务返回页。
 
-## 16. Go SDK
+## 18. Go SDK
 
 业务服务可以直接引入 Go SDK：
 

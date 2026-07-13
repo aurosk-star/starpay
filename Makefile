@@ -1,10 +1,21 @@
-.PHONY: dev test tidy ent-up db-up db-down compose-up compose-down compose-logs web-dev web-build web-typecheck
+.PHONY: dev test sdk-test web-test verify tidy ent-up db-up db-down compose-up compose-down compose-logs web-dev web-build web-typecheck
 
 dev:
 	go run ./cmd/server
 
 test:
 	go test ./...
+	cd sdk/go && go test -count=1 ./...
+
+sdk-test:
+	cd sdk/go && go test -count=1 ./...
+
+web-test:
+	cd web && node --test test/*.test.mts
+
+verify: test web-test web-typecheck web-build
+	cd sdk/go && go vet ./...
+	cd web && bun run lint
 
 tidy:
 	go mod tidy

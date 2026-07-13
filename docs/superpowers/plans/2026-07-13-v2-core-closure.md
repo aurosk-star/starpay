@@ -454,7 +454,7 @@ git commit -m "Add refund and reconciliation admin workflows"
 - Produces: `make web-test` and `make verify`.
 - Changes `make test` to include root Go tests and SDK Go tests.
 
-- [ ] **Step 1: Update Make targets**
+- [x] **Step 1: Update Make targets**
 
 ```make
 test:
@@ -469,11 +469,11 @@ verify: test web-test web-typecheck web-build
 	cd web && bun run lint
 ```
 
-- [ ] **Step 2: Document reconciliation, refunds, events, retries, and operations**
+- [x] **Step 2: Document reconciliation, refunds, events, retries, and operations**
 
 Add exact Open API examples, webhook payloads, retry/manual recovery behavior, required PayPal/WeChat configuration, and deployment migration order. Mark only implemented V2 acceptance items complete.
 
-- [ ] **Step 3: Run fresh full verification**
+- [x] **Step 3: Run fresh full verification**
 
 ```bash
 make verify
@@ -482,7 +482,7 @@ git diff --check
 
 Expected: every command exits 0.
 
-- [ ] **Step 4: Build and restart the backend from the latest binary**
+- [x] **Step 4: Build and restart the backend from the latest binary**
 
 ```bash
 go build -o .tmp/payment-gateway-server ./cmd/server
@@ -491,7 +491,7 @@ systemctl --user restart payment-gateway-dev.service
 
 Verify the running `/proc/<pid>/exe` hash matches `.tmp/payment-gateway-server`, `/healthz` returns 200, and refund/reconciliation routes are registered.
 
-- [ ] **Step 5: Commit final integration documentation**
+- [x] **Step 5: Commit final integration documentation**
 
 ```bash
 git add Makefile docs
