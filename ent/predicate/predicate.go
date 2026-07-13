@@ -27,6 +27,9 @@ type PaymentReconciliation func(*sql.Selector)
 // RefreshToken is the predicate function for refreshtoken builders.
 type RefreshToken func(*sql.Selector)
 
+// Refund is the predicate function for refund builders.
+type Refund func(*sql.Selector)
+
 // Role is the predicate function for role builders.
 type Role func(*sql.Selector)
 

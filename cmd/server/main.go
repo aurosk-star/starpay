@@ -19,6 +19,7 @@ import (
 	wechatprovider "payment-gateway/internal/domain/payments/provider/wechat"
 	paymentsvc "payment-gateway/internal/domain/payments/service"
 	reconciliationsvc "payment-gateway/internal/domain/reconciliations/service"
+	refundsvc "payment-gateway/internal/domain/refunds/service"
 	webhooksvc "payment-gateway/internal/domain/webhooks/service"
 	"payment-gateway/internal/platform/cache"
 	"payment-gateway/internal/platform/config"
@@ -84,6 +85,15 @@ func main() {
 	reconciliationWorker := reconciliationsvc.NewWorker(reconciliationService, redisClient, cfg.App.Name+"-reconciliation")
 	go reconciliationWorker.Run(ctx)
 	go reconciliationWorker.RunScanner(ctx, 30*time.Second, 100)
+	refundService := refundsvc.New(db,
+		refundsvc.WithDialect(cfg.Database.Driver),
+		refundsvc.WithPaymentGateway(paymentService),
+		refundsvc.WithWebhookService(webhookService),
+		refundsvc.WithEnqueuer(refundsvc.NewRedisEnqueuer(redisClient)),
+	)
+	refundWorker := refundsvc.NewWorker(refundService, redisClient, cfg.App.Name+"-refund")
+	go refundWorker.Run(ctx)
+	go refundWorker.RunScanner(ctx, 30*time.Second, 100)
 	orderWorker := ordersvc.NewWorker(orderService, redisClient, cfg.App.Name)
 	go orderWorker.RunExpireScannerWithResolver(ctx, cfg.Orders.ExpireScanInterval, cfg.Orders.ExpireScanLimit, func(ctx context.Context) (ordersvc.ExpireScannerConfig, error) {
 		interval, limit, err := configService.OrderExpireScanConfig(ctx)

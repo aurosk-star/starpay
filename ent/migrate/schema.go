@@ -256,6 +256,95 @@ var (
 			},
 		},
 	}
+	// RefundsColumns holds the columns for the "refunds" table.
+	RefundsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "refund_no", Type: field.TypeString, Unique: true},
+		{Name: "app_id", Type: field.TypeString},
+		{Name: "payment_order_id", Type: field.TypeInt},
+		{Name: "gateway_order_no", Type: field.TypeString},
+		{Name: "merchant_order_no", Type: field.TypeString},
+		{Name: "merchant_refund_no", Type: field.TypeString},
+		{Name: "channel", Type: field.TypeString},
+		{Name: "channel_account_id", Type: field.TypeInt},
+		{Name: "provider_order_no", Type: field.TypeString, Nullable: true},
+		{Name: "channel_trade_no", Type: field.TypeString},
+		{Name: "channel_refund_no", Type: field.TypeString, Nullable: true},
+		{Name: "amount", Type: field.TypeInt64},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "reason", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeString, Default: "pending"},
+		{Name: "failure_reason", Type: field.TypeString, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
+		{Name: "provider_snapshot", Type: field.TypeJSON, Nullable: true},
+		{Name: "attempt_count", Type: field.TypeInt, Default: 0},
+		{Name: "next_attempt_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_attempt_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_error", Type: field.TypeString, Nullable: true},
+		{Name: "succeeded_at", Type: field.TypeTime, Nullable: true},
+		{Name: "failed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "closed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// RefundsTable holds the schema information for the "refunds" table.
+	RefundsTable = &schema.Table{
+		Name:       "refunds",
+		Columns:    RefundsColumns,
+		PrimaryKey: []*schema.Column{RefundsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "refund_app_id_merchant_refund_no",
+				Unique:  true,
+				Columns: []*schema.Column{RefundsColumns[2], RefundsColumns[6]},
+			},
+			{
+				Name:    "refund_app_id",
+				Unique:  false,
+				Columns: []*schema.Column{RefundsColumns[2]},
+			},
+			{
+				Name:    "refund_payment_order_id",
+				Unique:  false,
+				Columns: []*schema.Column{RefundsColumns[3]},
+			},
+			{
+				Name:    "refund_gateway_order_no",
+				Unique:  false,
+				Columns: []*schema.Column{RefundsColumns[4]},
+			},
+			{
+				Name:    "refund_merchant_order_no",
+				Unique:  false,
+				Columns: []*schema.Column{RefundsColumns[5]},
+			},
+			{
+				Name:    "refund_channel",
+				Unique:  false,
+				Columns: []*schema.Column{RefundsColumns[7]},
+			},
+			{
+				Name:    "refund_channel_account_id",
+				Unique:  false,
+				Columns: []*schema.Column{RefundsColumns[8]},
+			},
+			{
+				Name:    "refund_channel_refund_no",
+				Unique:  false,
+				Columns: []*schema.Column{RefundsColumns[11]},
+			},
+			{
+				Name:    "refund_status_next_attempt_at",
+				Unique:  false,
+				Columns: []*schema.Column{RefundsColumns[15], RefundsColumns[20]},
+			},
+			{
+				Name:    "refund_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{RefundsColumns[26]},
+			},
+		},
+	}
 	// RolesColumns holds the columns for the "roles" table.
 	RolesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -558,6 +647,7 @@ var (
 		PaymentOrdersTable,
 		PaymentReconciliationsTable,
 		RefreshTokensTable,
+		RefundsTable,
 		RolesTable,
 		RoutingRulesTable,
 		RoutingTargetsTable,

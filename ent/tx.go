@@ -26,6 +26,8 @@ type Tx struct {
 	PaymentReconciliation *PaymentReconciliationClient
 	// RefreshToken is the client for interacting with the RefreshToken builders.
 	RefreshToken *RefreshTokenClient
+	// Refund is the client for interacting with the Refund builders.
+	Refund *RefundClient
 	// Role is the client for interacting with the Role builders.
 	Role *RoleClient
 	// RoutingRule is the client for interacting with the RoutingRule builders.
@@ -176,6 +178,7 @@ func (tx *Tx) init() {
 	tx.PaymentOrder = NewPaymentOrderClient(tx.config)
 	tx.PaymentReconciliation = NewPaymentReconciliationClient(tx.config)
 	tx.RefreshToken = NewRefreshTokenClient(tx.config)
+	tx.Refund = NewRefundClient(tx.config)
 	tx.Role = NewRoleClient(tx.config)
 	tx.RoutingRule = NewRoutingRuleClient(tx.config)
 	tx.RoutingTarget = NewRoutingTargetClient(tx.config)

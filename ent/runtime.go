@@ -9,6 +9,7 @@ import (
 	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/paymentreconciliation"
 	"payment-gateway/ent/refreshtoken"
+	"payment-gateway/ent/refund"
 	"payment-gateway/ent/role"
 	"payment-gateway/ent/routingrule"
 	"payment-gateway/ent/routingtarget"
@@ -169,6 +170,26 @@ func init() {
 	refreshtokenDescCreatedAt := refreshtokenFields[6].Descriptor()
 	// refreshtoken.DefaultCreatedAt holds the default value on creation for the created_at field.
 	refreshtoken.DefaultCreatedAt = refreshtokenDescCreatedAt.Default.(func() time.Time)
+	refundFields := schema.Refund{}.Fields()
+	_ = refundFields
+	// refundDescStatus is the schema descriptor for status field.
+	refundDescStatus := refundFields[14].Descriptor()
+	// refund.DefaultStatus holds the default value on creation for the status field.
+	refund.DefaultStatus = refundDescStatus.Default.(string)
+	// refundDescAttemptCount is the schema descriptor for attempt_count field.
+	refundDescAttemptCount := refundFields[18].Descriptor()
+	// refund.DefaultAttemptCount holds the default value on creation for the attempt_count field.
+	refund.DefaultAttemptCount = refundDescAttemptCount.Default.(int)
+	// refundDescCreatedAt is the schema descriptor for created_at field.
+	refundDescCreatedAt := refundFields[25].Descriptor()
+	// refund.DefaultCreatedAt holds the default value on creation for the created_at field.
+	refund.DefaultCreatedAt = refundDescCreatedAt.Default.(func() time.Time)
+	// refundDescUpdatedAt is the schema descriptor for updated_at field.
+	refundDescUpdatedAt := refundFields[26].Descriptor()
+	// refund.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	refund.DefaultUpdatedAt = refundDescUpdatedAt.Default.(func() time.Time)
+	// refund.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	refund.UpdateDefaultUpdatedAt = refundDescUpdatedAt.UpdateDefault.(func() time.Time)
 	roleFields := schema.Role{}.Fields()
 	_ = roleFields
 	// roleDescStatus is the schema descriptor for status field.

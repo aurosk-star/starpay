@@ -35,6 +35,9 @@ import (
 	reconciliationhandler "payment-gateway/internal/domain/reconciliations/handler"
 	reconciliationrouter "payment-gateway/internal/domain/reconciliations/router"
 	reconciliationsvc "payment-gateway/internal/domain/reconciliations/service"
+	refundhandler "payment-gateway/internal/domain/refunds/handler"
+	refundrouter "payment-gateway/internal/domain/refunds/router"
+	refundsvc "payment-gateway/internal/domain/refunds/service"
 	routinghandler "payment-gateway/internal/domain/routing/handler"
 	routingrouter "payment-gateway/internal/domain/routing/router"
 	routingsvc "payment-gateway/internal/domain/routing/service"
@@ -66,6 +69,7 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 			{Name: "orders", Stream: ordersvc.OrderExpirationStreamName(), Group: ordersvc.OrderExpirationWorkerGroup()},
 			{Name: "webhooks", Stream: webhooksvc.WebhookStreamName(), Group: webhooksvc.WebhookWorkerGroup()},
 			{Name: "reconciliations", Stream: reconciliationsvc.ReconciliationStreamName(), Group: reconciliationsvc.ReconciliationWorkerGroup()},
+			{Name: "refunds", Stream: refundsvc.RefundStreamName(), Group: refundsvc.RefundWorkerGroup()},
 		}),
 	)
 	monitorrouter.Register(router.Group("/v1/admin"), monitorhandler.New(monitorService), userService, enforcer)
@@ -121,6 +125,8 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 		reconciliationsvc.WithEnqueuer(reconciliationsvc.NewRedisEnqueuer(redisClient)),
 	)
 	reconciliationrouter.Register(router.Group("/v1/admin"), reconciliationhandler.New(reconciliationService), userService, enforcer)
+	refundService := refundsvc.New(client, refundsvc.WithDialect(cfg.Database.Driver), refundsvc.WithPaymentGateway(paymentService), refundsvc.WithWebhookService(webhookService), refundsvc.WithEnqueuer(refundsvc.NewRedisEnqueuer(redisClient)))
+	refundrouter.Register(router.Group("/v1/admin"), refundhandler.NewAdmin(refundService), userService, enforcer)
 	paymentrouter.RegisterNotify(router.Group("/v1/channel"), paymenthandler.NewNotify(paymentService, orderService))
 	orderrouter.RegisterCheckout(router.Group("/v1/checkout"), orderhandler.NewCheckout(
 		orderService,
@@ -184,6 +190,7 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 		})
 	})
 	orderrouter.RegisterOpen(open, orderhandler.NewOpen(orderService, orderhandler.WithCheckoutURLResolver(checkoutURLResolver)))
+	refundrouter.RegisterOpen(open, refundhandler.NewOpen(refundService))
 
 	return router
 }

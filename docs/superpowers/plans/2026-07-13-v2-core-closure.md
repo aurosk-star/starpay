@@ -255,7 +255,7 @@ After checkout persists payment selection and provider order number, call `Ensur
 
 Register `/v1/admin/payment-reconciliations` routes with RBAC. Start scanner and consumers in `cmd/server/main.go`, and add the stream to monitoring queue targets.
 
-- [ ] **Step 7: Regenerate Ent, run tests, and commit**
+- [x] **Step 7: Regenerate Ent, run tests, and commit**
 
 ```bash
 make ent-up
@@ -292,33 +292,33 @@ git commit -m "Add payment reconciliation workers"
 - Produces: `refund.succeeded` and `refund.failed` resource events.
 - Redis stream: `refund:processing`; group: `refund-processing-workers`.
 
-- [ ] **Step 1: Write failing refund validation and idempotency tests**
+- [x] **Step 1: Write failing refund validation and idempotency tests**
 
 Cover paid-only validation, positive amount, currency match, app ownership, exact idempotent replay, conflicting replay, partial refunds, aggregate over-refund, pending reservation, failed reservation release, and two concurrent requests that cannot exceed the paid amount.
 
-- [ ] **Step 2: Run refund tests and verify missing domain failure**
+- [x] **Step 2: Run refund tests and verify missing domain failure**
 
 Run: `go test ./internal/domain/refunds/test`
 
 Expected: FAIL because refund schema and service do not exist.
 
-- [ ] **Step 3: Add refund schema and transactional reservation repository**
+- [x] **Step 3: Add refund schema and transactional reservation repository**
 
 Use a transaction and lock the payment order for PostgreSQL/MySQL before summing `pending` and `succeeded` refunds. SQLite tests use the transaction without `FOR UPDATE`. Create the pending refund before any provider request.
 
-- [ ] **Step 4: Implement refund service state transitions**
+- [x] **Step 4: Implement refund service state transitions**
 
 `Create` performs validation/reservation then invokes provider creation with the persisted refund. Network ambiguity remains pending. `Process` repeats creation with the same refund number when no channel refund ID exists, otherwise queries. Terminal updates are idempotent and emit exactly one resource-aware webhook event.
 
-- [ ] **Step 5: Add workers and API handlers**
+- [x] **Step 5: Add workers and API handlers**
 
 Use signed Open API app context for app-scoped create and reads. Admin create accepts `gateway_order_no`, `merchant_refund_no`, amount, reason, and metadata. Retry resets failed or unresolved records to pending and enqueues immediately.
 
-- [ ] **Step 6: Wire routes, workers, monitoring, and webhook filters**
+- [x] **Step 6: Wire routes, workers, monitoring, and webhook filters**
 
 Register refund routes after the Open API middleware and under the protected admin group. Start scanner/consumers and expose the refund stream in monitoring.
 
-- [ ] **Step 7: Regenerate Ent and verify refund/webhook tests**
+- [x] **Step 7: Regenerate Ent and verify refund/webhook tests**
 
 ```bash
 make ent-up

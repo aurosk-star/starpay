@@ -13,6 +13,7 @@ import (
 	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/paymentreconciliation"
 	"payment-gateway/ent/refreshtoken"
+	"payment-gateway/ent/refund"
 	"payment-gateway/ent/role"
 	"payment-gateway/ent/routingrule"
 	"payment-gateway/ent/routingtarget"
@@ -92,6 +93,7 @@ func checkColumn(t, c string) error {
 			paymentorder.Table:          paymentorder.ValidColumn,
 			paymentreconciliation.Table: paymentreconciliation.ValidColumn,
 			refreshtoken.Table:          refreshtoken.ValidColumn,
+			refund.Table:                refund.ValidColumn,
 			role.Table:                  role.ValidColumn,
 			routingrule.Table:           routingrule.ValidColumn,
 			routingtarget.Table:         routingtarget.ValidColumn,

@@ -18,6 +18,7 @@ import (
 	"payment-gateway/ent/paymentorder"
 	"payment-gateway/ent/paymentreconciliation"
 	"payment-gateway/ent/refreshtoken"
+	"payment-gateway/ent/refund"
 	"payment-gateway/ent/role"
 	"payment-gateway/ent/routingrule"
 	"payment-gateway/ent/routingtarget"
@@ -50,6 +51,8 @@ type Client struct {
 	PaymentReconciliation *PaymentReconciliationClient
 	// RefreshToken is the client for interacting with the RefreshToken builders.
 	RefreshToken *RefreshTokenClient
+	// Refund is the client for interacting with the Refund builders.
+	Refund *RefundClient
 	// Role is the client for interacting with the Role builders.
 	Role *RoleClient
 	// RoutingRule is the client for interacting with the RoutingRule builders.
@@ -80,6 +83,7 @@ func (c *Client) init() {
 	c.PaymentOrder = NewPaymentOrderClient(c.config)
 	c.PaymentReconciliation = NewPaymentReconciliationClient(c.config)
 	c.RefreshToken = NewRefreshTokenClient(c.config)
+	c.Refund = NewRefundClient(c.config)
 	c.Role = NewRoleClient(c.config)
 	c.RoutingRule = NewRoutingRuleClient(c.config)
 	c.RoutingTarget = NewRoutingTargetClient(c.config)
@@ -185,6 +189,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PaymentOrder:          NewPaymentOrderClient(cfg),
 		PaymentReconciliation: NewPaymentReconciliationClient(cfg),
 		RefreshToken:          NewRefreshTokenClient(cfg),
+		Refund:                NewRefundClient(cfg),
 		Role:                  NewRoleClient(cfg),
 		RoutingRule:           NewRoutingRuleClient(cfg),
 		RoutingTarget:         NewRoutingTargetClient(cfg),
@@ -217,6 +222,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PaymentOrder:          NewPaymentOrderClient(cfg),
 		PaymentReconciliation: NewPaymentReconciliationClient(cfg),
 		RefreshToken:          NewRefreshTokenClient(cfg),
+		Refund:                NewRefundClient(cfg),
 		Role:                  NewRoleClient(cfg),
 		RoutingRule:           NewRoutingRuleClient(cfg),
 		RoutingTarget:         NewRoutingTargetClient(cfg),
@@ -253,7 +259,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.App, c.CasbinRule, c.ChannelAccount, c.GatewayConfig, c.PaymentOrder,
-		c.PaymentReconciliation, c.RefreshToken, c.Role, c.RoutingRule,
+		c.PaymentReconciliation, c.RefreshToken, c.Refund, c.Role, c.RoutingRule,
 		c.RoutingTarget, c.User, c.WebhookDelivery, c.WebhookEvent,
 	} {
 		n.Use(hooks...)
@@ -265,7 +271,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.App, c.CasbinRule, c.ChannelAccount, c.GatewayConfig, c.PaymentOrder,
-		c.PaymentReconciliation, c.RefreshToken, c.Role, c.RoutingRule,
+		c.PaymentReconciliation, c.RefreshToken, c.Refund, c.Role, c.RoutingRule,
 		c.RoutingTarget, c.User, c.WebhookDelivery, c.WebhookEvent,
 	} {
 		n.Intercept(interceptors...)
@@ -289,6 +295,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PaymentReconciliation.mutate(ctx, m)
 	case *RefreshTokenMutation:
 		return c.RefreshToken.mutate(ctx, m)
+	case *RefundMutation:
+		return c.Refund.mutate(ctx, m)
 	case *RoleMutation:
 		return c.Role.mutate(ctx, m)
 	case *RoutingRuleMutation:
@@ -1253,6 +1261,139 @@ func (c *RefreshTokenClient) mutate(ctx context.Context, m *RefreshTokenMutation
 	}
 }
 
+// RefundClient is a client for the Refund schema.
+type RefundClient struct {
+	config
+}
+
+// NewRefundClient returns a client for the Refund from the given config.
+func NewRefundClient(c config) *RefundClient {
+	return &RefundClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `refund.Hooks(f(g(h())))`.
+func (c *RefundClient) Use(hooks ...Hook) {
+	c.hooks.Refund = append(c.hooks.Refund, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `refund.Intercept(f(g(h())))`.
+func (c *RefundClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Refund = append(c.inters.Refund, interceptors...)
+}
+
+// Create returns a builder for creating a Refund entity.
+func (c *RefundClient) Create() *RefundCreate {
+	mutation := newRefundMutation(c.config, OpCreate)
+	return &RefundCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Refund entities.
+func (c *RefundClient) CreateBulk(builders ...*RefundCreate) *RefundCreateBulk {
+	return &RefundCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RefundClient) MapCreateBulk(slice any, setFunc func(*RefundCreate, int)) *RefundCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RefundCreateBulk{err: fmt.Errorf("calling to RefundClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RefundCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RefundCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Refund.
+func (c *RefundClient) Update() *RefundUpdate {
+	mutation := newRefundMutation(c.config, OpUpdate)
+	return &RefundUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RefundClient) UpdateOne(_m *Refund) *RefundUpdateOne {
+	mutation := newRefundMutation(c.config, OpUpdateOne, withRefund(_m))
+	return &RefundUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RefundClient) UpdateOneID(id int) *RefundUpdateOne {
+	mutation := newRefundMutation(c.config, OpUpdateOne, withRefundID(id))
+	return &RefundUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Refund.
+func (c *RefundClient) Delete() *RefundDelete {
+	mutation := newRefundMutation(c.config, OpDelete)
+	return &RefundDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RefundClient) DeleteOne(_m *Refund) *RefundDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RefundClient) DeleteOneID(id int) *RefundDeleteOne {
+	builder := c.Delete().Where(refund.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RefundDeleteOne{builder}
+}
+
+// Query returns a query builder for Refund.
+func (c *RefundClient) Query() *RefundQuery {
+	return &RefundQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRefund},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Refund entity by its id.
+func (c *RefundClient) Get(ctx context.Context, id int) (*Refund, error) {
+	return c.Query().Where(refund.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RefundClient) GetX(ctx context.Context, id int) *Refund {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RefundClient) Hooks() []Hook {
+	return c.hooks.Refund
+}
+
+// Interceptors returns the client interceptors.
+func (c *RefundClient) Interceptors() []Interceptor {
+	return c.inters.Refund
+}
+
+func (c *RefundClient) mutate(ctx context.Context, m *RefundMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RefundCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RefundUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RefundUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RefundDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Refund mutation op: %q", m.Op())
+	}
+}
+
 // RoleClient is a client for the Role schema.
 type RoleClient struct {
 	config
@@ -2103,12 +2244,12 @@ func (c *WebhookEventClient) mutate(ctx context.Context, m *WebhookEventMutation
 type (
 	hooks struct {
 		App, CasbinRule, ChannelAccount, GatewayConfig, PaymentOrder,
-		PaymentReconciliation, RefreshToken, Role, RoutingRule, RoutingTarget, User,
-		WebhookDelivery, WebhookEvent []ent.Hook
+		PaymentReconciliation, RefreshToken, Refund, Role, RoutingRule, RoutingTarget,
+		User, WebhookDelivery, WebhookEvent []ent.Hook
 	}
 	inters struct {
 		App, CasbinRule, ChannelAccount, GatewayConfig, PaymentOrder,
-		PaymentReconciliation, RefreshToken, Role, RoutingRule, RoutingTarget, User,
-		WebhookDelivery, WebhookEvent []ent.Interceptor
+		PaymentReconciliation, RefreshToken, Refund, Role, RoutingRule, RoutingTarget,
+		User, WebhookDelivery, WebhookEvent []ent.Interceptor
 	}
 )

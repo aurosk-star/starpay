@@ -26,6 +26,8 @@ import (
 const EventPaymentSucceeded = "payment.succeeded"
 const EventPaymentFailed = "payment.failed"
 const EventOrderExpired = "order.expired"
+const EventRefundSucceeded = "refund.succeeded"
+const EventRefundFailed = "refund.failed"
 const ResourcePaymentOrder = "payment_order"
 const ResourceRefund = "refund"
 const maxDeliveryAttempts = 3
@@ -109,6 +111,21 @@ func (s Service) RecordPaymentFailed(ctx context.Context, order *ent.PaymentOrde
 
 func (s Service) RecordOrderExpired(ctx context.Context, order *ent.PaymentOrder) (*ent.WebhookEvent, error) {
 	return s.recordOrderEvent(ctx, order, EventOrderExpired, orderExpiredPayload)
+}
+
+func (s Service) RecordRefundSucceeded(ctx context.Context, refund *ent.Refund) (*ent.WebhookEvent, error) {
+	return s.recordRefundEvent(ctx, refund, EventRefundSucceeded, refundSucceededPayload)
+}
+
+func (s Service) RecordRefundFailed(ctx context.Context, refund *ent.Refund) (*ent.WebhookEvent, error) {
+	return s.recordRefundEvent(ctx, refund, EventRefundFailed, refundFailedPayload)
+}
+
+func (s Service) recordRefundEvent(ctx context.Context, refund *ent.Refund, eventType string, payload func(*ent.Refund) map[string]any) (*ent.WebhookEvent, error) {
+	if refund == nil {
+		return nil, errors.New("refund is required")
+	}
+	return s.RecordResourceEvent(ctx, ResourceEventInput{EventType: eventType, AppID: refund.AppID, ResourceType: ResourceRefund, ResourceID: refund.RefundNo, GatewayOrderNo: refund.GatewayOrderNo, RefundNo: refund.RefundNo, PaymentOrderID: refund.PaymentOrderID, Payload: payload(refund)})
 }
 
 func (s Service) recordOrderEvent(ctx context.Context, order *ent.PaymentOrder, eventType string, payload func(*ent.PaymentOrder) map[string]any) (*ent.WebhookEvent, error) {
@@ -494,6 +511,22 @@ func orderExpiredPayload(order *ent.PaymentOrder) map[string]any {
 	}
 	if order.ClosedAt != nil {
 		payload["closed_at"] = order.ClosedAt.Format(time.RFC3339)
+	}
+	return payload
+}
+
+func refundSucceededPayload(refund *ent.Refund) map[string]any {
+	payload := map[string]any{"event_type": EventRefundSucceeded, "app_id": refund.AppID, "gateway_order_no": refund.GatewayOrderNo, "merchant_order_no": refund.MerchantOrderNo, "refund_no": refund.RefundNo, "merchant_refund_no": refund.MerchantRefundNo, "amount": refund.Amount, "currency": refund.Currency, "channel": refund.Channel, "channel_trade_no": refund.ChannelTradeNo, "channel_refund_no": refund.ChannelRefundNo, "metadata": refund.Metadata}
+	if refund.SucceededAt != nil {
+		payload["succeeded_at"] = refund.SucceededAt.Format(time.RFC3339)
+	}
+	return payload
+}
+
+func refundFailedPayload(refund *ent.Refund) map[string]any {
+	payload := map[string]any{"event_type": EventRefundFailed, "app_id": refund.AppID, "gateway_order_no": refund.GatewayOrderNo, "merchant_order_no": refund.MerchantOrderNo, "refund_no": refund.RefundNo, "merchant_refund_no": refund.MerchantRefundNo, "amount": refund.Amount, "currency": refund.Currency, "channel": refund.Channel, "channel_trade_no": refund.ChannelTradeNo, "channel_refund_no": refund.ChannelRefundNo, "failure_reason": refund.FailureReason, "metadata": refund.Metadata}
+	if refund.FailedAt != nil {
+		payload["failed_at"] = refund.FailedAt.Format(time.RFC3339)
 	}
 	return payload
 }
