@@ -1,4 +1,4 @@
-.PHONY: dev test sdk-test web-test verify tidy ent-up db-up db-down compose-up compose-down compose-logs web-dev web-build web-typecheck
+.PHONY: dev test sdk-test web-test deploy-test verify tidy ent-up db-up db-down compose-up compose-down compose-logs web-dev web-build web-typecheck
 
 dev:
 	go run ./cmd/server
@@ -13,7 +13,10 @@ sdk-test:
 web-test:
 	cd web && node --test test/*.test.mts
 
-verify: test web-test web-typecheck web-build
+deploy-test:
+	bash scripts/deploy_test.sh
+
+verify: test web-test deploy-test web-typecheck web-build
 	cd sdk/go && go vet ./...
 	cd web && bun run lint
 

@@ -1,11 +1,12 @@
 services:
   api:
+    image: ${PAYMENT_GATEWAY_IMAGE:-zxabugx/payment-gateway:v0.0.1-beta}
     build:
       context: .
       dockerfile: Dockerfile
     container_name: payment-gateway-api
     env_file:
-      - .env.production
+      - ${PAYMENT_GATEWAY_ENV_FILE:-.env.production}
     environment:
       APP_ENV: production
       HTTP_ADDR: :8080

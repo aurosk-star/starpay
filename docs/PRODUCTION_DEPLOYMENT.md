@@ -16,7 +16,7 @@
 
 ```bash
 sudo apt update
-sudo apt install -y nginx git
+sudo apt install -y nginx git curl openssl util-linux
 curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker $USER
 ```
@@ -40,9 +40,39 @@ cd pay-gateway
 
 如果服务器不能直接访问私有仓库，先配置部署密钥或通过 CI/CD 上传代码包。
 
-## 3. 配置生产环境变量
+## 3. 首次部署
 
-复制生产示例文件：
+部署脚本会自动生成生产密钥、拉取 Docker Hub 镜像并启动 API、PostgreSQL 和 Redis：
+
+```bash
+cd /opt/starpay/pay-gateway
+./scripts/deploy.sh install
+```
+
+默认镜像为：
+
+```text
+zxabugx/payment-gateway:v0.0.1-beta
+```
+
+首次执行且 `.env.production` 不存在时，脚本基于模板生成配置，并把文件权限设为 `600`。密钥不会打印到终端。部署完成后检查：
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml ps
+curl http://127.0.0.1:8080/healthz
+```
+
+如需指定其他镜像或环境文件：
+
+```bash
+./scripts/deploy.sh install \
+  --image zxabugx/payment-gateway:v0.0.1-beta \
+  --env-file /etc/starpay/payment-gateway.env
+```
+
+## 4. 手动配置生产环境变量
+
+通常直接使用部署脚本生成的 `.env.production`。需要手工管理配置时，可以复制生产示例文件：
 
 ```bash
 cp .env.production.example .env.production
@@ -83,7 +113,7 @@ ORDER_EXPIRE_WORKER_CONCURRENCY=2
 
 生产环境优先使用 `docker-compose.prod.yml`。该文件默认只把 API 端口绑定到 `127.0.0.1`，PostgreSQL 和 Redis 不映射宿主机端口，避免直接暴露到公网。
 
-## 4. 启动后端服务
+## 5. 手动启动后端服务
 
 项目自带 `docker-compose.prod.yml`，会构建 API 镜像并启动 PostgreSQL、Redis：
 
@@ -113,7 +143,7 @@ curl http://127.0.0.1:8080/v1/ping
 {"code":"ok","data":{"status":"ok"},"error":null,"message":"ok"}
 ```
 
-## 5. 前端构建
+## 6. 前端构建
 
 前端位于 `web/`，使用 Bun。执行生产镜像构建时，Dockerfile 会自动安装锁定依赖、构建 `web/dist`，并把产物内嵌进 Go 二进制，无需在服务器单独安装 Bun 或保留静态文件目录：
 
@@ -127,7 +157,7 @@ docker build -t payment-gateway:latest .
 make web-dev
 ```
 
-## 6. 配置 Nginx
+## 7. 配置 Nginx
 
 推荐同域部署：
 
@@ -183,7 +213,7 @@ sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d pay.example.com
 ```
 
-## 7. 网关后台初始化配置
+## 8. 网关后台初始化配置
 
 登录后台后进入“网关配置”，设置：
 
@@ -201,22 +231,27 @@ https://pay.example.com/v1/channel/notify
 
 PayPal、支付宝等支付完成后会先回到网关收银台结果页，再由收银台按订单配置跳转到商户返回地址。
 
-## 8. 发布更新流程
+## 9. 发布更新流程
 
-后端更新：
+更新脚本会先把 PostgreSQL 备份到 `backups/`，只拉取新的 API 镜像，不会自动升级已经运行的 PostgreSQL 和 Redis：
 
 ```bash
 cd /opt/starpay/pay-gateway
-git pull
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build api
-docker compose --env-file .env.production -f docker-compose.prod.yml logs -f api
+git pull --ff-only
+./scripts/deploy.sh update
 ```
 
-前端和后端位于同一个镜像，更新时执行一次 `docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build api` 即可，无需单独发布静态文件或重载 Nginx。
+紧急情况下可以跳过备份，但不建议作为日常发布方式：
+
+```bash
+./scripts/deploy.sh update --skip-backup
+```
+
+前端和后端位于同一个镜像，无需单独发布静态文件或重载 Nginx。
 
 如果 Ent schema 有变更，后端启动时会自动执行当前项目内置的迁移逻辑。生产数据库仍建议在更新前做备份。
 
-## 9. 数据备份
+## 10. 数据备份
 
 PostgreSQL 备份：
 
@@ -241,7 +276,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d --bui
 
 如果已经有生产数据，不要执行 `down -v`。应先备份旧库，再按 PostgreSQL 官方升级流程或 dump/restore 迁移。
 
-## 10. 上线检查清单
+## 11. 上线检查清单
 
 - `curl https://pay.example.com/healthz` 返回 `200`。
 - `curl https://pay.example.com/v1/ping` 返回 `200`。
@@ -256,7 +291,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d --bui
 - 退款中心能创建退款、查看渠道退款号并重试未完成退款。
 - Redis 中存在 `payment:reconciliations` 和 `refund:processing` 消费组。
 
-## 11. 常见问题
+## 12. 常见问题
 
 ### 前端刷新 404
 
