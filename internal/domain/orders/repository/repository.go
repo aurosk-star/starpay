@@ -2,11 +2,14 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"payment-gateway/ent"
 	"payment-gateway/ent/paymentorder"
 )
+
+var ErrStatusTransitionRejected = errors.New("payment order status transition rejected")
 
 type Repository struct {
 	client *ent.Client
@@ -209,12 +212,28 @@ func (r Repository) Update(ctx context.Context, id int, input UpdateOrderInput) 
 }
 
 func (r Repository) SetStatus(ctx context.Context, id int, status string, now time.Time) (*ent.PaymentOrder, error) {
+	if status == "closed" {
+		affected, err := r.client.PaymentOrder.Update().
+			Where(paymentorder.ID(id), paymentorder.StatusIn("pending", "failed")).
+			SetStatus("closed").
+			SetClosedAt(now).
+			Save(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if affected == 0 {
+			current, findErr := r.FindByID(ctx, id)
+			if findErr != nil {
+				return nil, findErr
+			}
+			return current, ErrStatusTransitionRejected
+		}
+		return r.FindByID(ctx, id)
+	}
 	update := r.client.PaymentOrder.UpdateOneID(id).SetStatus(status)
 	switch status {
 	case "paid":
 		update.SetPaidAt(now)
-	case "closed":
-		update.SetClosedAt(now)
 	}
 	if _, err := update.Save(ctx); err != nil {
 		return nil, err
@@ -240,27 +259,45 @@ func (r Repository) CloseExpiredPending(ctx context.Context, id int, now time.Ti
 }
 
 func (r Repository) MarkPaid(ctx context.Context, id int, channelTradeNo string, now time.Time) (*ent.PaymentOrder, error) {
-	update := r.client.PaymentOrder.UpdateOneID(id).
+	update := r.client.PaymentOrder.Update().
+		Where(paymentorder.ID(id), paymentorder.StatusIn("pending", "failed")).
 		SetStatus("paid").
 		SetPaidAt(now)
 	if channelTradeNo != "" {
 		update.SetChannelTradeNo(channelTradeNo)
 	}
-	if _, err := update.Save(ctx); err != nil {
+	affected, err := update.Save(ctx)
+	if err != nil {
 		return nil, err
+	}
+	if affected == 0 {
+		current, findErr := r.FindByID(ctx, id)
+		if findErr != nil {
+			return nil, findErr
+		}
+		return current, ErrStatusTransitionRejected
 	}
 	return r.FindByID(ctx, id)
 }
 
 func (r Repository) MarkFailed(ctx context.Context, id int, reason string, now time.Time) (*ent.PaymentOrder, error) {
-	update := r.client.PaymentOrder.UpdateOneID(id).
+	update := r.client.PaymentOrder.Update().
+		Where(paymentorder.ID(id), paymentorder.Status("pending")).
 		SetStatus("failed").
 		SetFailedAt(now)
 	if reason != "" {
 		update.SetFailureReason(reason)
 	}
-	if _, err := update.Save(ctx); err != nil {
+	affected, err := update.Save(ctx)
+	if err != nil {
 		return nil, err
+	}
+	if affected == 0 {
+		current, findErr := r.FindByID(ctx, id)
+		if findErr != nil {
+			return nil, findErr
+		}
+		return current, ErrStatusTransitionRejected
 	}
 	return r.FindByID(ctx, id)
 }

@@ -10,13 +10,24 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
+	"entgo.io/ent/dialect"
 	"github.com/go-pay/gopay"
 	gopayalipay "github.com/go-pay/gopay/alipay"
 	gopayalipayv3 "github.com/go-pay/gopay/alipay/v3"
+	_ "github.com/mattn/go-sqlite3"
 
 	"payment-gateway/ent"
+	"payment-gateway/ent/enttest"
+	appsvc "payment-gateway/internal/domain/apps/service"
+	channelrepo "payment-gateway/internal/domain/channels/repository"
+	ordersvc "payment-gateway/internal/domain/orders/service"
 	"payment-gateway/internal/domain/payments/provider"
+	paymentsvc "payment-gateway/internal/domain/payments/service"
+	reconciliationsvc "payment-gateway/internal/domain/reconciliations/service"
+	webhookrepo "payment-gateway/internal/domain/webhooks/repository"
+	webhooksvc "payment-gateway/internal/domain/webhooks/service"
 )
 
 type fakeClient struct {
@@ -93,6 +104,30 @@ func TestQueryPaymentNormalizesPaidAlipayTrade(t *testing.T) {
 	assertBody(t, client.queryBody, "out_trade_no", "gw_1")
 }
 
+func TestQueryPaymentTreatsTradeNotExistAsPending(t *testing.T) {
+	client := &fakeClient{queryRsp: &gopayalipayv3.TradeQueryRsp{
+		StatusCode: http.StatusBadRequest,
+		ErrResponse: gopayalipayv3.ErrResponse{
+			Code:    "ACQ.TRADE_NOT_EXIST",
+			Message: "交易不存在",
+		},
+	}}
+	p := NewWithClientFactory(func(Config) (alipayClient, error) { return client, nil })
+	result, err := p.QueryPayment(context.Background(), provider.QueryPaymentRequest{
+		ChannelAccount: alipayAccount(),
+		Order:          &ent.PaymentOrder{GatewayOrderNo: "gw_missing", ProviderOrderNo: "gw_missing", Amount: 1, Currency: "CNY"},
+	})
+	if err != nil {
+		t.Fatalf("QueryPayment() error = %v", err)
+	}
+	if result.Status != "pending" || result.Amount != 1 || result.Currency != "CNY" {
+		t.Fatalf("result = %#v, want pending 1 CNY", result)
+	}
+	if result.FailureReason != "ACQ.TRADE_NOT_EXIST" || result.Raw["code"] != "ACQ.TRADE_NOT_EXIST" {
+		t.Fatalf("result = %#v, want trade-not-exist diagnostics", result)
+	}
+}
+
 func TestCreateRefundUsesOutRequestNoAndMinorAmount(t *testing.T) {
 	client := &fakeClient{refundRsp: &gopayalipayv3.TradeRefundRsp{StatusCode: http.StatusOK, TradeNo: "ali_trade_1", OutTradeNo: "gw_1", FundChange: "Y", RefundFee: "12.34"}}
 	p := NewWithClientFactory(func(Config) (alipayClient, error) { return client, nil })
@@ -129,6 +164,100 @@ func TestClosePaymentUsesGatewayOrderNumber(t *testing.T) {
 		t.Fatalf("ClosePayment() error = %v", err)
 	}
 	assertBody(t, client.closeBody, "out_trade_no", "gw_1")
+}
+
+func TestClosePaymentTreatsTradeNotExistAsSuccess(t *testing.T) {
+	client := &fakeClient{closeRsp: &gopayalipayv3.TradeCloseRsp{
+		StatusCode: http.StatusBadRequest,
+		ErrResponse: gopayalipayv3.ErrResponse{
+			Code:    "ACQ.TRADE_NOT_EXIST",
+			Message: "交易不存在",
+		},
+	}}
+	p := NewWithClientFactory(func(Config) (alipayClient, error) { return client, nil })
+	err := p.ClosePayment(context.Background(), provider.ClosePaymentRequest{
+		ChannelAccount: alipayAccount(),
+		Order:          &ent.PaymentOrder{GatewayOrderNo: "gw_missing"},
+	})
+	if err != nil {
+		t.Fatalf("ClosePayment() error = %v, want idempotent success", err)
+	}
+}
+
+func TestTradeNotExistClosesExpiredOrderAndRecordsWebhook(t *testing.T) {
+	ctx := t.Context()
+	client := enttest.Open(t, dialect.SQLite, "file:alipay_trade_not_exist_reconciliation?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	if _, err := appsvc.New(client).CreateApp(ctx, appsvc.ManageAppInput{
+		AppID: "alipay_absent", Name: "Alipay absent", NotifyURL: "https://merchant.example.com/webhooks", Status: "enabled",
+	}); err != nil {
+		t.Fatalf("CreateApp() error = %v", err)
+	}
+	account, err := channelrepo.New(client).Create(ctx, channelrepo.CreateChannelAccountInput{
+		Channel: "alipay", Name: "Alipay", Enabled: true, Env: "sandbox",
+		Config: map[string]any{"app_id": "app", "private_key": "private"},
+	})
+	if err != nil {
+		t.Fatalf("Create channel account error = %v", err)
+	}
+	now := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	expiresAt := now.Add(-time.Minute)
+	orderService := ordersvc.New(client,
+		ordersvc.WithNow(func() time.Time { return now }),
+		ordersvc.WithWebhookService(webhooksvc.New(client)),
+	)
+	order, err := orderService.CreateOrder(ctx, ordersvc.ManageOrderInput{
+		AppID: "alipay_absent", MerchantOrderNo: "biz_alipay_absent", Subject: "Expired",
+		Amount: 1, Currency: "CNY", Channel: "alipay", PayMethod: "alipay", ExpiresAt: &expiresAt,
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	order, err = client.PaymentOrder.UpdateOneID(order.ID).
+		SetChannelAccountID(account.ID).
+		SetProviderOrderNo(order.GatewayOrderNo).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("bind order error = %v", err)
+	}
+
+	absent := gopayalipayv3.ErrResponse{Code: "ACQ.TRADE_NOT_EXIST", Message: "交易不存在"}
+	fakeOps := &fakeClient{
+		queryRsp: &gopayalipayv3.TradeQueryRsp{StatusCode: http.StatusBadRequest, ErrResponse: absent},
+		closeRsp: &gopayalipayv3.TradeCloseRsp{StatusCode: http.StatusBadRequest, ErrResponse: absent},
+	}
+	paymentService := paymentsvc.New(
+		paymentsvc.WithChannelRepository(channelrepo.New(client)),
+		paymentsvc.WithProvider(NewWithClientFactory(func(Config) (alipayClient, error) { return fakeOps, nil })),
+	)
+	reconciliationService := reconciliationsvc.New(client,
+		reconciliationsvc.WithNow(func() time.Time { return now }),
+		reconciliationsvc.WithPaymentGateway(paymentService),
+		reconciliationsvc.WithOrderService(orderService),
+	)
+	item, err := reconciliationService.EnsureForOrder(ctx, order)
+	if err != nil {
+		t.Fatalf("EnsureForOrder() error = %v", err)
+	}
+	processed, err := reconciliationService.Process(ctx, item.ID)
+	if err != nil {
+		t.Fatalf("Process() error = %v", err)
+	}
+	if processed.Status != "resolved" || processed.LastProviderStatus != "closed" || processed.LastError != "" {
+		t.Fatalf("reconciliation = %#v, want resolved closed", processed)
+	}
+	persisted, err := client.PaymentOrder.Get(ctx, order.ID)
+	if err != nil {
+		t.Fatalf("Get order error = %v", err)
+	}
+	if persisted.Status != "closed" || persisted.ClosedAt == nil {
+		t.Fatalf("order = %#v, want closed", persisted)
+	}
+	_, total, err := webhookrepo.New(client).ListEvents(ctx, webhookrepo.ListEventsInput{EventType: webhooksvc.EventOrderExpired})
+	if err != nil || total != 1 {
+		t.Fatalf("order.expired events total=%d err=%v, want 1", total, err)
+	}
 }
 
 func alipayAccount() *ent.ChannelAccount {

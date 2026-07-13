@@ -101,6 +101,25 @@ func (s Service) IsZero() bool {
 	return s.webhooks.IsZero()
 }
 
+func (s Service) WithTransactionalClient(client *ent.Client) Service {
+	clone := s
+	clone.apps = repository.New(client)
+	clone.webhooks = webhookrepo.New(client)
+	clone.enqueuer = nil
+	return clone
+}
+
+func (s Service) EnqueueEventDelivery(ctx context.Context, eventID int) error {
+	delivery, err := s.webhooks.FindDeliveryByEventID(ctx, eventID)
+	if ent.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return s.enqueueDelivery(ctx, delivery.ID)
+}
+
 func (s Service) RecordPaymentSucceeded(ctx context.Context, order *ent.PaymentOrder) (*ent.WebhookEvent, error) {
 	return s.recordOrderEvent(ctx, order, EventPaymentSucceeded, paymentSucceededPayload)
 }

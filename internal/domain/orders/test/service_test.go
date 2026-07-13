@@ -11,6 +11,7 @@ import (
 
 	"payment-gateway/ent/enttest"
 	appsvc "payment-gateway/internal/domain/apps/service"
+	orderrepo "payment-gateway/internal/domain/orders/repository"
 	ordersvc "payment-gateway/internal/domain/orders/service"
 	webhookrepo "payment-gateway/internal/domain/webhooks/repository"
 	webhooksvc "payment-gateway/internal/domain/webhooks/service"
@@ -21,11 +22,24 @@ type recordingExpirationEnqueuer struct {
 	err error
 }
 
+type recordingWebhookEnqueuer struct {
+	ids []int
+	err error
+}
+
 func (e *recordingExpirationEnqueuer) EnqueueOrderExpiration(ctx context.Context, orderID int) error {
 	if e.err != nil {
 		return e.err
 	}
 	e.ids = append(e.ids, orderID)
+	return nil
+}
+
+func (e *recordingWebhookEnqueuer) EnqueueWebhookDelivery(ctx context.Context, deliveryID int) error {
+	if e.err != nil {
+		return e.err
+	}
+	e.ids = append(e.ids, deliveryID)
 	return nil
 }
 
@@ -664,6 +678,189 @@ func TestCloseExpiredPendingOrderRecordsWebhookOnlyWhenClosed(t *testing.T) {
 	}
 	if totalEvents != 1 || totalDeliveries != 1 {
 		t.Fatalf("totals events=%d deliveries=%d, want one order.expired event and delivery", totalEvents, totalDeliveries)
+	}
+}
+
+func TestCloseExpiredPendingOrderRollsBackWhenWebhookPersistenceFails(t *testing.T) {
+	ctx := t.Context()
+	client := enttest.Open(t, dialect.SQLite, "file:close_expired_pending_order_webhook_rollback?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	app, err := appsvc.New(client).CreateApp(ctx, appsvc.ManageAppInput{
+		AppID:     "webhook_rollback",
+		Name:      "Webhook rollback",
+		NotifyURL: "https://merchant.example.com/webhooks/payment",
+		Status:    "enabled",
+	})
+	if err != nil {
+		t.Fatalf("CreateApp() error = %v", err)
+	}
+
+	now := time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC)
+	currentNow := now
+	svc := ordersvc.New(client,
+		ordersvc.WithNow(func() time.Time { return currentNow }),
+		ordersvc.WithDefaultOrderTTL(time.Minute),
+		ordersvc.WithWebhookService(webhooksvc.New(client)),
+	)
+	order, _, err := svc.CreateOpenOrder(ctx, app.App.AppID, ordersvc.OpenOrderInput{
+		MerchantOrderNo: "biz_expired_webhook_rollback",
+		Subject:         "Expired",
+		Amount:          100,
+		Currency:        "CNY",
+	})
+	if err != nil {
+		t.Fatalf("CreateOpenOrder() error = %v", err)
+	}
+	if err := client.App.DeleteOneID(app.App.ID).Exec(ctx); err != nil {
+		t.Fatalf("DeleteOneID(app) error = %v", err)
+	}
+
+	currentNow = now.Add(2 * time.Minute)
+	closed, err := svc.CloseExpiredPendingOrder(ctx, order.ID)
+	if err == nil {
+		t.Fatal("CloseExpiredPendingOrder() error = nil, want webhook persistence failure")
+	}
+	if closed {
+		t.Fatal("CloseExpiredPendingOrder() closed = true, want rollback")
+	}
+	persisted, getErr := client.PaymentOrder.Get(ctx, order.ID)
+	if getErr != nil {
+		t.Fatalf("Get order error = %v", getErr)
+	}
+	if persisted.Status != "pending" || persisted.ClosedAt != nil {
+		t.Fatalf("order = %#v, want pending after rollback", persisted)
+	}
+}
+
+func TestCloseExpiredPendingOrderPersistsDeliveryWhenInitialEnqueueFails(t *testing.T) {
+	ctx := t.Context()
+	client := enttest.Open(t, dialect.SQLite, "file:close_expired_pending_order_enqueue_compensation?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+	if _, err := appsvc.New(client).CreateApp(ctx, appsvc.ManageAppInput{
+		AppID: "enqueue_compensation", Name: "Enqueue compensation",
+		NotifyURL: "https://merchant.example.com/webhooks/payment", Status: "enabled",
+	}); err != nil {
+		t.Fatalf("CreateApp() error = %v", err)
+	}
+
+	now := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	expiresAt := now.Add(-time.Minute)
+	failing := &recordingWebhookEnqueuer{err: errors.New("redis unavailable")}
+	svc := ordersvc.New(client,
+		ordersvc.WithNow(func() time.Time { return now }),
+		ordersvc.WithWebhookService(webhooksvc.New(client, webhooksvc.WithEnqueuer(failing))),
+	)
+	order, err := svc.CreateOrder(ctx, ordersvc.ManageOrderInput{
+		AppID: "enqueue_compensation", MerchantOrderNo: "biz_enqueue_compensation",
+		Subject: "Expired", Amount: 1, Currency: "CNY", ExpiresAt: &expiresAt,
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	closed, err := svc.CloseExpiredPendingOrder(ctx, order.ID)
+	if err != nil || !closed {
+		t.Fatalf("CloseExpiredPendingOrder() closed=%v err=%v", closed, err)
+	}
+
+	deliveries, total, err := webhookrepo.New(client).ListDeliveries(ctx, webhookrepo.ListDeliveriesInput{
+		EventType: webhooksvc.EventOrderExpired,
+	})
+	if err != nil || total != 1 || deliveries[0].Status != "pending" || deliveries[0].AttemptCount != 0 {
+		t.Fatalf("deliveries=%#v total=%d err=%v, want one pending delivery", deliveries, total, err)
+	}
+	recovered := &recordingWebhookEnqueuer{}
+	count, err := webhooksvc.New(client, webhooksvc.WithEnqueuer(recovered)).ScanDueDeliveries(ctx, 10)
+	if err != nil {
+		t.Fatalf("ScanDueDeliveries() error = %v", err)
+	}
+	if count != 1 || len(recovered.ids) != 1 || recovered.ids[0] != deliveries[0].ID {
+		t.Fatalf("count=%d ids=%v, want delivery %d", count, recovered.ids, deliveries[0].ID)
+	}
+}
+
+func TestRepositoryPaymentTransitionsCannotOverwriteClosedOrder(t *testing.T) {
+	for _, transition := range []struct {
+		name  string
+		apply func(context.Context, orderrepo.Repository, int, time.Time) error
+	}{
+		{
+			name: "paid",
+			apply: func(ctx context.Context, repo orderrepo.Repository, id int, now time.Time) error {
+				_, err := repo.MarkPaid(ctx, id, "trade_late", now)
+				return err
+			},
+		},
+		{
+			name: "failed",
+			apply: func(ctx context.Context, repo orderrepo.Repository, id int, now time.Time) error {
+				_, err := repo.MarkFailed(ctx, id, "late failure", now)
+				return err
+			},
+		},
+	} {
+		t.Run(transition.name, func(t *testing.T) {
+			ctx := t.Context()
+			client := enttest.Open(t, dialect.SQLite, "file:closed_order_rejects_"+transition.name+"?mode=memory&cache=shared&_fk=1")
+			defer client.Close()
+			createEnabledApp(t, client, "closed_transition_"+transition.name)
+
+			now := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+			expiresAt := now.Add(-time.Minute)
+			svc := ordersvc.New(client, ordersvc.WithNow(func() time.Time { return now }))
+			order, err := svc.CreateOrder(ctx, ordersvc.ManageOrderInput{
+				AppID: "closed_transition_" + transition.name, MerchantOrderNo: "biz_" + transition.name,
+				Subject: "Expired", Amount: 1, Currency: "CNY", ExpiresAt: &expiresAt,
+			})
+			if err != nil {
+				t.Fatalf("CreateOrder() error = %v", err)
+			}
+			if closed, err := svc.CloseExpiredPendingOrder(ctx, order.ID); err != nil || !closed {
+				t.Fatalf("CloseExpiredPendingOrder() closed=%v err=%v", closed, err)
+			}
+
+			if err := transition.apply(ctx, orderrepo.New(client), order.ID, now.Add(time.Second)); err == nil {
+				t.Fatalf("%s transition error = nil, want stale transition rejected", transition.name)
+			}
+			persisted, err := client.PaymentOrder.Get(ctx, order.ID)
+			if err != nil {
+				t.Fatalf("Get order error = %v", err)
+			}
+			if persisted.Status != "closed" {
+				t.Fatalf("order status = %q, want closed", persisted.Status)
+			}
+		})
+	}
+}
+
+func TestRepositoryCloseCannotOverwritePaidOrder(t *testing.T) {
+	ctx := t.Context()
+	client := enttest.Open(t, dialect.SQLite, "file:paid_order_rejects_close?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+	createEnabledApp(t, client, "paid_transition_close")
+
+	now := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	svc := ordersvc.New(client, ordersvc.WithNow(func() time.Time { return now }))
+	order, err := svc.CreateOrder(ctx, ordersvc.ManageOrderInput{
+		AppID: "paid_transition_close", MerchantOrderNo: "biz_paid_then_close",
+		Subject: "Paid", Amount: 1, Currency: "CNY",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	repo := orderrepo.New(client)
+	if _, err := repo.MarkPaid(ctx, order.ID, "trade_paid", now); err != nil {
+		t.Fatalf("MarkPaid() error = %v", err)
+	}
+	if _, err := repo.SetStatus(ctx, order.ID, "closed", now.Add(time.Second)); err == nil {
+		t.Fatal("SetStatus(closed) error = nil, want stale close rejected")
+	}
+	persisted, err := client.PaymentOrder.Get(ctx, order.ID)
+	if err != nil {
+		t.Fatalf("Get order error = %v", err)
+	}
+	if persisted.Status != "paid" || persisted.PaidAt == nil || persisted.ClosedAt != nil {
+		t.Fatalf("order = %#v, want paid after rejected close", persisted)
 	}
 }
 

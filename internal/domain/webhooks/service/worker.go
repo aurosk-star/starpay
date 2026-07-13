@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	platformworker "payment-gateway/internal/platform/worker"
 )
 
 const webhookWorkerGroup = "webhook-delivery-workers"
@@ -42,8 +44,9 @@ func (w Worker) Run(ctx context.Context) {
 	if w.redis == nil {
 		return
 	}
-	if err := w.ensureGroup(ctx); err != nil && !errors.Is(err, context.Canceled) {
+	if err := platformworker.WaitUntilReady(ctx, time.Second, w.ensureGroup, func(err error) {
 		w.logger.Error("ensure webhook stream group", "error", err)
+	}); err != nil {
 		return
 	}
 	for {

@@ -8,6 +8,7 @@ import (
 	"encoding/base32"
 	"encoding/hex"
 	"errors"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -39,6 +40,7 @@ var (
 )
 
 type Service struct {
+	client                  *ent.Client
 	orders                  orderrepo.Repository
 	apps                    apprepo.Repository
 	webhooks                webhooksvc.Service
@@ -84,6 +86,7 @@ func WithExpirationEnqueuer(enqueuer ExpirationEnqueuer) Option {
 
 func New(client *ent.Client, opts ...Option) Service {
 	svc := Service{
+		client:          client,
 		orders:          orderrepo.New(client),
 		apps:            apprepo.New(client),
 		now:             time.Now,
@@ -404,7 +407,11 @@ func (s Service) CloseOrder(ctx context.Context, id int) (*ent.PaymentOrder, err
 	if existing.Status != "pending" && existing.Status != "failed" {
 		return nil, ErrOrderCannotBeClosed
 	}
-	return s.orders.SetStatus(ctx, id, "closed", s.now())
+	closed, err := s.orders.SetStatus(ctx, id, "closed", s.now())
+	if errors.Is(err, orderrepo.ErrStatusTransitionRejected) {
+		return nil, ErrOrderCannotBeClosed
+	}
+	return closed, err
 }
 
 func (s Service) CloseOrderForApp(ctx context.Context, appID string, gatewayOrderNo string) (*ent.PaymentOrder, error) {
@@ -415,7 +422,11 @@ func (s Service) CloseOrderForApp(ctx context.Context, appID string, gatewayOrde
 	if existing.Status != "pending" && existing.Status != "failed" {
 		return nil, ErrOrderCannotBeClosed
 	}
-	return s.orders.SetStatus(ctx, existing.ID, "closed", s.now())
+	closed, err := s.orders.SetStatus(ctx, existing.ID, "closed", s.now())
+	if errors.Is(err, orderrepo.ErrStatusTransitionRejected) {
+		return nil, ErrOrderCannotBeClosed
+	}
+	return closed, err
 }
 
 func (s Service) ScanExpiredPendingOrders(ctx context.Context, limit int) (int, error) {
@@ -441,19 +452,40 @@ func (s Service) ScanExpiredPendingOrders(ctx context.Context, limit int) (int, 
 }
 
 func (s Service) CloseExpiredPendingOrder(ctx context.Context, id int) (bool, error) {
-	closed, err := s.orders.CloseExpiredPending(ctx, id, s.now())
-	if err != nil || !closed {
-		return closed, err
-	}
 	if s.webhooks.IsZero() {
-		return true, nil
+		return s.orders.CloseExpiredPending(ctx, id, s.now())
 	}
-	order, err := s.orders.FindByID(ctx, id)
+	tx, err := s.client.Tx(ctx)
 	if err != nil {
-		return true, err
+		return false, err
 	}
-	if _, err := s.webhooks.RecordOrderExpired(ctx, order); err != nil {
-		return true, err
+	rollback := func(cause error) (bool, error) {
+		_ = tx.Rollback()
+		return false, cause
+	}
+	txOrders := orderrepo.New(tx.Client())
+	closed, err := txOrders.CloseExpiredPending(ctx, id, s.now())
+	if err != nil {
+		return rollback(err)
+	}
+	if !closed {
+		_ = tx.Rollback()
+		return false, nil
+	}
+	order, err := txOrders.FindByID(ctx, id)
+	if err != nil {
+		return rollback(err)
+	}
+	event, err := s.webhooks.WithTransactionalClient(tx.Client()).RecordOrderExpired(ctx, order)
+	if err != nil {
+		return rollback(err)
+	}
+	eventID := event.ID
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
+	if err := s.webhooks.EnqueueEventDelivery(ctx, eventID); err != nil {
+		slog.Warn("enqueue order expired webhook delivery", "order_id", id, "event_id", eventID, "error", err)
 	}
 	return true, nil
 }
@@ -475,6 +507,17 @@ func (s Service) MarkPaid(ctx context.Context, id int, channelTradeNo string) (*
 		return nil, ErrOrderCannotBePaid
 	}
 	paid, err := s.orders.MarkPaid(ctx, id, strings.TrimSpace(channelTradeNo), s.now())
+	if errors.Is(err, orderrepo.ErrStatusTransitionRejected) {
+		if paid != nil && paid.Status == "paid" {
+			if !s.webhooks.IsZero() {
+				if _, webhookErr := s.webhooks.RecordPaymentSucceeded(ctx, paid); webhookErr != nil {
+					return nil, webhookErr
+				}
+			}
+			return paid, nil
+		}
+		return nil, ErrOrderCannotBePaid
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -503,6 +546,17 @@ func (s Service) MarkFailed(ctx context.Context, id int, reason string) (*ent.Pa
 		return nil, ErrOrderCannotBeFailed
 	}
 	failed, err := s.orders.MarkFailed(ctx, id, strings.TrimSpace(reason), s.now())
+	if errors.Is(err, orderrepo.ErrStatusTransitionRejected) {
+		if failed != nil && failed.Status == "failed" {
+			if !s.webhooks.IsZero() {
+				if _, webhookErr := s.webhooks.RecordPaymentFailed(ctx, failed); webhookErr != nil {
+					return nil, webhookErr
+				}
+			}
+			return failed, nil
+		}
+		return nil, ErrOrderCannotBeFailed
+	}
 	if err != nil {
 		return nil, err
 	}

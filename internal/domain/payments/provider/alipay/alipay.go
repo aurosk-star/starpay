@@ -186,6 +186,22 @@ func (p Provider) QueryPayment(ctx context.Context, req provider.QueryPaymentReq
 		return nil, err
 	}
 	if rsp == nil || rsp.StatusCode != http.StatusOK {
+		if rsp != nil && isTradeNotExist(rsp.ErrResponse) {
+			return &provider.QueryPaymentResult{
+				Channel:         "alipay",
+				GatewayOrderNo:  req.Order.GatewayOrderNo,
+				ProviderOrderNo: req.Order.ProviderOrderNo,
+				Status:          "pending",
+				Amount:          req.Order.Amount,
+				Currency:        req.Order.Currency,
+				FailureReason:   strings.TrimSpace(rsp.ErrResponse.Code),
+				Raw: map[string]any{
+					"status_code": rsp.StatusCode,
+					"code":        strings.TrimSpace(rsp.ErrResponse.Code),
+					"message":     strings.TrimSpace(rsp.ErrResponse.Message),
+				},
+			}, nil
+		}
 		return nil, alipayAPIError("trade query", alipayQueryStatusCode(rsp), alipayQueryError(rsp))
 	}
 	amount, err := parseAlipayAmount(rsp.TotalAmount)
@@ -226,9 +242,16 @@ func (p Provider) ClosePayment(ctx context.Context, req provider.ClosePaymentReq
 		return err
 	}
 	if rsp == nil || rsp.StatusCode != http.StatusOK {
+		if rsp != nil && isTradeNotExist(rsp.ErrResponse) {
+			return nil
+		}
 		return alipayAPIError("trade close", alipayCloseStatusCode(rsp), alipayCloseError(rsp))
 	}
 	return nil
+}
+
+func isTradeNotExist(errResp gopayalipayv3.ErrResponse) bool {
+	return strings.EqualFold(strings.TrimSpace(errResp.Code), "ACQ.TRADE_NOT_EXIST")
 }
 
 func (p Provider) CreateRefund(ctx context.Context, req provider.CreateRefundRequest) (*provider.RefundResult, error) {
