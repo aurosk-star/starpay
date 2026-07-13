@@ -452,13 +452,13 @@ signature = HMAC-SHA256(app_secret, timestamp + "." + raw_body)
 业务服务可以直接引入 Go SDK：
 
 ```bash
-go get codeup.aliyun.com/h-star/pay-gateway.git/sdk/go
+go get github.com/zmoyi/starpay-go
 ```
 
 私有仓库环境需要配置：
 
 ```bash
-go env -w GOPRIVATE=codeup.aliyun.com/h-star/*
+go env -w GOPRIVATE=github.com/zmoyi/*
 ```
 
 SDK 文档见：
