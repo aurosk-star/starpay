@@ -23,7 +23,10 @@ func (h Handler) ListDeliveries(ctx *gin.Context) {
 		AppID:          ctx.Query("app_id"),
 		EventType:      ctx.Query("event_type"),
 		Status:         ctx.Query("status"),
+		ResourceType:   ctx.Query("resource_type"),
+		ResourceID:     ctx.Query("resource_id"),
 		GatewayOrderNo: ctx.Query("gateway_order_no"),
+		RefundNo:       ctx.Query("refund_no"),
 		Page:           httpx.IntQuery(ctx, "page", 1),
 		PageSize:       httpx.IntQuery(ctx, "page_size", 20),
 	})

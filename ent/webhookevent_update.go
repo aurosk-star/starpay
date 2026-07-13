@@ -70,6 +70,34 @@ func (_u *WebhookEventUpdate) SetNillableAppID(v *string) *WebhookEventUpdate {
 	return _u
 }
 
+// SetResourceType sets the "resource_type" field.
+func (_u *WebhookEventUpdate) SetResourceType(v string) *WebhookEventUpdate {
+	_u.mutation.SetResourceType(v)
+	return _u
+}
+
+// SetNillableResourceType sets the "resource_type" field if the given value is not nil.
+func (_u *WebhookEventUpdate) SetNillableResourceType(v *string) *WebhookEventUpdate {
+	if v != nil {
+		_u.SetResourceType(*v)
+	}
+	return _u
+}
+
+// SetResourceID sets the "resource_id" field.
+func (_u *WebhookEventUpdate) SetResourceID(v string) *WebhookEventUpdate {
+	_u.mutation.SetResourceID(v)
+	return _u
+}
+
+// SetNillableResourceID sets the "resource_id" field if the given value is not nil.
+func (_u *WebhookEventUpdate) SetNillableResourceID(v *string) *WebhookEventUpdate {
+	if v != nil {
+		_u.SetResourceID(*v)
+	}
+	return _u
+}
+
 // SetGatewayOrderNo sets the "gateway_order_no" field.
 func (_u *WebhookEventUpdate) SetGatewayOrderNo(v string) *WebhookEventUpdate {
 	_u.mutation.SetGatewayOrderNo(v)
@@ -81,6 +109,26 @@ func (_u *WebhookEventUpdate) SetNillableGatewayOrderNo(v *string) *WebhookEvent
 	if v != nil {
 		_u.SetGatewayOrderNo(*v)
 	}
+	return _u
+}
+
+// SetRefundNo sets the "refund_no" field.
+func (_u *WebhookEventUpdate) SetRefundNo(v string) *WebhookEventUpdate {
+	_u.mutation.SetRefundNo(v)
+	return _u
+}
+
+// SetNillableRefundNo sets the "refund_no" field if the given value is not nil.
+func (_u *WebhookEventUpdate) SetNillableRefundNo(v *string) *WebhookEventUpdate {
+	if v != nil {
+		_u.SetRefundNo(*v)
+	}
+	return _u
+}
+
+// ClearRefundNo clears the value of the "refund_no" field.
+func (_u *WebhookEventUpdate) ClearRefundNo() *WebhookEventUpdate {
+	_u.mutation.ClearRefundNo()
 	return _u
 }
 
@@ -188,8 +236,20 @@ func (_u *WebhookEventUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if value, ok := _u.mutation.AppID(); ok {
 		_spec.SetField(webhookevent.FieldAppID, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.ResourceType(); ok {
+		_spec.SetField(webhookevent.FieldResourceType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ResourceID(); ok {
+		_spec.SetField(webhookevent.FieldResourceID, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.GatewayOrderNo(); ok {
 		_spec.SetField(webhookevent.FieldGatewayOrderNo, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.RefundNo(); ok {
+		_spec.SetField(webhookevent.FieldRefundNo, field.TypeString, value)
+	}
+	if _u.mutation.RefundNoCleared() {
+		_spec.ClearField(webhookevent.FieldRefundNo, field.TypeString)
 	}
 	if value, ok := _u.mutation.PaymentOrderID(); ok {
 		_spec.SetField(webhookevent.FieldPaymentOrderID, field.TypeInt, value)
@@ -271,6 +331,34 @@ func (_u *WebhookEventUpdateOne) SetNillableAppID(v *string) *WebhookEventUpdate
 	return _u
 }
 
+// SetResourceType sets the "resource_type" field.
+func (_u *WebhookEventUpdateOne) SetResourceType(v string) *WebhookEventUpdateOne {
+	_u.mutation.SetResourceType(v)
+	return _u
+}
+
+// SetNillableResourceType sets the "resource_type" field if the given value is not nil.
+func (_u *WebhookEventUpdateOne) SetNillableResourceType(v *string) *WebhookEventUpdateOne {
+	if v != nil {
+		_u.SetResourceType(*v)
+	}
+	return _u
+}
+
+// SetResourceID sets the "resource_id" field.
+func (_u *WebhookEventUpdateOne) SetResourceID(v string) *WebhookEventUpdateOne {
+	_u.mutation.SetResourceID(v)
+	return _u
+}
+
+// SetNillableResourceID sets the "resource_id" field if the given value is not nil.
+func (_u *WebhookEventUpdateOne) SetNillableResourceID(v *string) *WebhookEventUpdateOne {
+	if v != nil {
+		_u.SetResourceID(*v)
+	}
+	return _u
+}
+
 // SetGatewayOrderNo sets the "gateway_order_no" field.
 func (_u *WebhookEventUpdateOne) SetGatewayOrderNo(v string) *WebhookEventUpdateOne {
 	_u.mutation.SetGatewayOrderNo(v)
@@ -282,6 +370,26 @@ func (_u *WebhookEventUpdateOne) SetNillableGatewayOrderNo(v *string) *WebhookEv
 	if v != nil {
 		_u.SetGatewayOrderNo(*v)
 	}
+	return _u
+}
+
+// SetRefundNo sets the "refund_no" field.
+func (_u *WebhookEventUpdateOne) SetRefundNo(v string) *WebhookEventUpdateOne {
+	_u.mutation.SetRefundNo(v)
+	return _u
+}
+
+// SetNillableRefundNo sets the "refund_no" field if the given value is not nil.
+func (_u *WebhookEventUpdateOne) SetNillableRefundNo(v *string) *WebhookEventUpdateOne {
+	if v != nil {
+		_u.SetRefundNo(*v)
+	}
+	return _u
+}
+
+// ClearRefundNo clears the value of the "refund_no" field.
+func (_u *WebhookEventUpdateOne) ClearRefundNo() *WebhookEventUpdateOne {
+	_u.mutation.ClearRefundNo()
 	return _u
 }
 
@@ -419,8 +527,20 @@ func (_u *WebhookEventUpdateOne) sqlSave(ctx context.Context) (_node *WebhookEve
 	if value, ok := _u.mutation.AppID(); ok {
 		_spec.SetField(webhookevent.FieldAppID, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.ResourceType(); ok {
+		_spec.SetField(webhookevent.FieldResourceType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ResourceID(); ok {
+		_spec.SetField(webhookevent.FieldResourceID, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.GatewayOrderNo(); ok {
 		_spec.SetField(webhookevent.FieldGatewayOrderNo, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.RefundNo(); ok {
+		_spec.SetField(webhookevent.FieldRefundNo, field.TypeString, value)
+	}
+	if _u.mutation.RefundNoCleared() {
+		_spec.ClearField(webhookevent.FieldRefundNo, field.TypeString)
 	}
 	if value, ok := _u.mutation.PaymentOrderID(); ok {
 		_spec.SetField(webhookevent.FieldPaymentOrderID, field.TypeInt, value)

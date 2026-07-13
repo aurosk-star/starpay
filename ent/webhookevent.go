@@ -24,8 +24,14 @@ type WebhookEvent struct {
 	EventType string `json:"event_type,omitempty"`
 	// AppID holds the value of the "app_id" field.
 	AppID string `json:"app_id,omitempty"`
+	// ResourceType holds the value of the "resource_type" field.
+	ResourceType string `json:"resource_type,omitempty"`
+	// ResourceID holds the value of the "resource_id" field.
+	ResourceID string `json:"resource_id,omitempty"`
 	// GatewayOrderNo holds the value of the "gateway_order_no" field.
 	GatewayOrderNo string `json:"gateway_order_no,omitempty"`
+	// RefundNo holds the value of the "refund_no" field.
+	RefundNo string `json:"refund_no,omitempty"`
 	// PaymentOrderID holds the value of the "payment_order_id" field.
 	PaymentOrderID int `json:"payment_order_id,omitempty"`
 	// Payload holds the value of the "payload" field.
@@ -46,7 +52,7 @@ func (*WebhookEvent) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case webhookevent.FieldID, webhookevent.FieldPaymentOrderID:
 			values[i] = new(sql.NullInt64)
-		case webhookevent.FieldEventID, webhookevent.FieldEventType, webhookevent.FieldAppID, webhookevent.FieldGatewayOrderNo:
+		case webhookevent.FieldEventID, webhookevent.FieldEventType, webhookevent.FieldAppID, webhookevent.FieldResourceType, webhookevent.FieldResourceID, webhookevent.FieldGatewayOrderNo, webhookevent.FieldRefundNo:
 			values[i] = new(sql.NullString)
 		case webhookevent.FieldCreatedAt, webhookevent.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -89,11 +95,29 @@ func (_m *WebhookEvent) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.AppID = value.String
 			}
+		case webhookevent.FieldResourceType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field resource_type", values[i])
+			} else if value.Valid {
+				_m.ResourceType = value.String
+			}
+		case webhookevent.FieldResourceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field resource_id", values[i])
+			} else if value.Valid {
+				_m.ResourceID = value.String
+			}
 		case webhookevent.FieldGatewayOrderNo:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field gateway_order_no", values[i])
 			} else if value.Valid {
 				_m.GatewayOrderNo = value.String
+			}
+		case webhookevent.FieldRefundNo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field refund_no", values[i])
+			} else if value.Valid {
+				_m.RefundNo = value.String
 			}
 		case webhookevent.FieldPaymentOrderID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -166,8 +190,17 @@ func (_m *WebhookEvent) String() string {
 	builder.WriteString("app_id=")
 	builder.WriteString(_m.AppID)
 	builder.WriteString(", ")
+	builder.WriteString("resource_type=")
+	builder.WriteString(_m.ResourceType)
+	builder.WriteString(", ")
+	builder.WriteString("resource_id=")
+	builder.WriteString(_m.ResourceID)
+	builder.WriteString(", ")
 	builder.WriteString("gateway_order_no=")
 	builder.WriteString(_m.GatewayOrderNo)
+	builder.WriteString(", ")
+	builder.WriteString("refund_no=")
+	builder.WriteString(_m.RefundNo)
 	builder.WriteString(", ")
 	builder.WriteString("payment_order_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.PaymentOrderID))

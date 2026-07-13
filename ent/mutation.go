@@ -10382,7 +10382,10 @@ type WebhookDeliveryMutation struct {
 	addevent_id         *int
 	app_id              *string
 	event_type          *string
+	resource_type       *string
+	resource_id         *string
 	gateway_order_no    *string
+	refund_no           *string
 	target_url          *string
 	status              *string
 	attempt_count       *int
@@ -10664,6 +10667,78 @@ func (m *WebhookDeliveryMutation) ResetEventType() {
 	m.event_type = nil
 }
 
+// SetResourceType sets the "resource_type" field.
+func (m *WebhookDeliveryMutation) SetResourceType(s string) {
+	m.resource_type = &s
+}
+
+// ResourceType returns the value of the "resource_type" field in the mutation.
+func (m *WebhookDeliveryMutation) ResourceType() (r string, exists bool) {
+	v := m.resource_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceType returns the old "resource_type" field's value of the WebhookDelivery entity.
+// If the WebhookDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookDeliveryMutation) OldResourceType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceType: %w", err)
+	}
+	return oldValue.ResourceType, nil
+}
+
+// ResetResourceType resets all changes to the "resource_type" field.
+func (m *WebhookDeliveryMutation) ResetResourceType() {
+	m.resource_type = nil
+}
+
+// SetResourceID sets the "resource_id" field.
+func (m *WebhookDeliveryMutation) SetResourceID(s string) {
+	m.resource_id = &s
+}
+
+// ResourceID returns the value of the "resource_id" field in the mutation.
+func (m *WebhookDeliveryMutation) ResourceID() (r string, exists bool) {
+	v := m.resource_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceID returns the old "resource_id" field's value of the WebhookDelivery entity.
+// If the WebhookDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookDeliveryMutation) OldResourceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceID: %w", err)
+	}
+	return oldValue.ResourceID, nil
+}
+
+// ResetResourceID resets all changes to the "resource_id" field.
+func (m *WebhookDeliveryMutation) ResetResourceID() {
+	m.resource_id = nil
+}
+
 // SetGatewayOrderNo sets the "gateway_order_no" field.
 func (m *WebhookDeliveryMutation) SetGatewayOrderNo(s string) {
 	m.gateway_order_no = &s
@@ -10698,6 +10773,55 @@ func (m *WebhookDeliveryMutation) OldGatewayOrderNo(ctx context.Context) (v stri
 // ResetGatewayOrderNo resets all changes to the "gateway_order_no" field.
 func (m *WebhookDeliveryMutation) ResetGatewayOrderNo() {
 	m.gateway_order_no = nil
+}
+
+// SetRefundNo sets the "refund_no" field.
+func (m *WebhookDeliveryMutation) SetRefundNo(s string) {
+	m.refund_no = &s
+}
+
+// RefundNo returns the value of the "refund_no" field in the mutation.
+func (m *WebhookDeliveryMutation) RefundNo() (r string, exists bool) {
+	v := m.refund_no
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRefundNo returns the old "refund_no" field's value of the WebhookDelivery entity.
+// If the WebhookDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookDeliveryMutation) OldRefundNo(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRefundNo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRefundNo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRefundNo: %w", err)
+	}
+	return oldValue.RefundNo, nil
+}
+
+// ClearRefundNo clears the value of the "refund_no" field.
+func (m *WebhookDeliveryMutation) ClearRefundNo() {
+	m.refund_no = nil
+	m.clearedFields[webhookdelivery.FieldRefundNo] = struct{}{}
+}
+
+// RefundNoCleared returns if the "refund_no" field was cleared in this mutation.
+func (m *WebhookDeliveryMutation) RefundNoCleared() bool {
+	_, ok := m.clearedFields[webhookdelivery.FieldRefundNo]
+	return ok
+}
+
+// ResetRefundNo resets all changes to the "refund_no" field.
+func (m *WebhookDeliveryMutation) ResetRefundNo() {
+	m.refund_no = nil
+	delete(m.clearedFields, webhookdelivery.FieldRefundNo)
 }
 
 // SetTargetURL sets the "target_url" field.
@@ -11249,7 +11373,7 @@ func (m *WebhookDeliveryMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *WebhookDeliveryMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 19)
 	if m.delivery_no != nil {
 		fields = append(fields, webhookdelivery.FieldDeliveryNo)
 	}
@@ -11262,8 +11386,17 @@ func (m *WebhookDeliveryMutation) Fields() []string {
 	if m.event_type != nil {
 		fields = append(fields, webhookdelivery.FieldEventType)
 	}
+	if m.resource_type != nil {
+		fields = append(fields, webhookdelivery.FieldResourceType)
+	}
+	if m.resource_id != nil {
+		fields = append(fields, webhookdelivery.FieldResourceID)
+	}
 	if m.gateway_order_no != nil {
 		fields = append(fields, webhookdelivery.FieldGatewayOrderNo)
+	}
+	if m.refund_no != nil {
+		fields = append(fields, webhookdelivery.FieldRefundNo)
 	}
 	if m.target_url != nil {
 		fields = append(fields, webhookdelivery.FieldTargetURL)
@@ -11314,8 +11447,14 @@ func (m *WebhookDeliveryMutation) Field(name string) (ent.Value, bool) {
 		return m.AppID()
 	case webhookdelivery.FieldEventType:
 		return m.EventType()
+	case webhookdelivery.FieldResourceType:
+		return m.ResourceType()
+	case webhookdelivery.FieldResourceID:
+		return m.ResourceID()
 	case webhookdelivery.FieldGatewayOrderNo:
 		return m.GatewayOrderNo()
+	case webhookdelivery.FieldRefundNo:
+		return m.RefundNo()
 	case webhookdelivery.FieldTargetURL:
 		return m.TargetURL()
 	case webhookdelivery.FieldStatus:
@@ -11355,8 +11494,14 @@ func (m *WebhookDeliveryMutation) OldField(ctx context.Context, name string) (en
 		return m.OldAppID(ctx)
 	case webhookdelivery.FieldEventType:
 		return m.OldEventType(ctx)
+	case webhookdelivery.FieldResourceType:
+		return m.OldResourceType(ctx)
+	case webhookdelivery.FieldResourceID:
+		return m.OldResourceID(ctx)
 	case webhookdelivery.FieldGatewayOrderNo:
 		return m.OldGatewayOrderNo(ctx)
+	case webhookdelivery.FieldRefundNo:
+		return m.OldRefundNo(ctx)
 	case webhookdelivery.FieldTargetURL:
 		return m.OldTargetURL(ctx)
 	case webhookdelivery.FieldStatus:
@@ -11416,12 +11561,33 @@ func (m *WebhookDeliveryMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetEventType(v)
 		return nil
+	case webhookdelivery.FieldResourceType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceType(v)
+		return nil
+	case webhookdelivery.FieldResourceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceID(v)
+		return nil
 	case webhookdelivery.FieldGatewayOrderNo:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetGatewayOrderNo(v)
+		return nil
+	case webhookdelivery.FieldRefundNo:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRefundNo(v)
 		return nil
 	case webhookdelivery.FieldTargetURL:
 		v, ok := value.(string)
@@ -11569,6 +11735,9 @@ func (m *WebhookDeliveryMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *WebhookDeliveryMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(webhookdelivery.FieldRefundNo) {
+		fields = append(fields, webhookdelivery.FieldRefundNo)
+	}
 	if m.FieldCleared(webhookdelivery.FieldNextAttemptAt) {
 		fields = append(fields, webhookdelivery.FieldNextAttemptAt)
 	}
@@ -11601,6 +11770,9 @@ func (m *WebhookDeliveryMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *WebhookDeliveryMutation) ClearField(name string) error {
 	switch name {
+	case webhookdelivery.FieldRefundNo:
+		m.ClearRefundNo()
+		return nil
 	case webhookdelivery.FieldNextAttemptAt:
 		m.ClearNextAttemptAt()
 		return nil
@@ -11639,8 +11811,17 @@ func (m *WebhookDeliveryMutation) ResetField(name string) error {
 	case webhookdelivery.FieldEventType:
 		m.ResetEventType()
 		return nil
+	case webhookdelivery.FieldResourceType:
+		m.ResetResourceType()
+		return nil
+	case webhookdelivery.FieldResourceID:
+		m.ResetResourceID()
+		return nil
 	case webhookdelivery.FieldGatewayOrderNo:
 		m.ResetGatewayOrderNo()
+		return nil
+	case webhookdelivery.FieldRefundNo:
+		m.ResetRefundNo()
 		return nil
 	case webhookdelivery.FieldTargetURL:
 		m.ResetTargetURL()
@@ -11736,7 +11917,10 @@ type WebhookEventMutation struct {
 	event_id            *string
 	event_type          *string
 	app_id              *string
+	resource_type       *string
+	resource_id         *string
 	gateway_order_no    *string
+	refund_no           *string
 	payment_order_id    *int
 	addpayment_order_id *int
 	payload             *map[string]interface{}
@@ -11954,6 +12138,78 @@ func (m *WebhookEventMutation) ResetAppID() {
 	m.app_id = nil
 }
 
+// SetResourceType sets the "resource_type" field.
+func (m *WebhookEventMutation) SetResourceType(s string) {
+	m.resource_type = &s
+}
+
+// ResourceType returns the value of the "resource_type" field in the mutation.
+func (m *WebhookEventMutation) ResourceType() (r string, exists bool) {
+	v := m.resource_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceType returns the old "resource_type" field's value of the WebhookEvent entity.
+// If the WebhookEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookEventMutation) OldResourceType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceType: %w", err)
+	}
+	return oldValue.ResourceType, nil
+}
+
+// ResetResourceType resets all changes to the "resource_type" field.
+func (m *WebhookEventMutation) ResetResourceType() {
+	m.resource_type = nil
+}
+
+// SetResourceID sets the "resource_id" field.
+func (m *WebhookEventMutation) SetResourceID(s string) {
+	m.resource_id = &s
+}
+
+// ResourceID returns the value of the "resource_id" field in the mutation.
+func (m *WebhookEventMutation) ResourceID() (r string, exists bool) {
+	v := m.resource_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceID returns the old "resource_id" field's value of the WebhookEvent entity.
+// If the WebhookEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookEventMutation) OldResourceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceID: %w", err)
+	}
+	return oldValue.ResourceID, nil
+}
+
+// ResetResourceID resets all changes to the "resource_id" field.
+func (m *WebhookEventMutation) ResetResourceID() {
+	m.resource_id = nil
+}
+
 // SetGatewayOrderNo sets the "gateway_order_no" field.
 func (m *WebhookEventMutation) SetGatewayOrderNo(s string) {
 	m.gateway_order_no = &s
@@ -11988,6 +12244,55 @@ func (m *WebhookEventMutation) OldGatewayOrderNo(ctx context.Context) (v string,
 // ResetGatewayOrderNo resets all changes to the "gateway_order_no" field.
 func (m *WebhookEventMutation) ResetGatewayOrderNo() {
 	m.gateway_order_no = nil
+}
+
+// SetRefundNo sets the "refund_no" field.
+func (m *WebhookEventMutation) SetRefundNo(s string) {
+	m.refund_no = &s
+}
+
+// RefundNo returns the value of the "refund_no" field in the mutation.
+func (m *WebhookEventMutation) RefundNo() (r string, exists bool) {
+	v := m.refund_no
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRefundNo returns the old "refund_no" field's value of the WebhookEvent entity.
+// If the WebhookEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookEventMutation) OldRefundNo(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRefundNo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRefundNo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRefundNo: %w", err)
+	}
+	return oldValue.RefundNo, nil
+}
+
+// ClearRefundNo clears the value of the "refund_no" field.
+func (m *WebhookEventMutation) ClearRefundNo() {
+	m.refund_no = nil
+	m.clearedFields[webhookevent.FieldRefundNo] = struct{}{}
+}
+
+// RefundNoCleared returns if the "refund_no" field was cleared in this mutation.
+func (m *WebhookEventMutation) RefundNoCleared() bool {
+	_, ok := m.clearedFields[webhookevent.FieldRefundNo]
+	return ok
+}
+
+// ResetRefundNo resets all changes to the "refund_no" field.
+func (m *WebhookEventMutation) ResetRefundNo() {
+	m.refund_no = nil
+	delete(m.clearedFields, webhookevent.FieldRefundNo)
 }
 
 // SetPaymentOrderID sets the "payment_order_id" field.
@@ -12215,7 +12520,7 @@ func (m *WebhookEventMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *WebhookEventMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 11)
 	if m.event_id != nil {
 		fields = append(fields, webhookevent.FieldEventID)
 	}
@@ -12225,8 +12530,17 @@ func (m *WebhookEventMutation) Fields() []string {
 	if m.app_id != nil {
 		fields = append(fields, webhookevent.FieldAppID)
 	}
+	if m.resource_type != nil {
+		fields = append(fields, webhookevent.FieldResourceType)
+	}
+	if m.resource_id != nil {
+		fields = append(fields, webhookevent.FieldResourceID)
+	}
 	if m.gateway_order_no != nil {
 		fields = append(fields, webhookevent.FieldGatewayOrderNo)
+	}
+	if m.refund_no != nil {
+		fields = append(fields, webhookevent.FieldRefundNo)
 	}
 	if m.payment_order_id != nil {
 		fields = append(fields, webhookevent.FieldPaymentOrderID)
@@ -12254,8 +12568,14 @@ func (m *WebhookEventMutation) Field(name string) (ent.Value, bool) {
 		return m.EventType()
 	case webhookevent.FieldAppID:
 		return m.AppID()
+	case webhookevent.FieldResourceType:
+		return m.ResourceType()
+	case webhookevent.FieldResourceID:
+		return m.ResourceID()
 	case webhookevent.FieldGatewayOrderNo:
 		return m.GatewayOrderNo()
+	case webhookevent.FieldRefundNo:
+		return m.RefundNo()
 	case webhookevent.FieldPaymentOrderID:
 		return m.PaymentOrderID()
 	case webhookevent.FieldPayload:
@@ -12279,8 +12599,14 @@ func (m *WebhookEventMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldEventType(ctx)
 	case webhookevent.FieldAppID:
 		return m.OldAppID(ctx)
+	case webhookevent.FieldResourceType:
+		return m.OldResourceType(ctx)
+	case webhookevent.FieldResourceID:
+		return m.OldResourceID(ctx)
 	case webhookevent.FieldGatewayOrderNo:
 		return m.OldGatewayOrderNo(ctx)
+	case webhookevent.FieldRefundNo:
+		return m.OldRefundNo(ctx)
 	case webhookevent.FieldPaymentOrderID:
 		return m.OldPaymentOrderID(ctx)
 	case webhookevent.FieldPayload:
@@ -12319,12 +12645,33 @@ func (m *WebhookEventMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAppID(v)
 		return nil
+	case webhookevent.FieldResourceType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceType(v)
+		return nil
+	case webhookevent.FieldResourceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceID(v)
+		return nil
 	case webhookevent.FieldGatewayOrderNo:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetGatewayOrderNo(v)
+		return nil
+	case webhookevent.FieldRefundNo:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRefundNo(v)
 		return nil
 	case webhookevent.FieldPaymentOrderID:
 		v, ok := value.(int)
@@ -12399,6 +12746,9 @@ func (m *WebhookEventMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *WebhookEventMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(webhookevent.FieldRefundNo) {
+		fields = append(fields, webhookevent.FieldRefundNo)
+	}
 	if m.FieldCleared(webhookevent.FieldPaymentOrderID) {
 		fields = append(fields, webhookevent.FieldPaymentOrderID)
 	}
@@ -12419,6 +12769,9 @@ func (m *WebhookEventMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *WebhookEventMutation) ClearField(name string) error {
 	switch name {
+	case webhookevent.FieldRefundNo:
+		m.ClearRefundNo()
+		return nil
 	case webhookevent.FieldPaymentOrderID:
 		m.ClearPaymentOrderID()
 		return nil
@@ -12442,8 +12795,17 @@ func (m *WebhookEventMutation) ResetField(name string) error {
 	case webhookevent.FieldAppID:
 		m.ResetAppID()
 		return nil
+	case webhookevent.FieldResourceType:
+		m.ResetResourceType()
+		return nil
+	case webhookevent.FieldResourceID:
+		m.ResetResourceID()
+		return nil
 	case webhookevent.FieldGatewayOrderNo:
 		m.ResetGatewayOrderNo()
+		return nil
+	case webhookevent.FieldRefundNo:
+		m.ResetRefundNo()
 		return nil
 	case webhookevent.FieldPaymentOrderID:
 		m.ResetPaymentOrderID()

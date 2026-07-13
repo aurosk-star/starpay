@@ -25,7 +25,10 @@ type CreateEventInput struct {
 	EventID        string
 	EventType      string
 	AppID          string
+	ResourceType   string
+	ResourceID     string
 	GatewayOrderNo string
+	RefundNo       string
 	PaymentOrderID int
 	Payload        map[string]any
 }
@@ -35,7 +38,10 @@ type CreateDeliveryInput struct {
 	EventID        int
 	AppID          string
 	EventType      string
+	ResourceType   string
+	ResourceID     string
 	GatewayOrderNo string
+	RefundNo       string
 	TargetURL      string
 	Status         string
 	NextAttemptAt  time.Time
@@ -44,7 +50,10 @@ type CreateDeliveryInput struct {
 type ListEventsInput struct {
 	AppID          string
 	EventType      string
+	ResourceType   string
+	ResourceID     string
 	GatewayOrderNo string
+	RefundNo       string
 	Page           int
 	PageSize       int
 }
@@ -53,7 +62,10 @@ type ListDeliveriesInput struct {
 	AppID          string
 	EventType      string
 	Status         string
+	ResourceType   string
+	ResourceID     string
 	GatewayOrderNo string
+	RefundNo       string
 	Page           int
 	PageSize       int
 }
@@ -70,8 +82,16 @@ type DeliveryAttemptInput struct {
 }
 
 func (r Repository) FindEventByTypeAndOrder(ctx context.Context, eventType string, gatewayOrderNo string) (*ent.WebhookEvent, error) {
+	return r.FindEventByResource(ctx, eventType, "payment_order", gatewayOrderNo)
+}
+
+func (r Repository) FindEventByResource(ctx context.Context, eventType string, resourceType string, resourceID string) (*ent.WebhookEvent, error) {
 	return r.client.WebhookEvent.Query().
-		Where(webhookevent.EventType(eventType), webhookevent.GatewayOrderNo(gatewayOrderNo)).
+		Where(
+			webhookevent.EventType(eventType),
+			webhookevent.ResourceType(resourceType),
+			webhookevent.ResourceID(resourceID),
+		).
 		Only(ctx)
 }
 
@@ -80,8 +100,13 @@ func (r Repository) CreateEvent(ctx context.Context, input CreateEventInput) (*e
 		SetEventID(input.EventID).
 		SetEventType(input.EventType).
 		SetAppID(input.AppID).
+		SetResourceType(input.ResourceType).
+		SetResourceID(input.ResourceID).
 		SetGatewayOrderNo(input.GatewayOrderNo).
 		SetPayload(input.Payload)
+	if input.RefundNo != "" {
+		create.SetRefundNo(input.RefundNo)
+	}
 	if input.PaymentOrderID > 0 {
 		create.SetPaymentOrderID(input.PaymentOrderID)
 	}
@@ -105,16 +130,21 @@ func (r Repository) CreateDelivery(ctx context.Context, input CreateDeliveryInpu
 	if status == "" {
 		status = "pending"
 	}
-	return r.client.WebhookDelivery.Create().
+	create := r.client.WebhookDelivery.Create().
 		SetDeliveryNo(input.DeliveryNo).
 		SetEventID(input.EventID).
 		SetAppID(input.AppID).
 		SetEventType(input.EventType).
+		SetResourceType(input.ResourceType).
+		SetResourceID(input.ResourceID).
 		SetGatewayOrderNo(input.GatewayOrderNo).
 		SetTargetURL(input.TargetURL).
 		SetStatus(status).
-		SetNextAttemptAt(input.NextAttemptAt).
-		Save(ctx)
+		SetNextAttemptAt(input.NextAttemptAt)
+	if input.RefundNo != "" {
+		create.SetRefundNo(input.RefundNo)
+	}
+	return create.Save(ctx)
 }
 
 func (r Repository) ListEvents(ctx context.Context, input ListEventsInput) ([]*ent.WebhookEvent, int, error) {
@@ -125,8 +155,17 @@ func (r Repository) ListEvents(ctx context.Context, input ListEventsInput) ([]*e
 	if input.EventType != "" {
 		query.Where(webhookevent.EventType(input.EventType))
 	}
+	if input.ResourceType != "" {
+		query.Where(webhookevent.ResourceType(input.ResourceType))
+	}
+	if input.ResourceID != "" {
+		query.Where(webhookevent.ResourceID(input.ResourceID))
+	}
 	if input.GatewayOrderNo != "" {
 		query.Where(webhookevent.GatewayOrderNo(input.GatewayOrderNo))
+	}
+	if input.RefundNo != "" {
+		query.Where(webhookevent.RefundNo(input.RefundNo))
 	}
 	total, err := query.Clone().Count(ctx)
 	if err != nil {
@@ -150,8 +189,17 @@ func (r Repository) ListDeliveries(ctx context.Context, input ListDeliveriesInpu
 	if input.Status != "" {
 		query.Where(webhookdelivery.Status(input.Status))
 	}
+	if input.ResourceType != "" {
+		query.Where(webhookdelivery.ResourceType(input.ResourceType))
+	}
+	if input.ResourceID != "" {
+		query.Where(webhookdelivery.ResourceID(input.ResourceID))
+	}
 	if input.GatewayOrderNo != "" {
 		query.Where(webhookdelivery.GatewayOrderNo(input.GatewayOrderNo))
+	}
+	if input.RefundNo != "" {
+		query.Where(webhookdelivery.RefundNo(input.RefundNo))
 	}
 	total, err := query.Clone().Count(ctx)
 	if err != nil {

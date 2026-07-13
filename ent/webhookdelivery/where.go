@@ -74,9 +74,24 @@ func EventType(v string) predicate.WebhookDelivery {
 	return predicate.WebhookDelivery(sql.FieldEQ(FieldEventType, v))
 }
 
+// ResourceType applies equality check predicate on the "resource_type" field. It's identical to ResourceTypeEQ.
+func ResourceType(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldEQ(FieldResourceType, v))
+}
+
+// ResourceID applies equality check predicate on the "resource_id" field. It's identical to ResourceIDEQ.
+func ResourceID(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldEQ(FieldResourceID, v))
+}
+
 // GatewayOrderNo applies equality check predicate on the "gateway_order_no" field. It's identical to GatewayOrderNoEQ.
 func GatewayOrderNo(v string) predicate.WebhookDelivery {
 	return predicate.WebhookDelivery(sql.FieldEQ(FieldGatewayOrderNo, v))
+}
+
+// RefundNo applies equality check predicate on the "refund_no" field. It's identical to RefundNoEQ.
+func RefundNo(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldEQ(FieldRefundNo, v))
 }
 
 // TargetURL applies equality check predicate on the "target_url" field. It's identical to TargetURLEQ.
@@ -369,6 +384,136 @@ func EventTypeContainsFold(v string) predicate.WebhookDelivery {
 	return predicate.WebhookDelivery(sql.FieldContainsFold(FieldEventType, v))
 }
 
+// ResourceTypeEQ applies the EQ predicate on the "resource_type" field.
+func ResourceTypeEQ(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldEQ(FieldResourceType, v))
+}
+
+// ResourceTypeNEQ applies the NEQ predicate on the "resource_type" field.
+func ResourceTypeNEQ(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldNEQ(FieldResourceType, v))
+}
+
+// ResourceTypeIn applies the In predicate on the "resource_type" field.
+func ResourceTypeIn(vs ...string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldIn(FieldResourceType, vs...))
+}
+
+// ResourceTypeNotIn applies the NotIn predicate on the "resource_type" field.
+func ResourceTypeNotIn(vs ...string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldNotIn(FieldResourceType, vs...))
+}
+
+// ResourceTypeGT applies the GT predicate on the "resource_type" field.
+func ResourceTypeGT(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldGT(FieldResourceType, v))
+}
+
+// ResourceTypeGTE applies the GTE predicate on the "resource_type" field.
+func ResourceTypeGTE(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldGTE(FieldResourceType, v))
+}
+
+// ResourceTypeLT applies the LT predicate on the "resource_type" field.
+func ResourceTypeLT(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldLT(FieldResourceType, v))
+}
+
+// ResourceTypeLTE applies the LTE predicate on the "resource_type" field.
+func ResourceTypeLTE(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldLTE(FieldResourceType, v))
+}
+
+// ResourceTypeContains applies the Contains predicate on the "resource_type" field.
+func ResourceTypeContains(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldContains(FieldResourceType, v))
+}
+
+// ResourceTypeHasPrefix applies the HasPrefix predicate on the "resource_type" field.
+func ResourceTypeHasPrefix(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldHasPrefix(FieldResourceType, v))
+}
+
+// ResourceTypeHasSuffix applies the HasSuffix predicate on the "resource_type" field.
+func ResourceTypeHasSuffix(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldHasSuffix(FieldResourceType, v))
+}
+
+// ResourceTypeEqualFold applies the EqualFold predicate on the "resource_type" field.
+func ResourceTypeEqualFold(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldEqualFold(FieldResourceType, v))
+}
+
+// ResourceTypeContainsFold applies the ContainsFold predicate on the "resource_type" field.
+func ResourceTypeContainsFold(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldContainsFold(FieldResourceType, v))
+}
+
+// ResourceIDEQ applies the EQ predicate on the "resource_id" field.
+func ResourceIDEQ(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldEQ(FieldResourceID, v))
+}
+
+// ResourceIDNEQ applies the NEQ predicate on the "resource_id" field.
+func ResourceIDNEQ(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldNEQ(FieldResourceID, v))
+}
+
+// ResourceIDIn applies the In predicate on the "resource_id" field.
+func ResourceIDIn(vs ...string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldIn(FieldResourceID, vs...))
+}
+
+// ResourceIDNotIn applies the NotIn predicate on the "resource_id" field.
+func ResourceIDNotIn(vs ...string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldNotIn(FieldResourceID, vs...))
+}
+
+// ResourceIDGT applies the GT predicate on the "resource_id" field.
+func ResourceIDGT(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldGT(FieldResourceID, v))
+}
+
+// ResourceIDGTE applies the GTE predicate on the "resource_id" field.
+func ResourceIDGTE(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldGTE(FieldResourceID, v))
+}
+
+// ResourceIDLT applies the LT predicate on the "resource_id" field.
+func ResourceIDLT(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldLT(FieldResourceID, v))
+}
+
+// ResourceIDLTE applies the LTE predicate on the "resource_id" field.
+func ResourceIDLTE(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldLTE(FieldResourceID, v))
+}
+
+// ResourceIDContains applies the Contains predicate on the "resource_id" field.
+func ResourceIDContains(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldContains(FieldResourceID, v))
+}
+
+// ResourceIDHasPrefix applies the HasPrefix predicate on the "resource_id" field.
+func ResourceIDHasPrefix(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldHasPrefix(FieldResourceID, v))
+}
+
+// ResourceIDHasSuffix applies the HasSuffix predicate on the "resource_id" field.
+func ResourceIDHasSuffix(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldHasSuffix(FieldResourceID, v))
+}
+
+// ResourceIDEqualFold applies the EqualFold predicate on the "resource_id" field.
+func ResourceIDEqualFold(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldEqualFold(FieldResourceID, v))
+}
+
+// ResourceIDContainsFold applies the ContainsFold predicate on the "resource_id" field.
+func ResourceIDContainsFold(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldContainsFold(FieldResourceID, v))
+}
+
 // GatewayOrderNoEQ applies the EQ predicate on the "gateway_order_no" field.
 func GatewayOrderNoEQ(v string) predicate.WebhookDelivery {
 	return predicate.WebhookDelivery(sql.FieldEQ(FieldGatewayOrderNo, v))
@@ -432,6 +577,81 @@ func GatewayOrderNoEqualFold(v string) predicate.WebhookDelivery {
 // GatewayOrderNoContainsFold applies the ContainsFold predicate on the "gateway_order_no" field.
 func GatewayOrderNoContainsFold(v string) predicate.WebhookDelivery {
 	return predicate.WebhookDelivery(sql.FieldContainsFold(FieldGatewayOrderNo, v))
+}
+
+// RefundNoEQ applies the EQ predicate on the "refund_no" field.
+func RefundNoEQ(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldEQ(FieldRefundNo, v))
+}
+
+// RefundNoNEQ applies the NEQ predicate on the "refund_no" field.
+func RefundNoNEQ(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldNEQ(FieldRefundNo, v))
+}
+
+// RefundNoIn applies the In predicate on the "refund_no" field.
+func RefundNoIn(vs ...string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldIn(FieldRefundNo, vs...))
+}
+
+// RefundNoNotIn applies the NotIn predicate on the "refund_no" field.
+func RefundNoNotIn(vs ...string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldNotIn(FieldRefundNo, vs...))
+}
+
+// RefundNoGT applies the GT predicate on the "refund_no" field.
+func RefundNoGT(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldGT(FieldRefundNo, v))
+}
+
+// RefundNoGTE applies the GTE predicate on the "refund_no" field.
+func RefundNoGTE(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldGTE(FieldRefundNo, v))
+}
+
+// RefundNoLT applies the LT predicate on the "refund_no" field.
+func RefundNoLT(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldLT(FieldRefundNo, v))
+}
+
+// RefundNoLTE applies the LTE predicate on the "refund_no" field.
+func RefundNoLTE(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldLTE(FieldRefundNo, v))
+}
+
+// RefundNoContains applies the Contains predicate on the "refund_no" field.
+func RefundNoContains(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldContains(FieldRefundNo, v))
+}
+
+// RefundNoHasPrefix applies the HasPrefix predicate on the "refund_no" field.
+func RefundNoHasPrefix(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldHasPrefix(FieldRefundNo, v))
+}
+
+// RefundNoHasSuffix applies the HasSuffix predicate on the "refund_no" field.
+func RefundNoHasSuffix(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldHasSuffix(FieldRefundNo, v))
+}
+
+// RefundNoIsNil applies the IsNil predicate on the "refund_no" field.
+func RefundNoIsNil() predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldIsNull(FieldRefundNo))
+}
+
+// RefundNoNotNil applies the NotNil predicate on the "refund_no" field.
+func RefundNoNotNil() predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldNotNull(FieldRefundNo))
+}
+
+// RefundNoEqualFold applies the EqualFold predicate on the "refund_no" field.
+func RefundNoEqualFold(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldEqualFold(FieldRefundNo, v))
+}
+
+// RefundNoContainsFold applies the ContainsFold predicate on the "refund_no" field.
+func RefundNoContainsFold(v string) predicate.WebhookDelivery {
+	return predicate.WebhookDelivery(sql.FieldContainsFold(FieldRefundNo, v))
 }
 
 // TargetURLEQ applies the EQ predicate on the "target_url" field.

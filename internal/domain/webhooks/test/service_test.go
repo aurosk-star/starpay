@@ -250,6 +250,85 @@ func TestRecordPaymentSucceededIsIdempotentPerOrder(t *testing.T) {
 	}
 }
 
+func TestRecordPaymentSucceededUsesPaymentOrderResourceIdentity(t *testing.T) {
+	ctx := context.Background()
+	client := enttest.Open(t, dialect.SQLite, "file:webhook_payment_resource_identity?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	createApp(t, client, "snsgo_resource", "")
+	order := createPaidOrder(t, client, "snsgo_resource", "biz_resource")
+
+	event, err := webhooksvc.New(client).RecordPaymentSucceeded(ctx, order)
+	if err != nil {
+		t.Fatalf("RecordPaymentSucceeded() error = %v", err)
+	}
+	if event.ResourceType != webhooksvc.ResourcePaymentOrder || event.ResourceID != order.GatewayOrderNo {
+		t.Fatalf("resource = %q/%q, want %q/%q", event.ResourceType, event.ResourceID, webhooksvc.ResourcePaymentOrder, order.GatewayOrderNo)
+	}
+}
+
+func TestRecordResourceEventsAreUniquePerResource(t *testing.T) {
+	ctx := context.Background()
+	client := enttest.Open(t, dialect.SQLite, "file:webhook_refund_resource_identity?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	createApp(t, client, "snsgo_refund_resource", "")
+	service := webhooksvc.New(client)
+	first, err := service.RecordResourceEvent(ctx, webhooksvc.ResourceEventInput{
+		EventType:      "refund.succeeded",
+		AppID:          "snsgo_refund_resource",
+		ResourceType:   webhooksvc.ResourceRefund,
+		ResourceID:     "rf_001",
+		GatewayOrderNo: "gw_001",
+		RefundNo:       "rf_001",
+		Payload:        map[string]any{"refund_no": "rf_001"},
+	})
+	if err != nil {
+		t.Fatalf("first RecordResourceEvent() error = %v", err)
+	}
+	duplicate, err := service.RecordResourceEvent(ctx, webhooksvc.ResourceEventInput{
+		EventType:      "refund.succeeded",
+		AppID:          "snsgo_refund_resource",
+		ResourceType:   webhooksvc.ResourceRefund,
+		ResourceID:     "rf_001",
+		GatewayOrderNo: "gw_001",
+		RefundNo:       "rf_001",
+		Payload:        map[string]any{"refund_no": "rf_001"},
+	})
+	if err != nil {
+		t.Fatalf("duplicate RecordResourceEvent() error = %v", err)
+	}
+	second, err := service.RecordResourceEvent(ctx, webhooksvc.ResourceEventInput{
+		EventType:      "refund.succeeded",
+		AppID:          "snsgo_refund_resource",
+		ResourceType:   webhooksvc.ResourceRefund,
+		ResourceID:     "rf_002",
+		GatewayOrderNo: "gw_001",
+		RefundNo:       "rf_002",
+		Payload:        map[string]any{"refund_no": "rf_002"},
+	})
+	if err != nil {
+		t.Fatalf("second RecordResourceEvent() error = %v", err)
+	}
+	if duplicate.ID != first.ID {
+		t.Fatalf("duplicate event ID = %d, want %d", duplicate.ID, first.ID)
+	}
+	if second.ID == first.ID {
+		t.Fatalf("second resource reused event ID %d", first.ID)
+	}
+
+	_, total, err := webhookrepo.New(client).ListEvents(ctx, webhookrepo.ListEventsInput{
+		EventType:    "refund.succeeded",
+		ResourceType: webhooksvc.ResourceRefund,
+	})
+	if err != nil {
+		t.Fatalf("ListEvents() error = %v", err)
+	}
+	if total != 2 {
+		t.Fatalf("resource event total = %d, want 2", total)
+	}
+}
+
 func TestRecordPaymentSucceededSkipsDeliveryWhenNotifyURLMissing(t *testing.T) {
 	ctx := context.Background()
 	client := enttest.Open(t, dialect.SQLite, "file:webhook_payment_succeeded_no_url?mode=memory&cache=shared&_fk=1")

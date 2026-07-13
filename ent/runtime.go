@@ -242,32 +242,40 @@ func init() {
 	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
 	webhookdeliveryFields := schema.WebhookDelivery{}.Fields()
 	_ = webhookdeliveryFields
+	// webhookdeliveryDescResourceType is the schema descriptor for resource_type field.
+	webhookdeliveryDescResourceType := webhookdeliveryFields[4].Descriptor()
+	// webhookdelivery.DefaultResourceType holds the default value on creation for the resource_type field.
+	webhookdelivery.DefaultResourceType = webhookdeliveryDescResourceType.Default.(string)
 	// webhookdeliveryDescStatus is the schema descriptor for status field.
-	webhookdeliveryDescStatus := webhookdeliveryFields[6].Descriptor()
+	webhookdeliveryDescStatus := webhookdeliveryFields[9].Descriptor()
 	// webhookdelivery.DefaultStatus holds the default value on creation for the status field.
 	webhookdelivery.DefaultStatus = webhookdeliveryDescStatus.Default.(string)
 	// webhookdeliveryDescAttemptCount is the schema descriptor for attempt_count field.
-	webhookdeliveryDescAttemptCount := webhookdeliveryFields[7].Descriptor()
+	webhookdeliveryDescAttemptCount := webhookdeliveryFields[10].Descriptor()
 	// webhookdelivery.DefaultAttemptCount holds the default value on creation for the attempt_count field.
 	webhookdelivery.DefaultAttemptCount = webhookdeliveryDescAttemptCount.Default.(int)
 	// webhookdeliveryDescCreatedAt is the schema descriptor for created_at field.
-	webhookdeliveryDescCreatedAt := webhookdeliveryFields[14].Descriptor()
+	webhookdeliveryDescCreatedAt := webhookdeliveryFields[17].Descriptor()
 	// webhookdelivery.DefaultCreatedAt holds the default value on creation for the created_at field.
 	webhookdelivery.DefaultCreatedAt = webhookdeliveryDescCreatedAt.Default.(func() time.Time)
 	// webhookdeliveryDescUpdatedAt is the schema descriptor for updated_at field.
-	webhookdeliveryDescUpdatedAt := webhookdeliveryFields[15].Descriptor()
+	webhookdeliveryDescUpdatedAt := webhookdeliveryFields[18].Descriptor()
 	// webhookdelivery.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	webhookdelivery.DefaultUpdatedAt = webhookdeliveryDescUpdatedAt.Default.(func() time.Time)
 	// webhookdelivery.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	webhookdelivery.UpdateDefaultUpdatedAt = webhookdeliveryDescUpdatedAt.UpdateDefault.(func() time.Time)
 	webhookeventFields := schema.WebhookEvent{}.Fields()
 	_ = webhookeventFields
+	// webhookeventDescResourceType is the schema descriptor for resource_type field.
+	webhookeventDescResourceType := webhookeventFields[3].Descriptor()
+	// webhookevent.DefaultResourceType holds the default value on creation for the resource_type field.
+	webhookevent.DefaultResourceType = webhookeventDescResourceType.Default.(string)
 	// webhookeventDescCreatedAt is the schema descriptor for created_at field.
-	webhookeventDescCreatedAt := webhookeventFields[6].Descriptor()
+	webhookeventDescCreatedAt := webhookeventFields[9].Descriptor()
 	// webhookevent.DefaultCreatedAt holds the default value on creation for the created_at field.
 	webhookevent.DefaultCreatedAt = webhookeventDescCreatedAt.Default.(func() time.Time)
 	// webhookeventDescUpdatedAt is the schema descriptor for updated_at field.
-	webhookeventDescUpdatedAt := webhookeventFields[7].Descriptor()
+	webhookeventDescUpdatedAt := webhookeventFields[10].Descriptor()
 	// webhookevent.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	webhookevent.DefaultUpdatedAt = webhookeventDescUpdatedAt.Default.(func() time.Time)
 	// webhookevent.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

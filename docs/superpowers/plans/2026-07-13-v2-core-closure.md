@@ -40,7 +40,7 @@
 - Produces: delivery filters `resource_type` and `refund_no`.
 - Preserves: `RecordPaymentSucceeded`, `RecordPaymentFailed`, and `RecordOrderExpired` signatures.
 
-- [ ] **Step 1: Write failing resource-idempotency tests**
+- [x] **Step 1: Write failing resource-idempotency tests**
 
 Add tests that assert payment events persist `resource_type=payment_order` and `resource_id=gateway_order_no`, duplicate payment events reuse the same event, and two generic refund resources under one gateway order can create separate events.
 
@@ -55,13 +55,13 @@ func TestRecordResourceEventsAreUniquePerResource(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run focused tests and verify missing resource APIs fail**
+- [x] **Step 2: Run focused tests and verify missing resource APIs fail**
 
 Run: `go test ./internal/domain/webhooks/test ./internal/platform/database`
 
 Expected: FAIL because resource fields and `RecordResourceEvent` do not exist.
 
-- [ ] **Step 3: Add resource fields and targeted compatibility migration**
+- [x] **Step 3: Add resource fields and targeted compatibility migration**
 
 Schema fields:
 
@@ -79,7 +79,7 @@ index.Fields("event_type", "resource_type", "resource_id").Unique()
 
 Before `client.Schema.Create`, `prepareWebhookResourceMigration` detects an existing `webhook_events` table, adds nullable columns, backfills `payment_order` and `gateway_order_no`, and drops only `webhookevent_event_type_gateway_order_no`. Implement separate PostgreSQL and MySQL statements; return errors instead of ignoring failed migrations.
 
-- [ ] **Step 4: Implement generic event persistence and compatible payment wrappers**
+- [x] **Step 4: Implement generic event persistence and compatible payment wrappers**
 
 ```go
 type ResourceEventInput struct {
@@ -94,7 +94,7 @@ func (s Service) RecordResourceEvent(ctx context.Context, input ResourceEventInp
 
 Payment wrappers populate `payment_order` and the gateway order number. Delivery creation copies resource fields and refund number. List filters reach repository predicates.
 
-- [ ] **Step 5: Regenerate Ent and verify webhook behavior**
+- [x] **Step 5: Regenerate Ent and verify webhook behavior**
 
 Run:
 

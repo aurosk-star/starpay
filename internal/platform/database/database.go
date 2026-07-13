@@ -22,6 +22,10 @@ func Open(ctx context.Context, driverName string, dsn string) (*ent.Client, erro
 	if err != nil {
 		return nil, err
 	}
+	if err := prepareWebhookResourceMigration(ctx, drv.DB(), entDialect); err != nil {
+		_ = drv.Close()
+		return nil, err
+	}
 
 	client := ent.NewClient(ent.Driver(drv))
 	if err := client.Schema.Create(ctx); err != nil {

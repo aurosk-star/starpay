@@ -19,8 +19,14 @@ const (
 	FieldEventType = "event_type"
 	// FieldAppID holds the string denoting the app_id field in the database.
 	FieldAppID = "app_id"
+	// FieldResourceType holds the string denoting the resource_type field in the database.
+	FieldResourceType = "resource_type"
+	// FieldResourceID holds the string denoting the resource_id field in the database.
+	FieldResourceID = "resource_id"
 	// FieldGatewayOrderNo holds the string denoting the gateway_order_no field in the database.
 	FieldGatewayOrderNo = "gateway_order_no"
+	// FieldRefundNo holds the string denoting the refund_no field in the database.
+	FieldRefundNo = "refund_no"
 	// FieldPaymentOrderID holds the string denoting the payment_order_id field in the database.
 	FieldPaymentOrderID = "payment_order_id"
 	// FieldPayload holds the string denoting the payload field in the database.
@@ -39,7 +45,10 @@ var Columns = []string{
 	FieldEventID,
 	FieldEventType,
 	FieldAppID,
+	FieldResourceType,
+	FieldResourceID,
 	FieldGatewayOrderNo,
+	FieldRefundNo,
 	FieldPaymentOrderID,
 	FieldPayload,
 	FieldCreatedAt,
@@ -57,6 +66,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultResourceType holds the default value on creation for the "resource_type" field.
+	DefaultResourceType string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -88,9 +99,24 @@ func ByAppID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAppID, opts...).ToFunc()
 }
 
+// ByResourceType orders the results by the resource_type field.
+func ByResourceType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldResourceType, opts...).ToFunc()
+}
+
+// ByResourceID orders the results by the resource_id field.
+func ByResourceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldResourceID, opts...).ToFunc()
+}
+
 // ByGatewayOrderNo orders the results by the gateway_order_no field.
 func ByGatewayOrderNo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldGatewayOrderNo, opts...).ToFunc()
+}
+
+// ByRefundNo orders the results by the refund_no field.
+func ByRefundNo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRefundNo, opts...).ToFunc()
 }
 
 // ByPaymentOrderID orders the results by the payment_order_id field.

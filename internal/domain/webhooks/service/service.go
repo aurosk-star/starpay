@@ -26,6 +26,8 @@ import (
 const EventPaymentSucceeded = "payment.succeeded"
 const EventPaymentFailed = "payment.failed"
 const EventOrderExpired = "order.expired"
+const ResourcePaymentOrder = "payment_order"
+const ResourceRefund = "refund"
 const maxDeliveryAttempts = 3
 const maxResponseBodyBytes = 4096
 const (
@@ -37,6 +39,10 @@ const (
 )
 
 var ErrOrderRequired = errors.New("order is required")
+var ErrEventTypeRequired = errors.New("event_type is required")
+var ErrAppIDRequired = errors.New("app_id is required")
+var ErrResourceTypeRequired = errors.New("resource_type is required")
+var ErrResourceIDRequired = errors.New("resource_id is required")
 
 type Service struct {
 	apps                repository.Repository
@@ -109,13 +115,57 @@ func (s Service) recordOrderEvent(ctx context.Context, order *ent.PaymentOrder, 
 	if order == nil {
 		return nil, ErrOrderRequired
 	}
-	if existing, err := s.webhooks.FindEventByTypeAndOrder(ctx, eventType, order.GatewayOrderNo); err == nil {
+	return s.RecordResourceEvent(ctx, ResourceEventInput{
+		EventType:      eventType,
+		AppID:          order.AppID,
+		ResourceType:   ResourcePaymentOrder,
+		ResourceID:     order.GatewayOrderNo,
+		GatewayOrderNo: order.GatewayOrderNo,
+		PaymentOrderID: order.ID,
+		Payload:        payload(order),
+	})
+}
+
+type ResourceEventInput struct {
+	EventType      string
+	AppID          string
+	ResourceType   string
+	ResourceID     string
+	GatewayOrderNo string
+	RefundNo       string
+	PaymentOrderID int
+	Payload        map[string]any
+}
+
+func (s Service) RecordResourceEvent(ctx context.Context, input ResourceEventInput) (*ent.WebhookEvent, error) {
+	input.EventType = strings.TrimSpace(input.EventType)
+	input.AppID = strings.TrimSpace(input.AppID)
+	input.ResourceType = strings.TrimSpace(input.ResourceType)
+	input.ResourceID = strings.TrimSpace(input.ResourceID)
+	input.GatewayOrderNo = strings.TrimSpace(input.GatewayOrderNo)
+	input.RefundNo = strings.TrimSpace(input.RefundNo)
+	if input.EventType == "" {
+		return nil, ErrEventTypeRequired
+	}
+	if input.AppID == "" {
+		return nil, ErrAppIDRequired
+	}
+	if input.ResourceType == "" {
+		return nil, ErrResourceTypeRequired
+	}
+	if input.ResourceID == "" {
+		return nil, ErrResourceIDRequired
+	}
+	if input.Payload == nil {
+		input.Payload = map[string]any{}
+	}
+	if existing, err := s.webhooks.FindEventByResource(ctx, input.EventType, input.ResourceType, input.ResourceID); err == nil {
 		if _, deliveryErr := s.ensureDelivery(ctx, existing); deliveryErr != nil {
 			return nil, deliveryErr
 		}
 		return existing, nil
 	}
-	if _, err := s.apps.FindByAppID(ctx, order.AppID); err != nil {
+	if _, err := s.apps.FindByAppID(ctx, input.AppID); err != nil {
 		return nil, err
 	}
 	eventID, err := newPublicID("evt", s.now())
@@ -124,14 +174,17 @@ func (s Service) recordOrderEvent(ctx context.Context, order *ent.PaymentOrder, 
 	}
 	event, err := s.webhooks.CreateEvent(ctx, webhookrepo.CreateEventInput{
 		EventID:        eventID,
-		EventType:      eventType,
-		AppID:          order.AppID,
-		GatewayOrderNo: order.GatewayOrderNo,
-		PaymentOrderID: order.ID,
-		Payload:        payload(order),
+		EventType:      input.EventType,
+		AppID:          input.AppID,
+		ResourceType:   input.ResourceType,
+		ResourceID:     input.ResourceID,
+		GatewayOrderNo: input.GatewayOrderNo,
+		RefundNo:       input.RefundNo,
+		PaymentOrderID: input.PaymentOrderID,
+		Payload:        input.Payload,
 	})
 	if err != nil {
-		if existing, findErr := s.webhooks.FindEventByTypeAndOrder(ctx, eventType, order.GatewayOrderNo); findErr == nil {
+		if existing, findErr := s.webhooks.FindEventByResource(ctx, input.EventType, input.ResourceType, input.ResourceID); findErr == nil {
 			event = existing
 		} else {
 			return nil, err
@@ -153,7 +206,10 @@ type ListDeliveriesInput struct {
 	AppID          string
 	EventType      string
 	Status         string
+	ResourceType   string
+	ResourceID     string
 	GatewayOrderNo string
+	RefundNo       string
 	Page           int
 	PageSize       int
 }
@@ -170,7 +226,10 @@ func (s Service) ListDeliveries(ctx context.Context, input ListDeliveriesInput) 
 		AppID:          strings.TrimSpace(input.AppID),
 		EventType:      strings.TrimSpace(input.EventType),
 		Status:         strings.ToLower(strings.TrimSpace(input.Status)),
+		ResourceType:   strings.TrimSpace(input.ResourceType),
+		ResourceID:     strings.TrimSpace(input.ResourceID),
 		GatewayOrderNo: strings.TrimSpace(input.GatewayOrderNo),
+		RefundNo:       strings.TrimSpace(input.RefundNo),
 		Page:           input.Page,
 		PageSize:       input.PageSize,
 	})
@@ -294,7 +353,10 @@ func (s Service) ensureDelivery(ctx context.Context, event *ent.WebhookEvent) (*
 		EventID:        event.ID,
 		AppID:          event.AppID,
 		EventType:      event.EventType,
+		ResourceType:   event.ResourceType,
+		ResourceID:     event.ResourceID,
 		GatewayOrderNo: event.GatewayOrderNo,
+		RefundNo:       event.RefundNo,
 		TargetURL:      targetURL,
 		Status:         "pending",
 		NextAttemptAt:  s.now(),

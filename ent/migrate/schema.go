@@ -341,7 +341,10 @@ var (
 		{Name: "event_id", Type: field.TypeInt},
 		{Name: "app_id", Type: field.TypeString},
 		{Name: "event_type", Type: field.TypeString},
+		{Name: "resource_type", Type: field.TypeString, Default: "payment_order"},
+		{Name: "resource_id", Type: field.TypeString},
 		{Name: "gateway_order_no", Type: field.TypeString},
+		{Name: "refund_no", Type: field.TypeString, Nullable: true},
 		{Name: "target_url", Type: field.TypeString},
 		{Name: "status", Type: field.TypeString, Default: "pending"},
 		{Name: "attempt_count", Type: field.TypeInt, Default: 0},
@@ -376,19 +379,34 @@ var (
 				Columns: []*schema.Column{WebhookDeliveriesColumns[3]},
 			},
 			{
+				Name:    "webhookdelivery_resource_type",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookDeliveriesColumns[5]},
+			},
+			{
+				Name:    "webhookdelivery_resource_id",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookDeliveriesColumns[6]},
+			},
+			{
+				Name:    "webhookdelivery_refund_no",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookDeliveriesColumns[8]},
+			},
+			{
 				Name:    "webhookdelivery_status",
 				Unique:  false,
-				Columns: []*schema.Column{WebhookDeliveriesColumns[7]},
+				Columns: []*schema.Column{WebhookDeliveriesColumns[10]},
 			},
 			{
 				Name:    "webhookdelivery_next_attempt_at",
 				Unique:  false,
-				Columns: []*schema.Column{WebhookDeliveriesColumns[9]},
+				Columns: []*schema.Column{WebhookDeliveriesColumns[12]},
 			},
 			{
 				Name:    "webhookdelivery_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{WebhookDeliveriesColumns[15]},
+				Columns: []*schema.Column{WebhookDeliveriesColumns[18]},
 			},
 		},
 	}
@@ -398,7 +416,10 @@ var (
 		{Name: "event_id", Type: field.TypeString, Unique: true},
 		{Name: "event_type", Type: field.TypeString},
 		{Name: "app_id", Type: field.TypeString},
+		{Name: "resource_type", Type: field.TypeString, Default: "payment_order"},
+		{Name: "resource_id", Type: field.TypeString},
 		{Name: "gateway_order_no", Type: field.TypeString},
+		{Name: "refund_no", Type: field.TypeString, Nullable: true},
 		{Name: "payment_order_id", Type: field.TypeInt, Nullable: true},
 		{Name: "payload", Type: field.TypeJSON, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
@@ -411,9 +432,9 @@ var (
 		PrimaryKey: []*schema.Column{WebhookEventsColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "webhookevent_event_type_gateway_order_no",
+				Name:    "webhookevent_event_type_resource_type_resource_id",
 				Unique:  true,
-				Columns: []*schema.Column{WebhookEventsColumns[2], WebhookEventsColumns[4]},
+				Columns: []*schema.Column{WebhookEventsColumns[2], WebhookEventsColumns[4], WebhookEventsColumns[5]},
 			},
 			{
 				Name:    "webhookevent_event_id",
@@ -426,14 +447,29 @@ var (
 				Columns: []*schema.Column{WebhookEventsColumns[3]},
 			},
 			{
-				Name:    "webhookevent_gateway_order_no",
+				Name:    "webhookevent_resource_type",
 				Unique:  false,
 				Columns: []*schema.Column{WebhookEventsColumns[4]},
 			},
 			{
-				Name:    "webhookevent_created_at",
+				Name:    "webhookevent_resource_id",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookEventsColumns[5]},
+			},
+			{
+				Name:    "webhookevent_gateway_order_no",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookEventsColumns[6]},
+			},
+			{
+				Name:    "webhookevent_refund_no",
 				Unique:  false,
 				Columns: []*schema.Column{WebhookEventsColumns[7]},
+			},
+			{
+				Name:    "webhookevent_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookEventsColumns[10]},
 			},
 		},
 	}

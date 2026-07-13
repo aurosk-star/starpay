@@ -44,7 +44,7 @@ func TestWebhookAdminHandlerListsGetsAndRetriesDeliveries(t *testing.T) {
 	router.GET("/webhook-deliveries/:id", handler.GetDelivery)
 	router.POST("/webhook-deliveries/:id/retry", handler.RetryDelivery)
 
-	listBody := performJSON(t, router, http.MethodGet, "/webhook-deliveries?status=failed")
+	listBody := performJSON(t, router, http.MethodGet, "/webhook-deliveries?status=failed&resource_type=payment_order")
 	data := listBody["data"].(map[string]any)
 	if data["total"].(float64) != 1 {
 		t.Fatalf("list data = %#v, want one failed delivery", data)

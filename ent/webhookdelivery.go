@@ -25,8 +25,14 @@ type WebhookDelivery struct {
 	AppID string `json:"app_id,omitempty"`
 	// EventType holds the value of the "event_type" field.
 	EventType string `json:"event_type,omitempty"`
+	// ResourceType holds the value of the "resource_type" field.
+	ResourceType string `json:"resource_type,omitempty"`
+	// ResourceID holds the value of the "resource_id" field.
+	ResourceID string `json:"resource_id,omitempty"`
 	// GatewayOrderNo holds the value of the "gateway_order_no" field.
 	GatewayOrderNo string `json:"gateway_order_no,omitempty"`
+	// RefundNo holds the value of the "refund_no" field.
+	RefundNo string `json:"refund_no,omitempty"`
 	// TargetURL holds the value of the "target_url" field.
 	TargetURL string `json:"target_url,omitempty"`
 	// Status holds the value of the "status" field.
@@ -59,7 +65,7 @@ func (*WebhookDelivery) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case webhookdelivery.FieldID, webhookdelivery.FieldEventID, webhookdelivery.FieldAttemptCount, webhookdelivery.FieldLastStatusCode:
 			values[i] = new(sql.NullInt64)
-		case webhookdelivery.FieldDeliveryNo, webhookdelivery.FieldAppID, webhookdelivery.FieldEventType, webhookdelivery.FieldGatewayOrderNo, webhookdelivery.FieldTargetURL, webhookdelivery.FieldStatus, webhookdelivery.FieldLastResponseBody, webhookdelivery.FieldLastError:
+		case webhookdelivery.FieldDeliveryNo, webhookdelivery.FieldAppID, webhookdelivery.FieldEventType, webhookdelivery.FieldResourceType, webhookdelivery.FieldResourceID, webhookdelivery.FieldGatewayOrderNo, webhookdelivery.FieldRefundNo, webhookdelivery.FieldTargetURL, webhookdelivery.FieldStatus, webhookdelivery.FieldLastResponseBody, webhookdelivery.FieldLastError:
 			values[i] = new(sql.NullString)
 		case webhookdelivery.FieldNextAttemptAt, webhookdelivery.FieldLastAttemptAt, webhookdelivery.FieldSucceededAt, webhookdelivery.FieldCreatedAt, webhookdelivery.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -108,11 +114,29 @@ func (_m *WebhookDelivery) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.EventType = value.String
 			}
+		case webhookdelivery.FieldResourceType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field resource_type", values[i])
+			} else if value.Valid {
+				_m.ResourceType = value.String
+			}
+		case webhookdelivery.FieldResourceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field resource_id", values[i])
+			} else if value.Valid {
+				_m.ResourceID = value.String
+			}
 		case webhookdelivery.FieldGatewayOrderNo:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field gateway_order_no", values[i])
 			} else if value.Valid {
 				_m.GatewayOrderNo = value.String
+			}
+		case webhookdelivery.FieldRefundNo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field refund_no", values[i])
+			} else if value.Valid {
+				_m.RefundNo = value.String
 			}
 		case webhookdelivery.FieldTargetURL:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -231,8 +255,17 @@ func (_m *WebhookDelivery) String() string {
 	builder.WriteString("event_type=")
 	builder.WriteString(_m.EventType)
 	builder.WriteString(", ")
+	builder.WriteString("resource_type=")
+	builder.WriteString(_m.ResourceType)
+	builder.WriteString(", ")
+	builder.WriteString("resource_id=")
+	builder.WriteString(_m.ResourceID)
+	builder.WriteString(", ")
 	builder.WriteString("gateway_order_no=")
 	builder.WriteString(_m.GatewayOrderNo)
+	builder.WriteString(", ")
+	builder.WriteString("refund_no=")
+	builder.WriteString(_m.RefundNo)
 	builder.WriteString(", ")
 	builder.WriteString("target_url=")
 	builder.WriteString(_m.TargetURL)

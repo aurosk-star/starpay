@@ -38,9 +38,43 @@ func (_c *WebhookEventCreate) SetAppID(v string) *WebhookEventCreate {
 	return _c
 }
 
+// SetResourceType sets the "resource_type" field.
+func (_c *WebhookEventCreate) SetResourceType(v string) *WebhookEventCreate {
+	_c.mutation.SetResourceType(v)
+	return _c
+}
+
+// SetNillableResourceType sets the "resource_type" field if the given value is not nil.
+func (_c *WebhookEventCreate) SetNillableResourceType(v *string) *WebhookEventCreate {
+	if v != nil {
+		_c.SetResourceType(*v)
+	}
+	return _c
+}
+
+// SetResourceID sets the "resource_id" field.
+func (_c *WebhookEventCreate) SetResourceID(v string) *WebhookEventCreate {
+	_c.mutation.SetResourceID(v)
+	return _c
+}
+
 // SetGatewayOrderNo sets the "gateway_order_no" field.
 func (_c *WebhookEventCreate) SetGatewayOrderNo(v string) *WebhookEventCreate {
 	_c.mutation.SetGatewayOrderNo(v)
+	return _c
+}
+
+// SetRefundNo sets the "refund_no" field.
+func (_c *WebhookEventCreate) SetRefundNo(v string) *WebhookEventCreate {
+	_c.mutation.SetRefundNo(v)
+	return _c
+}
+
+// SetNillableRefundNo sets the "refund_no" field if the given value is not nil.
+func (_c *WebhookEventCreate) SetNillableRefundNo(v *string) *WebhookEventCreate {
+	if v != nil {
+		_c.SetRefundNo(*v)
+	}
 	return _c
 }
 
@@ -127,6 +161,10 @@ func (_c *WebhookEventCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *WebhookEventCreate) defaults() {
+	if _, ok := _c.mutation.ResourceType(); !ok {
+		v := webhookevent.DefaultResourceType
+		_c.mutation.SetResourceType(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := webhookevent.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -147,6 +185,12 @@ func (_c *WebhookEventCreate) check() error {
 	}
 	if _, ok := _c.mutation.AppID(); !ok {
 		return &ValidationError{Name: "app_id", err: errors.New(`ent: missing required field "WebhookEvent.app_id"`)}
+	}
+	if _, ok := _c.mutation.ResourceType(); !ok {
+		return &ValidationError{Name: "resource_type", err: errors.New(`ent: missing required field "WebhookEvent.resource_type"`)}
+	}
+	if _, ok := _c.mutation.ResourceID(); !ok {
+		return &ValidationError{Name: "resource_id", err: errors.New(`ent: missing required field "WebhookEvent.resource_id"`)}
 	}
 	if _, ok := _c.mutation.GatewayOrderNo(); !ok {
 		return &ValidationError{Name: "gateway_order_no", err: errors.New(`ent: missing required field "WebhookEvent.gateway_order_no"`)}
@@ -195,9 +239,21 @@ func (_c *WebhookEventCreate) createSpec() (*WebhookEvent, *sqlgraph.CreateSpec)
 		_spec.SetField(webhookevent.FieldAppID, field.TypeString, value)
 		_node.AppID = value
 	}
+	if value, ok := _c.mutation.ResourceType(); ok {
+		_spec.SetField(webhookevent.FieldResourceType, field.TypeString, value)
+		_node.ResourceType = value
+	}
+	if value, ok := _c.mutation.ResourceID(); ok {
+		_spec.SetField(webhookevent.FieldResourceID, field.TypeString, value)
+		_node.ResourceID = value
+	}
 	if value, ok := _c.mutation.GatewayOrderNo(); ok {
 		_spec.SetField(webhookevent.FieldGatewayOrderNo, field.TypeString, value)
 		_node.GatewayOrderNo = value
+	}
+	if value, ok := _c.mutation.RefundNo(); ok {
+		_spec.SetField(webhookevent.FieldRefundNo, field.TypeString, value)
+		_node.RefundNo = value
 	}
 	if value, ok := _c.mutation.PaymentOrderID(); ok {
 		_spec.SetField(webhookevent.FieldPaymentOrderID, field.TypeInt, value)
