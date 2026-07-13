@@ -74,6 +74,16 @@ func TestParsePaymentFailedWebhookEvent(t *testing.T) {
 	}
 }
 
+func TestParseRefundWebhookResourceFields(t *testing.T) {
+	event, err := ParseWebhookEvent([]byte(`{"event_type":"refund.succeeded","resource_type":"refund","resource_id":"rf_1","refund_no":"rf_1","merchant_refund_no":"mrf_1","channel_refund_no":"provider_rf_1"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if event.ResourceType != "refund" || event.ResourceID != "rf_1" || event.RefundNo != "rf_1" || event.ChannelRefundNo != "provider_rf_1" {
+		t.Fatalf("event = %#v", event)
+	}
+}
+
 func mustParseInt64(t *testing.T, value string) int64 {
 	t.Helper()
 	parsed, err := strconv.ParseInt(value, 10, 64)

@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.4 - 2026-07-13
+
+- Add idempotent refund creation and refund query methods.
+- Add resource identity and refund fields to webhook events.
+
 ## v0.1.3
 
 - Add channel account, provider order, and payment failure fields to order and webhook models.

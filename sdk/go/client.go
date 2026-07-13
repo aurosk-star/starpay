@@ -95,6 +95,30 @@ func (c *Client) CloseOrder(ctx context.Context, gatewayOrderNo string) (*Order,
 	return &data.Order, nil
 }
 
+func (c *Client) CreateRefund(ctx context.Context, input CreateRefundRequest) (*CreateRefundResult, error) {
+	return requestJSON[CreateRefundResult](c, ctx, http.MethodPost, "/v1/open/refunds", input)
+}
+
+func (c *Client) GetRefund(ctx context.Context, refundNo string) (*Refund, error) {
+	data, err := requestJSON[struct {
+		Refund Refund `json:"refund"`
+	}](c, ctx, http.MethodGet, "/v1/open/refunds/"+url.PathEscape(refundNo), nil)
+	if err != nil {
+		return nil, err
+	}
+	return &data.Refund, nil
+}
+
+func (c *Client) GetRefundByMerchant(ctx context.Context, merchantRefundNo string) (*Refund, error) {
+	data, err := requestJSON[struct {
+		Refund Refund `json:"refund"`
+	}](c, ctx, http.MethodGet, "/v1/open/refunds/by-merchant/"+url.PathEscape(merchantRefundNo), nil)
+	if err != nil {
+		return nil, err
+	}
+	return &data.Refund, nil
+}
+
 func (c *Client) signedURL(path string) (string, error) {
 	parsed, err := url.Parse(c.baseURL + path)
 	if err != nil {

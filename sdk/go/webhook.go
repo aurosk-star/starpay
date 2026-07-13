@@ -29,26 +29,31 @@ type WebhookVerificationOptions struct {
 }
 
 type WebhookEvent struct {
-	EventID         string         `json:"event_id,omitempty"`
-	DeliveryNo      string         `json:"-"`
-	Timestamp       int64          `json:"-"`
-	EventType       string         `json:"event_type"`
-	AppID           string         `json:"app_id"`
-	GatewayOrderNo  string         `json:"gateway_order_no"`
-	MerchantOrderNo string         `json:"merchant_order_no"`
-	Amount          int64          `json:"amount"`
-	Currency        string         `json:"currency"`
-	Status          string         `json:"status,omitempty"`
-	Channel         string         `json:"channel,omitempty"`
-	PayMethod       string         `json:"pay_method,omitempty"`
-	ChannelTradeNo  string         `json:"channel_trade_no,omitempty"`
-	PaidAt          string         `json:"paid_at,omitempty"`
-	FailedAt        string         `json:"failed_at,omitempty"`
-	FailureReason   string         `json:"failure_reason,omitempty"`
-	ExpiresAt       string         `json:"expires_at,omitempty"`
-	ClosedAt        string         `json:"closed_at,omitempty"`
-	Metadata        map[string]any `json:"metadata,omitempty"`
-	Raw             map[string]any `json:"-"`
+	EventID          string         `json:"event_id,omitempty"`
+	DeliveryNo       string         `json:"-"`
+	Timestamp        int64          `json:"-"`
+	EventType        string         `json:"event_type"`
+	ResourceType     string         `json:"resource_type,omitempty"`
+	ResourceID       string         `json:"resource_id,omitempty"`
+	AppID            string         `json:"app_id"`
+	GatewayOrderNo   string         `json:"gateway_order_no"`
+	MerchantOrderNo  string         `json:"merchant_order_no"`
+	Amount           int64          `json:"amount"`
+	Currency         string         `json:"currency"`
+	Status           string         `json:"status,omitempty"`
+	Channel          string         `json:"channel,omitempty"`
+	PayMethod        string         `json:"pay_method,omitempty"`
+	ChannelTradeNo   string         `json:"channel_trade_no,omitempty"`
+	RefundNo         string         `json:"refund_no,omitempty"`
+	MerchantRefundNo string         `json:"merchant_refund_no,omitempty"`
+	ChannelRefundNo  string         `json:"channel_refund_no,omitempty"`
+	PaidAt           string         `json:"paid_at,omitempty"`
+	FailedAt         string         `json:"failed_at,omitempty"`
+	FailureReason    string         `json:"failure_reason,omitempty"`
+	ExpiresAt        string         `json:"expires_at,omitempty"`
+	ClosedAt         string         `json:"closed_at,omitempty"`
+	Metadata         map[string]any `json:"metadata,omitempty"`
+	Raw              map[string]any `json:"-"`
 }
 
 func ParseWebhookRequest(request *http.Request, appSecret string) (*WebhookEvent, error) {

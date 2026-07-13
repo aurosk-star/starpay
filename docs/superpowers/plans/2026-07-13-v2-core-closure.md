@@ -325,7 +325,7 @@ make ent-up
 go test ./internal/domain/refunds/test ./internal/domain/webhooks/test
 ```
 
-- [ ] **Step 8: Commit the refund backend unit**
+- [x] **Step 8: Commit the refund backend unit**
 
 ```bash
 git add ent internal/domain/refunds internal/domain/webhooks internal/platform/http cmd/server/main.go
@@ -349,15 +349,15 @@ git commit -m "Add idempotent refund lifecycle"
 - Produces: `CreateRefund`, `GetRefund`, and `GetRefundByMerchant`.
 - Produces webhook resource and refund fields.
 
-- [ ] **Step 1: Write failing SDK request-path and decoding tests**
+- [x] **Step 1: Write failing SDK request-path and decoding tests**
 
 Assert signed requests use the three Open API paths, request bodies retain integer amount and metadata, API errors decode normally, and refund webhook fields verify without changing signature behavior.
 
-- [ ] **Step 2: Run SDK tests and verify missing methods fail**
+- [x] **Step 2: Run SDK tests and verify missing methods fail**
 
 Run: `cd sdk/go && go test -count=1 ./...`
 
-- [ ] **Step 3: Add refund types and client methods**
+- [x] **Step 3: Add refund types and client methods**
 
 ```go
 func (c *Client) CreateRefund(ctx context.Context, input CreateRefundRequest) (*CreateRefundResult, error)
@@ -365,7 +365,7 @@ func (c *Client) GetRefund(ctx context.Context, refundNo string) (*Refund, error
 func (c *Client) GetRefundByMerchant(ctx context.Context, merchantRefundNo string) (*Refund, error)
 ```
 
-- [ ] **Step 4: Update docs/changelog and run SDK verification**
+- [x] **Step 4: Update docs/changelog and run SDK verification**
 
 ```bash
 cd sdk/go

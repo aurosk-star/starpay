@@ -80,3 +80,40 @@ type CreateOrderResult struct {
 		PayURL string `json:"pay_url,omitempty"`
 	} `json:"payment"`
 }
+
+type Refund struct {
+	ID               int64          `json:"id,omitempty"`
+	RefundNo         string         `json:"refund_no"`
+	AppID            string         `json:"app_id,omitempty"`
+	GatewayOrderNo   string         `json:"gateway_order_no"`
+	MerchantOrderNo  string         `json:"merchant_order_no,omitempty"`
+	MerchantRefundNo string         `json:"merchant_refund_no"`
+	Channel          string         `json:"channel,omitempty"`
+	ChannelAccountID int            `json:"channel_account_id,omitempty"`
+	ChannelTradeNo   string         `json:"channel_trade_no,omitempty"`
+	ChannelRefundNo  string         `json:"channel_refund_no,omitempty"`
+	Amount           int64          `json:"amount"`
+	Currency         string         `json:"currency"`
+	Reason           string         `json:"reason,omitempty"`
+	Status           string         `json:"status"`
+	FailureReason    string         `json:"failure_reason,omitempty"`
+	Metadata         map[string]any `json:"metadata,omitempty"`
+	SucceededAt      *time.Time     `json:"succeeded_at,omitempty"`
+	FailedAt         *time.Time     `json:"failed_at,omitempty"`
+	CreatedAt        *time.Time     `json:"created_at,omitempty"`
+	UpdatedAt        *time.Time     `json:"updated_at,omitempty"`
+}
+
+type CreateRefundRequest struct {
+	GatewayOrderNo   string         `json:"gateway_order_no"`
+	MerchantRefundNo string         `json:"merchant_refund_no"`
+	Amount           int64          `json:"amount"`
+	Currency         string         `json:"currency"`
+	Reason           string         `json:"reason,omitempty"`
+	Metadata         map[string]any `json:"metadata,omitempty"`
+}
+
+type CreateRefundResult struct {
+	Created bool   `json:"created"`
+	Refund  Refund `json:"refund"`
+}

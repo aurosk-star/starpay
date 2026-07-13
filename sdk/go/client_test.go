@@ -126,3 +126,25 @@ func TestClientReturnsStructuredErrorForNonJSONResponse(t *testing.T) {
 		t.Fatalf("apiErr.ResponseBody = %q, want upstream response", apiErr.ResponseBody)
 	}
 }
+
+func TestClientCreateRefundUsesOpenRefundPath(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/v1/open/refunds" || request.Method != http.MethodPost {
+			t.Fatalf("request = %s %s, want POST /v1/open/refunds", request.Method, request.URL.Path)
+		}
+		var input CreateRefundRequest
+		if err := json.NewDecoder(request.Body).Decode(&input); err != nil {
+			t.Fatal(err)
+		}
+		if input.Amount != 1234 || input.MerchantRefundNo != "mrf_1" {
+			t.Fatalf("input = %#v", input)
+		}
+		_, _ = writer.Write([]byte(`{"code":"ok","message":"ok","data":{"created":true,"refund":{"refund_no":"rf_1","merchant_refund_no":"mrf_1","gateway_order_no":"gw_1","amount":1234,"currency":"CNY","status":"pending"}},"error":null}`))
+	}))
+	defer server.Close()
+	client, _ := NewClient(Config{BaseURL: server.URL, AppID: "snsgo", AppSecret: "secret"})
+	result, err := client.CreateRefund(context.Background(), CreateRefundRequest{GatewayOrderNo: "gw_1", MerchantRefundNo: "mrf_1", Amount: 1234, Currency: "CNY"})
+	if err != nil || !result.Created || result.Refund.RefundNo != "rf_1" {
+		t.Fatalf("result=%#v err=%v", result, err)
+	}
+}

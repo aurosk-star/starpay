@@ -176,6 +176,12 @@ func (s Service) RecordResourceEvent(ctx context.Context, input ResourceEventInp
 	if input.Payload == nil {
 		input.Payload = map[string]any{}
 	}
+	input.Payload["event_type"] = input.EventType
+	input.Payload["resource_type"] = input.ResourceType
+	input.Payload["resource_id"] = input.ResourceID
+	if input.RefundNo != "" {
+		input.Payload["refund_no"] = input.RefundNo
+	}
 	if existing, err := s.webhooks.FindEventByResource(ctx, input.EventType, input.ResourceType, input.ResourceID); err == nil {
 		if _, deliveryErr := s.ensureDelivery(ctx, existing); deliveryErr != nil {
 			return nil, deliveryErr

@@ -61,6 +61,23 @@ order, err = client.GetOrderByMerchant(ctx, "snsgo_order_123")
 order, err = client.CloseOrder(ctx, "pay_20260713_001")
 ```
 
+## 创建和查询退款
+
+```go
+result, err := client.CreateRefund(ctx, paygateway.CreateRefundRequest{
+    GatewayOrderNo:   "pay_20260713_001",
+    MerchantRefundNo: "snsgo_refund_123",
+    Amount:           9900,
+    Currency:         "CNY",
+    Reason:           "duplicate purchase",
+})
+
+refund, err := client.GetRefund(ctx, result.Refund.RefundNo)
+refund, err = client.GetRefundByMerchant(ctx, "snsgo_refund_123")
+```
+
+相同 `merchant_refund_no` 和相同参数会返回原退款单；参数不一致时返回 `IDEMPOTENCY_CONFLICT`。
+
 ## 错误处理
 
 SDK 会把网关标准错误响应解析为 `*paygateway.APIError`，其中包含 HTTP 状态、错误码和结构化详情：
@@ -95,6 +112,8 @@ if err != nil {
 switch event.EventType {
 case "payment.succeeded":
     // 发放权益
+case "refund.succeeded":
+    // 确认退款完成
 case "order.expired":
     // 标记本地订单超时
 }
