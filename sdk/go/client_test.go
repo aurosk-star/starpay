@@ -59,7 +59,7 @@ func TestClientCreateOrderSignsRequestAndDecodesResponse(t *testing.T) {
 func TestClientReturnsAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusUnauthorized)
-		_, _ = writer.Write([]byte(`{"code":"invalid_signature","message":"invalid signature","data":null,"error":{"code":"invalid_signature","message":"invalid signature"}}`))
+		_, _ = writer.Write([]byte(`{"code":"INVALID_SIGNATURE","message":"invalid signature","data":null,"error":{"code":"INVALID_SIGNATURE","message":"invalid signature","details":{"field":"sign","retryable":false}}}`))
 	}))
 	defer server.Close()
 
@@ -72,7 +72,57 @@ func TestClientReturnsAPIError(t *testing.T) {
 	if !ok {
 		t.Fatalf("error = %T %v, want *APIError", err, err)
 	}
-	if apiErr.Code != "invalid_signature" {
-		t.Fatalf("apiErr.Code = %q, want invalid_signature", apiErr.Code)
+	if apiErr.Code != CodeInvalidSignature {
+		t.Fatalf("apiErr.Code = %q, want %s", apiErr.Code, CodeInvalidSignature)
+	}
+	if apiErr.HTTPStatus != http.StatusUnauthorized {
+		t.Fatalf("apiErr.HTTPStatus = %d, want %d", apiErr.HTTPStatus, http.StatusUnauthorized)
+	}
+	if apiErr.Details["field"] != "sign" || apiErr.Details["retryable"] != false {
+		t.Fatalf("apiErr.Details = %#v, want structured error details", apiErr.Details)
+	}
+}
+
+func TestClientAcceptsUppercaseOKCode(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`{"code":"OK","message":"ok","data":{"order":{"gateway_order_no":"pay_001","merchant_order_no":"biz_001","subject":"Pro","amount":9900,"currency":"CNY","status":"pending"}},"error":null}`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient(Config{BaseURL: server.URL, AppID: "snsgo", AppSecret: "secret"})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+	order, err := client.GetOrder(context.Background(), "pay_001")
+	if err != nil {
+		t.Fatalf("GetOrder() error = %v", err)
+	}
+	if order.GatewayOrderNo != "pay_001" {
+		t.Fatalf("order.GatewayOrderNo = %q, want pay_001", order.GatewayOrderNo)
+	}
+}
+
+func TestClientReturnsStructuredErrorForNonJSONResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusBadGateway)
+		_, _ = writer.Write([]byte("upstream unavailable"))
+	}))
+	defer server.Close()
+
+	client, err := NewClient(Config{BaseURL: server.URL, AppID: "snsgo", AppSecret: "secret"})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+	_, err = client.GetOrder(context.Background(), "pay_001")
+	apiErr, ok := err.(*APIError)
+	if !ok {
+		t.Fatalf("error = %T %v, want *APIError", err, err)
+	}
+	if apiErr.Code != CodeInvalidResponse || apiErr.HTTPStatus != http.StatusBadGateway {
+		t.Fatalf("apiErr = %#v, want invalid response with HTTP 502", apiErr)
+	}
+	if apiErr.ResponseBody != "upstream unavailable" {
+		t.Fatalf("apiErr.ResponseBody = %q, want upstream response", apiErr.ResponseBody)
 	}
 }

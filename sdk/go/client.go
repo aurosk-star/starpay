@@ -141,15 +141,34 @@ func requestJSON[T any](client *Client, ctx context.Context, method string, path
 	}
 	var envelope Response[T]
 	if err := json.Unmarshal(payload, &envelope); err != nil {
-		return nil, err
+		return nil, &APIError{
+			HTTPStatus:   response.StatusCode,
+			Code:         CodeInvalidResponse,
+			Message:      "gateway returned an invalid API response",
+			ResponseBody: responseBodySnippet(payload),
+		}
 	}
-	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices || envelope.Error != nil || envelope.Code != "ok" {
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices || envelope.Error != nil || !strings.EqualFold(envelope.Code, CodeOK) {
 		if envelope.Error != nil {
+			envelope.Error.HTTPStatus = response.StatusCode
 			return nil, envelope.Error
 		}
-		return nil, &APIError{Code: envelope.Code, Message: envelope.Message}
+		return nil, &APIError{
+			HTTPStatus:   response.StatusCode,
+			Code:         envelope.Code,
+			Message:      envelope.Message,
+			ResponseBody: responseBodySnippet(payload),
+		}
 	}
 	return &envelope.Data, nil
+}
+
+func responseBodySnippet(payload []byte) string {
+	const maxBytes = 4096
+	if len(payload) > maxBytes {
+		payload = payload[:maxBytes]
+	}
+	return strings.TrimSpace(string(payload))
 }
 
 func newID(prefix string) string {

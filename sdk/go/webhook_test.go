@@ -5,32 +5,52 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestVerifyWebhookSignatureAcceptsValidSignature(t *testing.T) {
 	body := []byte(`{"event_type":"payment.succeeded","app_id":"snsgo"}`)
-	signature := webhookSignature("secret", "1782921600", body)
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	signature := webhookSignature("secret", timestamp, body)
 
-	if err := VerifyWebhookSignature("secret", "1782921600", body, signature); err != nil {
+	if err := VerifyWebhookSignature("secret", timestamp, body, signature); err != nil {
 		t.Fatalf("VerifyWebhookSignature() error = %v", err)
 	}
 }
 
 func TestVerifyWebhookSignatureRejectsInvalidSignature(t *testing.T) {
 	body := []byte(`{"event_type":"payment.succeeded"}`)
-	if err := VerifyWebhookSignature("secret", "1782921600", body, "bad"); err == nil {
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	if err := VerifyWebhookSignature("secret", timestamp, body, "bad"); err == nil {
 		t.Fatal("VerifyWebhookSignature() error = nil, want error")
+	}
+}
+
+func TestVerifyWebhookSignatureRejectsExpiredTimestamp(t *testing.T) {
+	now := time.Date(2026, 7, 13, 10, 0, 0, 0, time.UTC)
+	timestamp := strconv.FormatInt(now.Add(-6*time.Minute).Unix(), 10)
+	body := []byte(`{"event_type":"payment.succeeded"}`)
+	signature := webhookSignature("secret", timestamp, body)
+
+	err := VerifyWebhookSignatureWithOptions("secret", timestamp, body, signature, WebhookVerificationOptions{
+		Now: func() time.Time { return now },
+	})
+	if err == nil {
+		t.Fatal("VerifyWebhookSignatureWithOptions() error = nil, want expired timestamp error")
 	}
 }
 
 func TestParseWebhookRequestVerifiesAndParsesEvent(t *testing.T) {
 	body := `{"event_type":"order.expired","app_id":"snsgo","gateway_order_no":"pay_001","merchant_order_no":"biz_001","amount":9900,"currency":"CNY","status":"closed"}`
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	request := httptest.NewRequest("POST", "/webhook", strings.NewReader(body))
 	request.Header.Set(WebhookEventIDHeader, "evt_001")
-	request.Header.Set(WebhookTimestampHeader, "1782921600")
-	request.Header.Set(WebhookSignatureHeader, webhookSignature("secret", "1782921600", []byte(body)))
+	request.Header.Set(WebhookTimestampHeader, timestamp)
+	request.Header.Set(WebhookDeliveryNoHeader, "whd_001")
+	request.Header.Set(WebhookSignatureHeader, webhookSignature("secret", timestamp, []byte(body)))
 
 	event, err := ParseWebhookRequest(request, "secret")
 	if err != nil {
@@ -39,6 +59,18 @@ func TestParseWebhookRequestVerifiesAndParsesEvent(t *testing.T) {
 	if event.EventID != "evt_001" || event.EventType != "order.expired" || event.GatewayOrderNo != "pay_001" {
 		t.Fatalf("event = %#v, want parsed order.expired event", event)
 	}
+	if event.DeliveryNo != "whd_001" || event.Timestamp != mustParseInt64(t, timestamp) {
+		t.Fatalf("event delivery metadata = %#v, want delivery number and timestamp", event)
+	}
+}
+
+func mustParseInt64(t *testing.T, value string) int64 {
+	t.Helper()
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		t.Fatalf("ParseInt(%q) error = %v", value, err)
+	}
+	return parsed
 }
 
 func webhookSignature(secret string, timestamp string, body []byte) string {

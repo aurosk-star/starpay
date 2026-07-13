@@ -10,8 +10,11 @@ type Response[T any] struct {
 }
 
 type APIError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
+	HTTPStatus   int            `json:"-"`
+	Code         string         `json:"code"`
+	Message      string         `json:"message"`
+	Details      map[string]any `json:"details,omitempty"`
+	ResponseBody string         `json:"-"`
 }
 
 func (e *APIError) Error() string {

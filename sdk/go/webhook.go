@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -20,8 +21,17 @@ const (
 	WebhookDeliveryNoHeader = "X-Pay-Gateway-Delivery-No"
 )
 
+const DefaultWebhookTolerance = 5 * time.Minute
+
+type WebhookVerificationOptions struct {
+	Tolerance time.Duration
+	Now       func() time.Time
+}
+
 type WebhookEvent struct {
 	EventID         string         `json:"event_id,omitempty"`
+	DeliveryNo      string         `json:"-"`
+	Timestamp       int64          `json:"-"`
 	EventType       string         `json:"event_type"`
 	AppID           string         `json:"app_id"`
 	GatewayOrderNo  string         `json:"gateway_order_no"`
@@ -40,11 +50,16 @@ type WebhookEvent struct {
 }
 
 func ParseWebhookRequest(request *http.Request, appSecret string) (*WebhookEvent, error) {
+	return ParseWebhookRequestWithOptions(request, appSecret, WebhookVerificationOptions{})
+}
+
+func ParseWebhookRequestWithOptions(request *http.Request, appSecret string, options WebhookVerificationOptions) (*WebhookEvent, error) {
 	body, err := io.ReadAll(request.Body)
 	if err != nil {
 		return nil, err
 	}
-	if err := VerifyWebhookSignature(appSecret, request.Header.Get(WebhookTimestampHeader), body, request.Header.Get(WebhookSignatureHeader)); err != nil {
+	timestamp := request.Header.Get(WebhookTimestampHeader)
+	if err := VerifyWebhookSignatureWithOptions(appSecret, timestamp, body, request.Header.Get(WebhookSignatureHeader), options); err != nil {
 		return nil, err
 	}
 	event, err := ParseWebhookEvent(body)
@@ -52,6 +67,8 @@ func ParseWebhookRequest(request *http.Request, appSecret string) (*WebhookEvent
 		return nil, err
 	}
 	event.EventID = strings.TrimSpace(request.Header.Get(WebhookEventIDHeader))
+	event.DeliveryNo = strings.TrimSpace(request.Header.Get(WebhookDeliveryNoHeader))
+	event.Timestamp, _ = strconv.ParseInt(strings.TrimSpace(timestamp), 10, 64)
 	if headerEventType := strings.TrimSpace(request.Header.Get(WebhookEventTypeHeader)); headerEventType != "" && event.EventType == "" {
 		event.EventType = headerEventType
 	}
@@ -59,6 +76,10 @@ func ParseWebhookRequest(request *http.Request, appSecret string) (*WebhookEvent
 }
 
 func VerifyWebhookSignature(appSecret string, timestamp string, body []byte, signature string) error {
+	return VerifyWebhookSignatureWithOptions(appSecret, timestamp, body, signature, WebhookVerificationOptions{})
+}
+
+func VerifyWebhookSignatureWithOptions(appSecret string, timestamp string, body []byte, signature string, options WebhookVerificationOptions) error {
 	if strings.TrimSpace(appSecret) == "" {
 		return errors.New("app secret is required")
 	}
@@ -75,8 +96,22 @@ func VerifyWebhookSignature(appSecret string, timestamp string, body []byte, sig
 	if !hmac.Equal([]byte(expected), []byte(strings.ToLower(signature))) {
 		return errors.New("invalid webhook signature")
 	}
-	if _, err := strconv.ParseInt(timestamp, 10, 64); err != nil {
+	unixTimestamp, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
 		return errors.New("invalid webhook timestamp")
+	}
+	tolerance := options.Tolerance
+	if tolerance <= 0 {
+		tolerance = DefaultWebhookTolerance
+	}
+	now := time.Now
+	if options.Now != nil {
+		now = options.Now
+	}
+	signedAt := time.Unix(unixTimestamp, 0)
+	current := now()
+	if current.Sub(signedAt) > tolerance || signedAt.Sub(current) > tolerance {
+		return errors.New("webhook timestamp is outside the allowed window")
 	}
 	return nil
 }
