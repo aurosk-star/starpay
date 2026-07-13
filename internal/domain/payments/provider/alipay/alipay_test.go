@@ -140,6 +140,24 @@ func TestParseConfigRejectsUnsupportedMode(t *testing.T) {
 	}
 }
 
+func TestStartPaymentRejectsDisabledMode(t *testing.T) {
+	client := &fakeClient{}
+	p := NewWithClientFactory(func(Config) (alipayClient, error) { return client, nil })
+	_, err := p.StartPayment(context.Background(), provider.StartPaymentRequest{
+		Order: &ent.PaymentOrder{GatewayOrderNo: "pay_disabled", Subject: "Pro", Amount: 9900, Currency: "CNY"},
+		ChannelAccount: &ent.ChannelAccount{Env: "prod", Config: map[string]any{
+			"app_id": "app", "private_key": "private", "mode": "page", "enable_page_pay": false,
+		}},
+		Channel: "alipay", PayMethod: "alipay",
+	})
+	if err == nil {
+		t.Fatal("StartPayment() error = nil, want disabled mode error")
+	}
+	if client.pageCalls != 0 {
+		t.Fatalf("page calls = %d, want 0", client.pageCalls)
+	}
+}
+
 func TestParseConfigDefaultsAlipayCapabilities(t *testing.T) {
 	cfg, err := ParseConfig(map[string]any{
 		"app_id":      "app-1",
@@ -500,6 +518,41 @@ func TestParseNotifyRequiresAlipayPublicKey(t *testing.T) {
 		Form:           form,
 	}); err == nil {
 		t.Fatal("ParseNotify() error = nil, want missing alipay public key error")
+	}
+}
+
+func TestParseNotifyRejectsInvalidAlipaySignature(t *testing.T) {
+	_, alipayPublicKey := testAlipayKeys(t)
+	p := NewWithClientFactory(func(Config) (alipayClient, error) {
+		t.Fatal("ParseNotify must not create a payment client")
+		return nil, nil
+	})
+	form := url.Values{}
+	form.Set("out_trade_no", "GW202607010001")
+	form.Set("trade_no", "2026070122000000001")
+	form.Set("trade_status", "TRADE_SUCCESS")
+	form.Set("total_amount", "99.00")
+	form.Set("sign_type", gopayalipay.RSA2)
+	form.Set("sign", "invalid-signature")
+
+	_, err := p.ParseNotify(context.Background(), provider.NotifyRequest{
+		ChannelAccount: &ent.ChannelAccount{Env: "prod", Config: map[string]any{
+			"app_id": "app-1", "private_key": "private-key", "alipay_public_key": alipayPublicKey,
+		}},
+		Form: form,
+	})
+	if err == nil {
+		t.Fatal("ParseNotify() error = nil, want invalid signature error")
+	}
+}
+
+func TestParseAlipayAmountUsesExactMinorUnits(t *testing.T) {
+	amount, err := parseAlipayAmount("90071992547409.91")
+	if err != nil {
+		t.Fatalf("parseAlipayAmount() error = %v", err)
+	}
+	if amount != 9007199254740991 {
+		t.Fatalf("amount = %d, want 9007199254740991", amount)
 	}
 }
 

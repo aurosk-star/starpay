@@ -24,6 +24,7 @@ import (
 )
 
 const EventPaymentSucceeded = "payment.succeeded"
+const EventPaymentFailed = "payment.failed"
 const EventOrderExpired = "order.expired"
 const maxDeliveryAttempts = 3
 const maxResponseBodyBytes = 4096
@@ -94,6 +95,10 @@ func (s Service) IsZero() bool {
 
 func (s Service) RecordPaymentSucceeded(ctx context.Context, order *ent.PaymentOrder) (*ent.WebhookEvent, error) {
 	return s.recordOrderEvent(ctx, order, EventPaymentSucceeded, paymentSucceededPayload)
+}
+
+func (s Service) RecordPaymentFailed(ctx context.Context, order *ent.PaymentOrder) (*ent.WebhookEvent, error) {
+	return s.recordOrderEvent(ctx, order, EventPaymentFailed, paymentFailedPayload)
 }
 
 func (s Service) RecordOrderExpired(ctx context.Context, order *ent.PaymentOrder) (*ent.WebhookEvent, error) {
@@ -386,6 +391,25 @@ func paymentSucceededPayload(order *ent.PaymentOrder) map[string]any {
 	}
 	if order.PaidAt != nil {
 		payload["paid_at"] = order.PaidAt.Format(time.RFC3339)
+	}
+	return payload
+}
+
+func paymentFailedPayload(order *ent.PaymentOrder) map[string]any {
+	payload := map[string]any{
+		"event_type":        EventPaymentFailed,
+		"app_id":            order.AppID,
+		"gateway_order_no":  order.GatewayOrderNo,
+		"merchant_order_no": order.MerchantOrderNo,
+		"amount":            order.Amount,
+		"currency":          order.Currency,
+		"channel":           order.Channel,
+		"pay_method":        order.PayMethod,
+		"failure_reason":    order.FailureReason,
+		"metadata":          order.Metadata,
+	}
+	if order.FailedAt != nil {
+		payload["failed_at"] = order.FailedAt.Format(time.RFC3339)
 	}
 	return payload
 }

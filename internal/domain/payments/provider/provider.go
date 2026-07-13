@@ -42,6 +42,7 @@ type NotifyResult struct {
 	Status         string
 	Amount         int64
 	Currency       string
+	FailureReason  string
 	Raw            map[string]any
 }
 
@@ -56,17 +57,21 @@ type CaptureProvider interface {
 }
 
 type CapturePaymentRequest struct {
-	ChannelAccount  *ent.ChannelAccount
-	ProviderOrderNo string
-	GatewayOrderNo  string
+	ChannelAccount   *ent.ChannelAccount
+	ChannelAccountID int
+	ProviderOrderNo  string
+	GatewayOrderNo   string
 }
 
 type CapturePaymentResult struct {
-	Channel        string
-	GatewayOrderNo string
-	ChannelTradeNo string
-	Status         string
-	Raw            map[string]any
+	Channel         string
+	ProviderOrderNo string
+	GatewayOrderNo  string
+	ChannelTradeNo  string
+	Status          string
+	Amount          int64
+	Currency        string
+	Raw             map[string]any
 }
 
 type NotifyProvider interface {

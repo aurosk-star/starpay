@@ -260,11 +260,15 @@ POST /v1/checkout/orders/{gateway_order_no}/pay
 POST /v1/channel/notify
 ```
 
-支付宝可不传 `channel`，默认按 `alipay` 处理。PayPal 等通道需要通过 query 或 form 传 `channel`：
+支付宝可不传 `channel`，默认按 `alipay` 处理。支付发起时，网关会把实际通道账号写入订单，并在支付宝、微信的回调地址中追加 `channel` 和 `channel_account_id`。
+
+PayPal webhook 地址由 PayPal 控制台配置。每个 PayPal 通道账号必须使用包含自身账号 ID 的回调地址：
 
 ```text
-POST /v1/channel/notify?channel=paypal
+POST /v1/channel/notify?channel=paypal&channel_account_id={channel_account_id}
 ```
+
+同一通道只有一个启用账号时，旧的不带 `channel_account_id` 的地址仍可兼容；存在多个启用账号时，缺少账号 ID 的回调会被拒绝。
 
 网关会：
 
@@ -300,7 +304,27 @@ POST /v1/channel/notify?channel=paypal
 }
 ```
 
-### 9.2 订单过期
+### 9.2 支付失败
+
+事件类型：`payment.failed`
+
+```json
+{
+  "event_type": "payment.failed",
+  "app_id": "snsgo",
+  "gateway_order_no": "pay_20260702_xxx",
+  "merchant_order_no": "snsgo_membership_123",
+  "amount": 9900,
+  "currency": "CNY",
+  "channel": "wechat",
+  "pay_method": "wechat",
+  "failure_reason": "PAYERROR",
+  "failed_at": "2026-07-02T12:03:21Z",
+  "metadata": {}
+}
+```
+
+### 9.3 订单过期
 
 事件类型：`order.expired`
 
@@ -326,7 +350,7 @@ POST /v1/channel/notify?channel=paypal
 }
 ```
 
-### 9.3 请求头
+### 9.4 请求头
 
 ```text
 X-Pay-Gateway-Event-Id
@@ -336,7 +360,7 @@ X-Pay-Gateway-Event-Type
 X-Pay-Gateway-Delivery-No
 ```
 
-### 9.4 幂等要求
+### 9.5 幂等要求
 
 业务方必须按 `event_id` 或 `gateway_order_no` 做幂等处理。
 

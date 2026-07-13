@@ -3812,37 +3812,42 @@ func (m *GatewayConfigMutation) ResetEdge(name string) error {
 // PaymentOrderMutation represents an operation that mutates the PaymentOrder nodes in the graph.
 type PaymentOrderMutation struct {
 	config
-	op                   Op
-	typ                  string
-	id                   *int
-	gateway_order_no     *string
-	app_id               *string
-	merchant_order_no    *string
-	business_type        *string
-	subject              *string
-	description          *string
-	amount               *int64
-	addamount            *int64
-	currency             *string
-	settlement_amount    *int64
-	addsettlement_amount *int64
-	settlement_currency  *string
-	channel              *string
-	pay_method           *string
-	channel_trade_no     *string
-	return_url           *string
-	checkout_token_hash  *string
-	status               *string
-	expires_at           *time.Time
-	paid_at              *time.Time
-	closed_at            *time.Time
-	metadata             *map[string]interface{}
-	created_at           *time.Time
-	updated_at           *time.Time
-	clearedFields        map[string]struct{}
-	done                 bool
-	oldValue             func(context.Context) (*PaymentOrder, error)
-	predicates           []predicate.PaymentOrder
+	op                    Op
+	typ                   string
+	id                    *int
+	gateway_order_no      *string
+	app_id                *string
+	merchant_order_no     *string
+	business_type         *string
+	subject               *string
+	description           *string
+	amount                *int64
+	addamount             *int64
+	currency              *string
+	settlement_amount     *int64
+	addsettlement_amount  *int64
+	settlement_currency   *string
+	channel               *string
+	channel_account_id    *int
+	addchannel_account_id *int
+	pay_method            *string
+	provider_order_no     *string
+	channel_trade_no      *string
+	return_url            *string
+	checkout_token_hash   *string
+	status                *string
+	expires_at            *time.Time
+	paid_at               *time.Time
+	failed_at             *time.Time
+	failure_reason        *string
+	closed_at             *time.Time
+	metadata              *map[string]interface{}
+	created_at            *time.Time
+	updated_at            *time.Time
+	clearedFields         map[string]struct{}
+	done                  bool
+	oldValue              func(context.Context) (*PaymentOrder, error)
+	predicates            []predicate.PaymentOrder
 }
 
 var _ ent.Mutation = (*PaymentOrderMutation)(nil)
@@ -4445,6 +4450,76 @@ func (m *PaymentOrderMutation) ResetChannel() {
 	delete(m.clearedFields, paymentorder.FieldChannel)
 }
 
+// SetChannelAccountID sets the "channel_account_id" field.
+func (m *PaymentOrderMutation) SetChannelAccountID(i int) {
+	m.channel_account_id = &i
+	m.addchannel_account_id = nil
+}
+
+// ChannelAccountID returns the value of the "channel_account_id" field in the mutation.
+func (m *PaymentOrderMutation) ChannelAccountID() (r int, exists bool) {
+	v := m.channel_account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChannelAccountID returns the old "channel_account_id" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldChannelAccountID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChannelAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChannelAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannelAccountID: %w", err)
+	}
+	return oldValue.ChannelAccountID, nil
+}
+
+// AddChannelAccountID adds i to the "channel_account_id" field.
+func (m *PaymentOrderMutation) AddChannelAccountID(i int) {
+	if m.addchannel_account_id != nil {
+		*m.addchannel_account_id += i
+	} else {
+		m.addchannel_account_id = &i
+	}
+}
+
+// AddedChannelAccountID returns the value that was added to the "channel_account_id" field in this mutation.
+func (m *PaymentOrderMutation) AddedChannelAccountID() (r int, exists bool) {
+	v := m.addchannel_account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearChannelAccountID clears the value of the "channel_account_id" field.
+func (m *PaymentOrderMutation) ClearChannelAccountID() {
+	m.channel_account_id = nil
+	m.addchannel_account_id = nil
+	m.clearedFields[paymentorder.FieldChannelAccountID] = struct{}{}
+}
+
+// ChannelAccountIDCleared returns if the "channel_account_id" field was cleared in this mutation.
+func (m *PaymentOrderMutation) ChannelAccountIDCleared() bool {
+	_, ok := m.clearedFields[paymentorder.FieldChannelAccountID]
+	return ok
+}
+
+// ResetChannelAccountID resets all changes to the "channel_account_id" field.
+func (m *PaymentOrderMutation) ResetChannelAccountID() {
+	m.channel_account_id = nil
+	m.addchannel_account_id = nil
+	delete(m.clearedFields, paymentorder.FieldChannelAccountID)
+}
+
 // SetPayMethod sets the "pay_method" field.
 func (m *PaymentOrderMutation) SetPayMethod(s string) {
 	m.pay_method = &s
@@ -4492,6 +4567,55 @@ func (m *PaymentOrderMutation) PayMethodCleared() bool {
 func (m *PaymentOrderMutation) ResetPayMethod() {
 	m.pay_method = nil
 	delete(m.clearedFields, paymentorder.FieldPayMethod)
+}
+
+// SetProviderOrderNo sets the "provider_order_no" field.
+func (m *PaymentOrderMutation) SetProviderOrderNo(s string) {
+	m.provider_order_no = &s
+}
+
+// ProviderOrderNo returns the value of the "provider_order_no" field in the mutation.
+func (m *PaymentOrderMutation) ProviderOrderNo() (r string, exists bool) {
+	v := m.provider_order_no
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderOrderNo returns the old "provider_order_no" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldProviderOrderNo(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderOrderNo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderOrderNo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderOrderNo: %w", err)
+	}
+	return oldValue.ProviderOrderNo, nil
+}
+
+// ClearProviderOrderNo clears the value of the "provider_order_no" field.
+func (m *PaymentOrderMutation) ClearProviderOrderNo() {
+	m.provider_order_no = nil
+	m.clearedFields[paymentorder.FieldProviderOrderNo] = struct{}{}
+}
+
+// ProviderOrderNoCleared returns if the "provider_order_no" field was cleared in this mutation.
+func (m *PaymentOrderMutation) ProviderOrderNoCleared() bool {
+	_, ok := m.clearedFields[paymentorder.FieldProviderOrderNo]
+	return ok
+}
+
+// ResetProviderOrderNo resets all changes to the "provider_order_no" field.
+func (m *PaymentOrderMutation) ResetProviderOrderNo() {
+	m.provider_order_no = nil
+	delete(m.clearedFields, paymentorder.FieldProviderOrderNo)
 }
 
 // SetChannelTradeNo sets the "channel_trade_no" field.
@@ -4775,6 +4899,104 @@ func (m *PaymentOrderMutation) ResetPaidAt() {
 	delete(m.clearedFields, paymentorder.FieldPaidAt)
 }
 
+// SetFailedAt sets the "failed_at" field.
+func (m *PaymentOrderMutation) SetFailedAt(t time.Time) {
+	m.failed_at = &t
+}
+
+// FailedAt returns the value of the "failed_at" field in the mutation.
+func (m *PaymentOrderMutation) FailedAt() (r time.Time, exists bool) {
+	v := m.failed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFailedAt returns the old "failed_at" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldFailedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFailedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFailedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailedAt: %w", err)
+	}
+	return oldValue.FailedAt, nil
+}
+
+// ClearFailedAt clears the value of the "failed_at" field.
+func (m *PaymentOrderMutation) ClearFailedAt() {
+	m.failed_at = nil
+	m.clearedFields[paymentorder.FieldFailedAt] = struct{}{}
+}
+
+// FailedAtCleared returns if the "failed_at" field was cleared in this mutation.
+func (m *PaymentOrderMutation) FailedAtCleared() bool {
+	_, ok := m.clearedFields[paymentorder.FieldFailedAt]
+	return ok
+}
+
+// ResetFailedAt resets all changes to the "failed_at" field.
+func (m *PaymentOrderMutation) ResetFailedAt() {
+	m.failed_at = nil
+	delete(m.clearedFields, paymentorder.FieldFailedAt)
+}
+
+// SetFailureReason sets the "failure_reason" field.
+func (m *PaymentOrderMutation) SetFailureReason(s string) {
+	m.failure_reason = &s
+}
+
+// FailureReason returns the value of the "failure_reason" field in the mutation.
+func (m *PaymentOrderMutation) FailureReason() (r string, exists bool) {
+	v := m.failure_reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFailureReason returns the old "failure_reason" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldFailureReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFailureReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFailureReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailureReason: %w", err)
+	}
+	return oldValue.FailureReason, nil
+}
+
+// ClearFailureReason clears the value of the "failure_reason" field.
+func (m *PaymentOrderMutation) ClearFailureReason() {
+	m.failure_reason = nil
+	m.clearedFields[paymentorder.FieldFailureReason] = struct{}{}
+}
+
+// FailureReasonCleared returns if the "failure_reason" field was cleared in this mutation.
+func (m *PaymentOrderMutation) FailureReasonCleared() bool {
+	_, ok := m.clearedFields[paymentorder.FieldFailureReason]
+	return ok
+}
+
+// ResetFailureReason resets all changes to the "failure_reason" field.
+func (m *PaymentOrderMutation) ResetFailureReason() {
+	m.failure_reason = nil
+	delete(m.clearedFields, paymentorder.FieldFailureReason)
+}
+
 // SetClosedAt sets the "closed_at" field.
 func (m *PaymentOrderMutation) SetClosedAt(t time.Time) {
 	m.closed_at = &t
@@ -4979,7 +5201,7 @@ func (m *PaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 26)
 	if m.gateway_order_no != nil {
 		fields = append(fields, paymentorder.FieldGatewayOrderNo)
 	}
@@ -5013,8 +5235,14 @@ func (m *PaymentOrderMutation) Fields() []string {
 	if m.channel != nil {
 		fields = append(fields, paymentorder.FieldChannel)
 	}
+	if m.channel_account_id != nil {
+		fields = append(fields, paymentorder.FieldChannelAccountID)
+	}
 	if m.pay_method != nil {
 		fields = append(fields, paymentorder.FieldPayMethod)
+	}
+	if m.provider_order_no != nil {
+		fields = append(fields, paymentorder.FieldProviderOrderNo)
 	}
 	if m.channel_trade_no != nil {
 		fields = append(fields, paymentorder.FieldChannelTradeNo)
@@ -5033,6 +5261,12 @@ func (m *PaymentOrderMutation) Fields() []string {
 	}
 	if m.paid_at != nil {
 		fields = append(fields, paymentorder.FieldPaidAt)
+	}
+	if m.failed_at != nil {
+		fields = append(fields, paymentorder.FieldFailedAt)
+	}
+	if m.failure_reason != nil {
+		fields = append(fields, paymentorder.FieldFailureReason)
 	}
 	if m.closed_at != nil {
 		fields = append(fields, paymentorder.FieldClosedAt)
@@ -5076,8 +5310,12 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.SettlementCurrency()
 	case paymentorder.FieldChannel:
 		return m.Channel()
+	case paymentorder.FieldChannelAccountID:
+		return m.ChannelAccountID()
 	case paymentorder.FieldPayMethod:
 		return m.PayMethod()
+	case paymentorder.FieldProviderOrderNo:
+		return m.ProviderOrderNo()
 	case paymentorder.FieldChannelTradeNo:
 		return m.ChannelTradeNo()
 	case paymentorder.FieldReturnURL:
@@ -5090,6 +5328,10 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.ExpiresAt()
 	case paymentorder.FieldPaidAt:
 		return m.PaidAt()
+	case paymentorder.FieldFailedAt:
+		return m.FailedAt()
+	case paymentorder.FieldFailureReason:
+		return m.FailureReason()
 	case paymentorder.FieldClosedAt:
 		return m.ClosedAt()
 	case paymentorder.FieldMetadata:
@@ -5129,8 +5371,12 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldSettlementCurrency(ctx)
 	case paymentorder.FieldChannel:
 		return m.OldChannel(ctx)
+	case paymentorder.FieldChannelAccountID:
+		return m.OldChannelAccountID(ctx)
 	case paymentorder.FieldPayMethod:
 		return m.OldPayMethod(ctx)
+	case paymentorder.FieldProviderOrderNo:
+		return m.OldProviderOrderNo(ctx)
 	case paymentorder.FieldChannelTradeNo:
 		return m.OldChannelTradeNo(ctx)
 	case paymentorder.FieldReturnURL:
@@ -5143,6 +5389,10 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldExpiresAt(ctx)
 	case paymentorder.FieldPaidAt:
 		return m.OldPaidAt(ctx)
+	case paymentorder.FieldFailedAt:
+		return m.OldFailedAt(ctx)
+	case paymentorder.FieldFailureReason:
+		return m.OldFailureReason(ctx)
 	case paymentorder.FieldClosedAt:
 		return m.OldClosedAt(ctx)
 	case paymentorder.FieldMetadata:
@@ -5237,12 +5487,26 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetChannel(v)
 		return nil
+	case paymentorder.FieldChannelAccountID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChannelAccountID(v)
+		return nil
 	case paymentorder.FieldPayMethod:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPayMethod(v)
+		return nil
+	case paymentorder.FieldProviderOrderNo:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderOrderNo(v)
 		return nil
 	case paymentorder.FieldChannelTradeNo:
 		v, ok := value.(string)
@@ -5286,6 +5550,20 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPaidAt(v)
 		return nil
+	case paymentorder.FieldFailedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFailedAt(v)
+		return nil
+	case paymentorder.FieldFailureReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFailureReason(v)
+		return nil
 	case paymentorder.FieldClosedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -5328,6 +5606,9 @@ func (m *PaymentOrderMutation) AddedFields() []string {
 	if m.addsettlement_amount != nil {
 		fields = append(fields, paymentorder.FieldSettlementAmount)
 	}
+	if m.addchannel_account_id != nil {
+		fields = append(fields, paymentorder.FieldChannelAccountID)
+	}
 	return fields
 }
 
@@ -5340,6 +5621,8 @@ func (m *PaymentOrderMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedAmount()
 	case paymentorder.FieldSettlementAmount:
 		return m.AddedSettlementAmount()
+	case paymentorder.FieldChannelAccountID:
+		return m.AddedChannelAccountID()
 	}
 	return nil, false
 }
@@ -5362,6 +5645,13 @@ func (m *PaymentOrderMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddSettlementAmount(v)
+		return nil
+	case paymentorder.FieldChannelAccountID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddChannelAccountID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown PaymentOrder numeric field %s", name)
@@ -5386,8 +5676,14 @@ func (m *PaymentOrderMutation) ClearedFields() []string {
 	if m.FieldCleared(paymentorder.FieldChannel) {
 		fields = append(fields, paymentorder.FieldChannel)
 	}
+	if m.FieldCleared(paymentorder.FieldChannelAccountID) {
+		fields = append(fields, paymentorder.FieldChannelAccountID)
+	}
 	if m.FieldCleared(paymentorder.FieldPayMethod) {
 		fields = append(fields, paymentorder.FieldPayMethod)
+	}
+	if m.FieldCleared(paymentorder.FieldProviderOrderNo) {
+		fields = append(fields, paymentorder.FieldProviderOrderNo)
 	}
 	if m.FieldCleared(paymentorder.FieldChannelTradeNo) {
 		fields = append(fields, paymentorder.FieldChannelTradeNo)
@@ -5403,6 +5699,12 @@ func (m *PaymentOrderMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(paymentorder.FieldPaidAt) {
 		fields = append(fields, paymentorder.FieldPaidAt)
+	}
+	if m.FieldCleared(paymentorder.FieldFailedAt) {
+		fields = append(fields, paymentorder.FieldFailedAt)
+	}
+	if m.FieldCleared(paymentorder.FieldFailureReason) {
+		fields = append(fields, paymentorder.FieldFailureReason)
 	}
 	if m.FieldCleared(paymentorder.FieldClosedAt) {
 		fields = append(fields, paymentorder.FieldClosedAt)
@@ -5439,8 +5741,14 @@ func (m *PaymentOrderMutation) ClearField(name string) error {
 	case paymentorder.FieldChannel:
 		m.ClearChannel()
 		return nil
+	case paymentorder.FieldChannelAccountID:
+		m.ClearChannelAccountID()
+		return nil
 	case paymentorder.FieldPayMethod:
 		m.ClearPayMethod()
+		return nil
+	case paymentorder.FieldProviderOrderNo:
+		m.ClearProviderOrderNo()
 		return nil
 	case paymentorder.FieldChannelTradeNo:
 		m.ClearChannelTradeNo()
@@ -5456,6 +5764,12 @@ func (m *PaymentOrderMutation) ClearField(name string) error {
 		return nil
 	case paymentorder.FieldPaidAt:
 		m.ClearPaidAt()
+		return nil
+	case paymentorder.FieldFailedAt:
+		m.ClearFailedAt()
+		return nil
+	case paymentorder.FieldFailureReason:
+		m.ClearFailureReason()
 		return nil
 	case paymentorder.FieldClosedAt:
 		m.ClearClosedAt()
@@ -5504,8 +5818,14 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 	case paymentorder.FieldChannel:
 		m.ResetChannel()
 		return nil
+	case paymentorder.FieldChannelAccountID:
+		m.ResetChannelAccountID()
+		return nil
 	case paymentorder.FieldPayMethod:
 		m.ResetPayMethod()
+		return nil
+	case paymentorder.FieldProviderOrderNo:
+		m.ResetProviderOrderNo()
 		return nil
 	case paymentorder.FieldChannelTradeNo:
 		m.ResetChannelTradeNo()
@@ -5524,6 +5844,12 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case paymentorder.FieldPaidAt:
 		m.ResetPaidAt()
+		return nil
+	case paymentorder.FieldFailedAt:
+		m.ResetFailedAt()
+		return nil
+	case paymentorder.FieldFailureReason:
+		m.ResetFailureReason()
 		return nil
 	case paymentorder.FieldClosedAt:
 		m.ResetClosedAt()

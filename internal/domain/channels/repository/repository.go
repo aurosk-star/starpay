@@ -58,6 +58,13 @@ func (r Repository) FindEnabledByChannel(ctx context.Context, channel string) (*
 		First(ctx)
 }
 
+func (r Repository) ListEnabledByChannel(ctx context.Context, channel string) ([]*ent.ChannelAccount, error) {
+	return r.client.ChannelAccount.Query().
+		Where(channelaccount.Channel(channel), channelaccount.Enabled(true)).
+		Order(ent.Desc(channelaccount.FieldCreatedAt)).
+		All(ctx)
+}
+
 func (r Repository) Create(ctx context.Context, input CreateChannelAccountInput) (*ent.ChannelAccount, error) {
 	create := r.client.ChannelAccount.Create().
 		SetChannel(input.Channel).

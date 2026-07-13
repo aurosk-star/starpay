@@ -247,6 +247,19 @@ func (r Repository) MarkPaid(ctx context.Context, id int, channelTradeNo string,
 	return r.FindByID(ctx, id)
 }
 
+func (r Repository) MarkFailed(ctx context.Context, id int, reason string, now time.Time) (*ent.PaymentOrder, error) {
+	update := r.client.PaymentOrder.UpdateOneID(id).
+		SetStatus("failed").
+		SetFailedAt(now)
+	if reason != "" {
+		update.SetFailureReason(reason)
+	}
+	if _, err := update.Save(ctx); err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
+}
+
 func (r Repository) SetChannelTradeNo(ctx context.Context, id int, channelTradeNo string) (*ent.PaymentOrder, error) {
 	if _, err := r.client.PaymentOrder.UpdateOneID(id).
 		SetChannelTradeNo(channelTradeNo).
@@ -256,13 +269,25 @@ func (r Repository) SetChannelTradeNo(ctx context.Context, id int, channelTradeN
 	return r.FindByID(ctx, id)
 }
 
-func (r Repository) SetPaymentSelection(ctx context.Context, id int, channel string, payMethod string) (*ent.PaymentOrder, error) {
+func (r Repository) SetProviderOrderNo(ctx context.Context, id int, providerOrderNo string) (*ent.PaymentOrder, error) {
+	if _, err := r.client.PaymentOrder.UpdateOneID(id).
+		SetProviderOrderNo(providerOrderNo).
+		Save(ctx); err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
+}
+
+func (r Repository) SetPaymentSelection(ctx context.Context, id int, channel string, payMethod string, channelAccountID int) (*ent.PaymentOrder, error) {
 	update := r.client.PaymentOrder.UpdateOneID(id)
 	if channel != "" {
 		update.SetChannel(channel)
 	}
 	if payMethod != "" {
 		update.SetPayMethod(payMethod)
+	}
+	if channelAccountID > 0 {
+		update.SetChannelAccountID(channelAccountID)
 	}
 	if _, err := update.Save(ctx); err != nil {
 		return nil, err

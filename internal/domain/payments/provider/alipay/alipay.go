@@ -51,6 +51,9 @@ func (p Provider) StartPayment(ctx context.Context, req provider.StartPaymentReq
 	if err != nil {
 		return nil, err
 	}
+	if !alipayModeEnabled(cfg) {
+		return nil, fmt.Errorf("alipay %s payment mode is disabled", cfg.Mode)
+	}
 	client, err := p.newClient(cfg)
 	if err != nil {
 		return nil, err
@@ -97,6 +100,19 @@ func (p Provider) StartPayment(ctx context.Context, req provider.StartPaymentReq
 	return result, nil
 }
 
+func alipayModeEnabled(cfg Config) bool {
+	switch cfg.Mode {
+	case "page":
+		return cfg.EnablePagePay
+	case "wap":
+		return cfg.EnableWapPay
+	case "qr":
+		return cfg.EnableQRPay
+	default:
+		return false
+	}
+}
+
 func (p Provider) ParseNotify(ctx context.Context, req provider.NotifyRequest) (*provider.NotifyResult, error) {
 	_ = ctx
 	cfg, err := ParseConfig(req.ChannelAccount.Config, req.ChannelAccount.Env)
@@ -127,13 +143,18 @@ func (p Provider) ParseNotify(ctx context.Context, req provider.NotifyRequest) (
 	}
 	tradeStatus := bodyMap.GetString("trade_status")
 	status := normalizeTradeStatus(tradeStatus)
+	amount, err := parseAlipayAmount(bodyMap.GetString("total_amount"))
+	if err != nil {
+		return nil, err
+	}
 	return &provider.NotifyResult{
 		Channel:        "alipay",
 		GatewayOrderNo: bodyMap.GetString("out_trade_no"),
 		ChannelTradeNo: bodyMap.GetString("trade_no"),
 		Status:         status,
-		Amount:         parseAlipayAmount(bodyMap.GetString("total_amount")),
+		Amount:         amount,
 		Currency:       "CNY",
+		FailureReason:  tradeStatus,
 		Raw:            bodyMapToMap(bodyMap),
 	}, nil
 }
@@ -224,12 +245,32 @@ func normalizeTradeStatus(status string) string {
 	}
 }
 
-func parseAlipayAmount(value string) int64 {
-	amount, err := strconv.ParseFloat(value, 64)
-	if err != nil {
-		return 0
+func parseAlipayAmount(value string) (int64, error) {
+	value = strings.TrimSpace(value)
+	parts := strings.Split(value, ".")
+	if len(parts) > 2 || parts[0] == "" {
+		return 0, fmt.Errorf("invalid alipay amount: %s", value)
 	}
-	return int64(amount*100 + 0.5)
+	whole, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil || whole < 0 {
+		return 0, fmt.Errorf("invalid alipay amount: %s", value)
+	}
+	fraction := ""
+	if len(parts) == 2 {
+		fraction = parts[1]
+	}
+	if len(fraction) > 2 {
+		return 0, fmt.Errorf("invalid alipay amount: %s", value)
+	}
+	fraction += strings.Repeat("0", 2-len(fraction))
+	cents := int64(0)
+	if fraction != "" {
+		cents, err = strconv.ParseInt(fraction, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("invalid alipay amount: %s", value)
+		}
+	}
+	return whole*100 + cents, nil
 }
 
 func bodyMapToMap(bodyMap gopay.BodyMap) map[string]any {

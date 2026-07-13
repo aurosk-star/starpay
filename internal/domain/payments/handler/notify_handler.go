@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,11 @@ func NewNotify(paymentService paymentsvc.Service, orderService ordersvc.Service)
 
 func (h NotifyHandler) Handle(ctx *gin.Context) {
 	channel := notifyChannel(ctx)
+	channelAccountID, err := notifyChannelAccountID(ctx)
+	if err != nil {
+		writeNotifyFail(ctx, channel)
+		return
+	}
 	rawBody, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
 		writeNotifyFail(ctx, channel)
@@ -41,10 +47,11 @@ func (h NotifyHandler) Handle(ctx *gin.Context) {
 		}
 	}
 	result, err := h.payments.HandleNotify(ctx.Request.Context(), paymentsvc.NotifyInput{
-		Channel: channel,
-		Header:  ctx.Request.Header,
-		Form:    ctx.Request.PostForm,
-		RawBody: rawBody,
+		Channel:          channel,
+		ChannelAccountID: channelAccountID,
+		Header:           ctx.Request.Header,
+		Form:             ctx.Request.PostForm,
+		RawBody:          rawBody,
 	})
 	if err != nil || result.GatewayOrderNo == "" {
 		writeNotifyFail(ctx, channel)
@@ -55,31 +62,31 @@ func (h NotifyHandler) Handle(ctx *gin.Context) {
 		writeNotifyFail(ctx, channel)
 		return
 	}
-	if result.Status == "paid" {
-		if order.Status == "paid" {
-			writeNotifySuccess(ctx, result.Channel)
-			return
-		}
-		if _, err := h.orders.MarkPaid(ctx.Request.Context(), order.ID, result.ChannelTradeNo); err != nil {
-			writeNotifyFail(ctx, result.Channel)
-			return
-		}
-		writeNotifySuccess(ctx, result.Channel)
-		return
-	}
-	if result.Status == "closed" {
-		if order.Status == "closed" {
-			writeNotifySuccess(ctx, result.Channel)
-			return
-		}
-		if _, err := h.orders.CloseOrder(ctx.Request.Context(), order.ID); err != nil && !errors.Is(err, ordersvc.ErrOrderCannotBeClosed) {
-			writeNotifyFail(ctx, result.Channel)
-			return
-		}
-		writeNotifySuccess(ctx, result.Channel)
+	if _, err := h.orders.ApplyPaymentResult(ctx.Request.Context(), order.ID, ordersvc.PaymentResultInput{
+		Channel:          result.Channel,
+		ChannelAccountID: result.ChannelAccountID,
+		ChannelTradeNo:   result.ChannelTradeNo,
+		Status:           result.Status,
+		Amount:           result.Amount,
+		Currency:         result.Currency,
+		FailureReason:    result.FailureReason,
+	}); err != nil {
+		writeNotifyFail(ctx, result.Channel)
 		return
 	}
 	writeNotifySuccess(ctx, result.Channel)
+}
+
+func notifyChannelAccountID(ctx *gin.Context) (int, error) {
+	value := strings.TrimSpace(ctx.Query("channel_account_id"))
+	if value == "" {
+		return 0, nil
+	}
+	id, err := strconv.Atoi(value)
+	if err != nil || id <= 0 {
+		return 0, errors.New("invalid channel_account_id")
+	}
+	return id, nil
 }
 
 func notifyChannel(ctx *gin.Context) string {

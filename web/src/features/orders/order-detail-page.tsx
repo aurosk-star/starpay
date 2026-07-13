@@ -68,6 +68,10 @@ export function OrderDetailPage() {
             ],
             [t("orders.fields.channel"), order.channel || "-"],
             [t("orders.fields.payMethod"), order.pay_method || "-"],
+            [
+              t("orders.fields.providerOrderNo"),
+              order.provider_order_no || "-",
+            ],
             [t("orders.fields.channelTradeNo"), order.channel_trade_no || "-"],
             [t("orders.fields.returnUrl"), order.return_url || "-"],
           ]
@@ -83,6 +87,8 @@ export function OrderDetailPage() {
             [t("orders.fields.updatedAt"), formatDateTime(order.updated_at)],
             [t("orders.fields.expiresAt"), formatDateTime(order.expires_at)],
             [t("orders.fields.paidAt"), formatDateTime(order.paid_at)],
+            [t("orders.fields.failedAt"), formatDateTime(order.failed_at)],
+            [t("orders.fields.failureReason"), order.failure_reason || "-"],
             [t("orders.fields.closedAt"), formatDateTime(order.closed_at)],
           ]
         : [],
@@ -96,7 +102,9 @@ export function OrderDetailPage() {
       const result = await getOrder(accessToken, Number(orderId));
       setOrder(result.order);
     } catch (err) {
-      toast.error(err instanceof APIError ? err.message : t("orders.loadFailed"));
+      toast.error(
+        err instanceof APIError ? err.message : t("orders.loadFailed"),
+      );
     } finally {
       setLoading(false);
     }
@@ -113,7 +121,9 @@ export function OrderDetailPage() {
       setOrder(result.order);
       setCloseConfirmOpen(false);
     } catch (err) {
-      toast.error(err instanceof APIError ? err.message : t("orders.closeFailed"));
+      toast.error(
+        err instanceof APIError ? err.message : t("orders.closeFailed"),
+      );
     }
   }
 

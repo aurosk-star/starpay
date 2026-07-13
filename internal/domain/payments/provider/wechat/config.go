@@ -15,6 +15,7 @@ var (
 	ErrAPIV3KeyRequired   = errors.New("wechat api_v3_key is required")
 	ErrSerialNoRequired   = errors.New("wechat serial_no is required")
 	ErrPrivateKeyRequired = errors.New("wechat private_key is required")
+	ErrModeUnsupported    = errors.New("wechat mode must be native, qr, or h5")
 )
 
 type Config struct {
@@ -62,6 +63,9 @@ func ParseConfig(values map[string]any, env string) (Config, error) {
 	}
 	if cfg.Mode == "" {
 		cfg.Mode = DefaultMode
+	}
+	if cfg.Mode != "native" && cfg.Mode != "qr" && cfg.Mode != "h5" {
+		return Config{}, ErrModeUnsupported
 	}
 	return cfg, nil
 }

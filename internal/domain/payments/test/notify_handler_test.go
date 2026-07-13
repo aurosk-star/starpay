@@ -122,6 +122,80 @@ func TestNotifyHandlerMarksOrderPaidAndReturnsAlipaySuccess(t *testing.T) {
 	}
 }
 
+func TestNotifyHandlerRejectsPaidAmountMismatch(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	ctx := t.Context()
+	client := enttest.Open(t, dialect.SQLite, "file:notify_handler_amount_mismatch?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+	createEnabledAppWithNotifyURL(t, client, "snsgo", "")
+
+	orderService := ordersvc.New(client)
+	order, err := orderService.CreateOrder(ctx, ordersvc.ManageOrderInput{AppID: "snsgo", MerchantOrderNo: "biz_amount_mismatch", Subject: "Pro", Amount: 9900, Currency: "CNY", Channel: "alipay", PayMethod: "alipay"})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	channels := channelrepo.New(client)
+	if _, err := channels.Create(ctx, channelrepo.CreateChannelAccountInput{Channel: "alipay", Name: "Alipay", Enabled: true, Env: "prod", Config: map[string]any{}}); err != nil {
+		t.Fatalf("Create account error = %v", err)
+	}
+	provider := &fakeNotifyProvider{channel: "alipay", result: &paymentprovider.NotifyResult{Channel: "alipay", GatewayOrderNo: order.GatewayOrderNo, ChannelTradeNo: "trade_bad", Status: "paid", Amount: 9800, Currency: "CNY"}}
+	paymentService := paymentsvc.New(paymentsvc.WithChannelRepository(channels), paymentsvc.WithProvider(provider))
+	router := gin.New()
+	paymentrouter.RegisterNotify(router.Group("/v1/channel"), paymenthandler.NewNotify(paymentService, orderService))
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/v1/channel/notify", strings.NewReader("out_trade_no="+order.GatewayOrderNo))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Body.String() != "fail" {
+		t.Fatalf("body = %q, want fail", recorder.Body.String())
+	}
+	stored, _ := orderService.FindOrder(ctx, order.ID)
+	if stored.Status != "pending" {
+		t.Fatalf("Status = %q, want pending", stored.Status)
+	}
+}
+
+func TestNotifyHandlerMarksOrderFailedAndRecordsWebhook(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	ctx := t.Context()
+	client := enttest.Open(t, dialect.SQLite, "file:notify_handler_failed?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+	createEnabledAppWithNotifyURL(t, client, "snsgo", "https://merchant.example.com/payment/webhook")
+
+	orderService := ordersvc.New(client, ordersvc.WithWebhookService(webhooksvc.New(client)))
+	order, err := orderService.CreateOrder(ctx, ordersvc.ManageOrderInput{AppID: "snsgo", MerchantOrderNo: "biz_failed", Subject: "Pro", Amount: 9900, Currency: "CNY", Channel: "wechat", PayMethod: "wechat"})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	channels := channelrepo.New(client)
+	if _, err := channels.Create(ctx, channelrepo.CreateChannelAccountInput{Channel: "wechat", Name: "Wechat", Enabled: true, Env: "prod", Config: map[string]any{}}); err != nil {
+		t.Fatalf("Create account error = %v", err)
+	}
+	provider := &fakeNotifyProvider{channel: "wechat", result: &paymentprovider.NotifyResult{Channel: "wechat", GatewayOrderNo: order.GatewayOrderNo, Status: "failed", FailureReason: "PAYERROR"}}
+	paymentService := paymentsvc.New(paymentsvc.WithChannelRepository(channels), paymentsvc.WithProvider(provider))
+	router := gin.New()
+	paymentrouter.RegisterNotify(router.Group("/v1/channel"), paymenthandler.NewNotify(paymentService, orderService))
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/v1/channel/notify?channel=wechat", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK || strings.TrimSpace(recorder.Body.String()) != `{"code":"SUCCESS","message":"成功"}` {
+		t.Fatalf("status/body = %d/%q", recorder.Code, recorder.Body.String())
+	}
+	stored, _ := orderService.FindOrder(ctx, order.ID)
+	if stored.Status != "failed" || stored.FailureReason != "PAYERROR" || stored.FailedAt == nil {
+		t.Fatalf("stored = %#v, want failed", stored)
+	}
+	_, total, err := webhookrepo.New(client).ListEvents(ctx, webhookrepo.ListEventsInput{EventType: webhooksvc.EventPaymentFailed})
+	if err != nil || total != 1 {
+		t.Fatalf("payment.failed events total=%d err=%v", total, err)
+	}
+}
+
 func TestNotifyHandlerMarksOrderPaidAndReturnsWechatSuccess(t *testing.T) {
 	gin.SetMode(gin.ReleaseMode)
 	ctx := t.Context()

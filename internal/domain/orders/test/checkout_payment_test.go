@@ -786,13 +786,14 @@ func TestCheckoutHandlerPersistsSelectedMethodWhenOrderHasNoMethod(t *testing.T)
 	}
 
 	channelService := channelsvc.New(client)
-	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+	account, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
 		Channel: "paypal",
 		Name:    "PayPal Sandbox",
 		Enabled: true,
 		Env:     "sandbox",
 		Config:  map[string]any{"client_id": "client-1"},
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatalf("CreateChannelAccount(paypal) error = %v", err)
 	}
 	provider := &checkoutFakeProvider{channel: "paypal"}
@@ -822,8 +823,46 @@ func TestCheckoutHandlerPersistsSelectedMethodWhenOrderHasNoMethod(t *testing.T)
 	if err != nil {
 		t.Fatalf("FindOrderByGatewayOrderNo() error = %v", err)
 	}
-	if updated.Channel != "paypal" || updated.PayMethod != "paypal" {
-		t.Fatalf("updated order = %#v, want paypal locked after payment start", updated)
+	if updated.Channel != "paypal" || updated.PayMethod != "paypal" || updated.ChannelAccountID != account.ID {
+		t.Fatalf("updated order = %#v, want paypal account %d locked after payment start", updated, account.ID)
+	}
+}
+
+func TestCheckoutHandlerResolvesPayModeFromSelectedAccount(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_selected_account_mode?mode=memory&cache=shared&_fk=1")
+	t.Cleanup(func() { client.Close() })
+	createEnabledApp(t, client, "snsgo")
+
+	orderService := ordersvc.New(client)
+	order := createUnlockedCheckoutOrder(t, orderService, "selected_account_mode")
+	channelService := channelsvc.New(client)
+	selected, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "alipay", Name: "Selected", Enabled: true, Env: "prod", Config: map[string]any{"app_id": "selected", "private_key": "private", "enable_page_pay": true, "enable_qr_pay": false},
+	})
+	if err != nil {
+		t.Fatalf("Create selected account error = %v", err)
+	}
+	if _, err := channelService.CreateChannelAccount(t.Context(), channelsvc.ManageChannelAccountInput{
+		Channel: "alipay", Name: "Other", Enabled: true, Env: "prod", Config: map[string]any{"app_id": "other", "private_key": "private", "enable_page_pay": false, "enable_qr_pay": true},
+	}); err != nil {
+		t.Fatalf("Create other account error = %v", err)
+	}
+	provider := &checkoutFakeProvider{channel: "alipay"}
+	paymentService := paymentsvc.New(paymentsvc.WithChannelRepository(channelrepo.New(client)), paymentsvc.WithProvider(provider))
+	router := gin.New()
+	router.POST("/orders/:gateway_order_no/pay", orderhandler.NewCheckout(orderService, orderhandler.WithChannelService(channelService), orderhandler.WithPaymentService(paymentService)).StartPayment)
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, checkoutRequest(t, orderService, order, http.MethodPost, "/orders/"+order.GatewayOrderNo+"/pay", map[string]any{
+		"channel": "alipay", "pay_method": "alipay", "channel_account_id": selected.ID,
+	}))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if provider.req.ChannelAccount.ID != selected.ID || provider.req.ChannelAccount.Config["mode"] != "page" {
+		t.Fatalf("provider account/mode = %d/%v, want %d/page", provider.req.ChannelAccount.ID, provider.req.ChannelAccount.Config["mode"], selected.ID)
 	}
 }
 
@@ -1040,8 +1079,13 @@ func TestCheckoutHandlerUsesGatewayPaypalReturnURL(t *testing.T) {
 		!strings.Contains(provider.req.ReturnURL, "%2Fcheckout%2F"+order.GatewayOrderNo+"%2Fresult") {
 		t.Fatalf("provider ReturnURL = %q, want gateway paypal return URL with checkout result return_url", provider.req.ReturnURL)
 	}
-	if provider.req.NotifyURL != "https://sns.itlight.cn/v1/channel/notify" {
-		t.Fatalf("provider NotifyURL = %q, want unified notify URL", provider.req.NotifyURL)
+	notifyURL, err := url.Parse(provider.req.NotifyURL)
+	if err != nil {
+		t.Fatalf("parse provider NotifyURL error = %v", err)
+	}
+	if notifyURL.Scheme+"://"+notifyURL.Host+notifyURL.Path != "https://sns.itlight.cn/v1/channel/notify" ||
+		notifyURL.Query().Get("channel") != "paypal" || notifyURL.Query().Get("channel_account_id") == "" {
+		t.Fatalf("provider NotifyURL = %q, want bound unified notify URL", provider.req.NotifyURL)
 	}
 }
 
@@ -1205,6 +1249,95 @@ func TestCheckoutHandlerPaypalReturnPrefersGatewayResultURL(t *testing.T) {
 	}
 }
 
+func TestCheckoutHandlerRejectsMismatchedPaypalReturnToken(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_paypal_token_mismatch?mode=memory&cache=shared&_fk=1")
+	t.Cleanup(func() { client.Close() })
+	createEnabledApp(t, client, "snsgo")
+
+	orderService := ordersvc.New(client)
+	order, err := orderService.CreateOrder(t.Context(), ordersvc.ManageOrderInput{
+		AppID: "snsgo", MerchantOrderNo: "biz_paypal_token_mismatch", Subject: "Pro", Amount: 9900, Currency: "USD", Channel: "paypal", PayMethod: "paypal",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	channels := channelrepo.New(client)
+	account, err := channels.Create(t.Context(), channelrepo.CreateChannelAccountInput{Channel: "paypal", Name: "PayPal", Enabled: true, Env: "sandbox", Config: map[string]any{}})
+	if err != nil {
+		t.Fatalf("Create channel account error = %v", err)
+	}
+	if _, err := orderService.SetPaymentSelection(t.Context(), order.ID, "paypal", "paypal", account.ID); err != nil {
+		t.Fatalf("SetPaymentSelection() error = %v", err)
+	}
+	if _, err := orderService.SetProviderOrderNo(t.Context(), order.ID, "PAYPAL_ORDER_EXPECTED"); err != nil {
+		t.Fatalf("SetProviderOrderNo() error = %v", err)
+	}
+	provider := &checkoutFakeProvider{channel: "paypal"}
+	paymentService := paymentsvc.New(paymentsvc.WithChannelRepository(channels), paymentsvc.WithProvider(provider))
+	router := gin.New()
+	router.GET("/paypal/return", orderhandler.NewCheckout(orderService, orderhandler.WithPaymentService(paymentService)).CompletePaypalPayment)
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/paypal/return?gateway_order_no="+order.GatewayOrderNo+"&token=PAYPAL_ORDER_OTHER", nil))
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if provider.captureCalled {
+		t.Fatal("CapturePayment() was called for mismatched token")
+	}
+}
+
+func TestCheckoutHandlerValidatesPaypalCaptureBeforeMarkingPaid(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_paypal_capture_validation?mode=memory&cache=shared&_fk=1")
+	t.Cleanup(func() { client.Close() })
+	createEnabledApp(t, client, "snsgo")
+
+	orderService := ordersvc.New(client)
+	order, err := orderService.CreateOrder(t.Context(), ordersvc.ManageOrderInput{
+		AppID: "snsgo", MerchantOrderNo: "biz_paypal_capture_validation", Subject: "Pro", Amount: 9900, Currency: "USD", Channel: "paypal", PayMethod: "paypal", ReturnURL: "https://merchant.example.com/result",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	channels := channelrepo.New(client)
+	account, err := channels.Create(t.Context(), channelrepo.CreateChannelAccountInput{Channel: "paypal", Name: "PayPal", Enabled: true, Env: "sandbox", Config: map[string]any{}})
+	if err != nil {
+		t.Fatalf("Create channel account error = %v", err)
+	}
+	if _, err := orderService.SetPaymentSelection(t.Context(), order.ID, "paypal", "paypal", account.ID); err != nil {
+		t.Fatalf("SetPaymentSelection() error = %v", err)
+	}
+	if _, err := orderService.SetProviderOrderNo(t.Context(), order.ID, "PAYPAL_ORDER_001"); err != nil {
+		t.Fatalf("SetProviderOrderNo() error = %v", err)
+	}
+	provider := &checkoutFakeProvider{channel: "paypal", captureResult: &paymentprovider.CapturePaymentResult{
+		Channel: "paypal", ProviderOrderNo: "PAYPAL_ORDER_001", GatewayOrderNo: order.GatewayOrderNo, ChannelTradeNo: "CAPTURE_001", Status: "paid", Amount: 9900, Currency: "USD",
+	}}
+	paymentService := paymentsvc.New(paymentsvc.WithChannelRepository(channels), paymentsvc.WithProvider(provider))
+	router := gin.New()
+	router.GET("/paypal/return", orderhandler.NewCheckout(orderService, orderhandler.WithPaymentService(paymentService)).CompletePaypalPayment)
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/paypal/return?gateway_order_no="+order.GatewayOrderNo+"&token=PAYPAL_ORDER_001", nil))
+
+	if recorder.Code != http.StatusFound {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	updated, err := orderService.FindOrder(t.Context(), order.ID)
+	if err != nil {
+		t.Fatalf("FindOrder() error = %v", err)
+	}
+	if updated.Status != "paid" || updated.ChannelTradeNo != "CAPTURE_001" {
+		t.Fatalf("updated order = %#v, want paid capture", updated)
+	}
+	if provider.captureReq.ChannelAccountID != account.ID {
+		t.Fatalf("capture account = %d, want %d", provider.captureReq.ChannelAccountID, account.ID)
+	}
+}
+
 func newCheckoutPaymentTestRouter(t *testing.T, dbName string) (*gin.Engine, *ent.PaymentOrder, ordersvc.Service, channelsvc.Service) {
 	t.Helper()
 	gin.SetMode(gin.ReleaseMode)
@@ -1300,12 +1433,22 @@ func createUnlockedCheckoutOrder(t *testing.T, service ordersvc.Service, suffix 
 }
 
 type checkoutFakeProvider struct {
-	channel string
-	req     paymentprovider.StartPaymentRequest
+	channel       string
+	req           paymentprovider.StartPaymentRequest
+	captureCalled bool
+	captureReq    paymentprovider.CapturePaymentRequest
+	captureResult *paymentprovider.CapturePaymentResult
 }
 
 func (p *checkoutFakeProvider) Channel() string {
 	return p.channel
+}
+
+func (p *checkoutFakeProvider) CapturePayment(ctx context.Context, req paymentprovider.CapturePaymentRequest) (*paymentprovider.CapturePaymentResult, error) {
+	_ = ctx
+	p.captureCalled = true
+	p.captureReq = req
+	return p.captureResult, nil
 }
 
 func (p *checkoutFakeProvider) StartPayment(ctx context.Context, req paymentprovider.StartPaymentRequest) (*paymentprovider.StartPaymentResult, error) {

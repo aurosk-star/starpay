@@ -110,13 +110,17 @@ var (
 		{Name: "settlement_amount", Type: field.TypeInt64, Nullable: true},
 		{Name: "settlement_currency", Type: field.TypeString, Nullable: true},
 		{Name: "channel", Type: field.TypeString, Nullable: true},
+		{Name: "channel_account_id", Type: field.TypeInt, Nullable: true},
 		{Name: "pay_method", Type: field.TypeString, Nullable: true},
+		{Name: "provider_order_no", Type: field.TypeString, Nullable: true},
 		{Name: "channel_trade_no", Type: field.TypeString, Nullable: true},
 		{Name: "return_url", Type: field.TypeString, Nullable: true},
 		{Name: "checkout_token_hash", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeString, Default: "pending"},
 		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "paid_at", Type: field.TypeTime, Nullable: true},
+		{Name: "failed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "failure_reason", Type: field.TypeString, Nullable: true},
 		{Name: "closed_at", Type: field.TypeTime, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
@@ -146,17 +150,22 @@ var (
 			{
 				Name:    "paymentorder_status",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[16]},
+				Columns: []*schema.Column{PaymentOrdersColumns[18]},
 			},
 			{
 				Name:    "paymentorder_status_expires_at",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[16], PaymentOrdersColumns[17]},
+				Columns: []*schema.Column{PaymentOrdersColumns[18], PaymentOrdersColumns[19]},
 			},
 			{
 				Name:    "paymentorder_channel",
 				Unique:  false,
 				Columns: []*schema.Column{PaymentOrdersColumns[11]},
+			},
+			{
+				Name:    "paymentorder_channel_account_id",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentOrdersColumns[12]},
 			},
 			{
 				Name:    "paymentorder_currency",
@@ -166,7 +175,7 @@ var (
 			{
 				Name:    "paymentorder_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[21]},
+				Columns: []*schema.Column{PaymentOrdersColumns[25]},
 			},
 		},
 	}

@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -31,7 +32,11 @@ import { useAuthStore } from "@/features/auth/store";
 import { APIError } from "@/lib/api";
 
 import { listWebhookDeliveries, retryWebhookDelivery } from "./api";
-import { formatWebhookEventType } from "./event-types";
+import {
+  formatWebhookEventType,
+  normalizeWebhookEventTypeFilter,
+  supportedWebhookEventTypes,
+} from "./event-types";
 import type { WebhookDelivery } from "./types";
 import { webhookStatusVariant } from "./utils";
 
@@ -39,7 +44,7 @@ const WebhooksDataTable = createDataTable<WebhookDelivery>();
 
 const defaultFilters = {
   appId: "",
-  eventType: "",
+  eventType: "all",
   status: "all",
   gatewayOrderNo: "",
 };
@@ -151,7 +156,7 @@ export function WebhooksPage() {
     try {
       const result = await listWebhookDeliveries(accessToken, {
         app_id: nextFilters.appId,
-        event_type: nextFilters.eventType,
+        event_type: normalizeWebhookEventTypeFilter(nextFilters.eventType),
         status: nextFilters.status === "all" ? "" : nextFilters.status,
         gateway_order_no: nextFilters.gatewayOrderNo,
         page: 1,
@@ -243,15 +248,26 @@ export function WebhooksPage() {
             <FieldGroup>
               <Field>
                 <FieldLabel>{t("webhooks.filter.eventType")}</FieldLabel>
-                <Input
+                <Select
                   value={filters.eventType}
-                  onChange={(e) =>
-                    setFilters((curr) => ({
-                      ...curr,
-                      eventType: e.target.value,
-                    }))
+                  onValueChange={(value) =>
+                    setFilters((curr) => ({ ...curr, eventType: value }))
                   }
-                />
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="all">{t("common.all")}</SelectItem>
+                      {supportedWebhookEventTypes.map((eventType) => (
+                        <SelectItem key={eventType} value={eventType}>
+                          {formatWebhookEventType(eventType, t)}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </Field>
             </FieldGroup>
             <FieldGroup>
@@ -267,16 +283,18 @@ export function WebhooksPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">{t("common.all")}</SelectItem>
-                    <SelectItem value="pending">
-                      {t("webhooks.status.pending")}
-                    </SelectItem>
-                    <SelectItem value="succeeded">
-                      {t("webhooks.status.succeeded")}
-                    </SelectItem>
-                    <SelectItem value="failed">
-                      {t("webhooks.status.failed")}
-                    </SelectItem>
+                    <SelectGroup>
+                      <SelectItem value="all">{t("common.all")}</SelectItem>
+                      <SelectItem value="pending">
+                        {t("webhooks.status.pending")}
+                      </SelectItem>
+                      <SelectItem value="succeeded">
+                        {t("webhooks.status.succeeded")}
+                      </SelectItem>
+                      <SelectItem value="failed">
+                        {t("webhooks.status.failed")}
+                      </SelectItem>
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </Field>

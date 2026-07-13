@@ -35,8 +35,12 @@ const (
 	FieldSettlementCurrency = "settlement_currency"
 	// FieldChannel holds the string denoting the channel field in the database.
 	FieldChannel = "channel"
+	// FieldChannelAccountID holds the string denoting the channel_account_id field in the database.
+	FieldChannelAccountID = "channel_account_id"
 	// FieldPayMethod holds the string denoting the pay_method field in the database.
 	FieldPayMethod = "pay_method"
+	// FieldProviderOrderNo holds the string denoting the provider_order_no field in the database.
+	FieldProviderOrderNo = "provider_order_no"
 	// FieldChannelTradeNo holds the string denoting the channel_trade_no field in the database.
 	FieldChannelTradeNo = "channel_trade_no"
 	// FieldReturnURL holds the string denoting the return_url field in the database.
@@ -49,6 +53,10 @@ const (
 	FieldExpiresAt = "expires_at"
 	// FieldPaidAt holds the string denoting the paid_at field in the database.
 	FieldPaidAt = "paid_at"
+	// FieldFailedAt holds the string denoting the failed_at field in the database.
+	FieldFailedAt = "failed_at"
+	// FieldFailureReason holds the string denoting the failure_reason field in the database.
+	FieldFailureReason = "failure_reason"
 	// FieldClosedAt holds the string denoting the closed_at field in the database.
 	FieldClosedAt = "closed_at"
 	// FieldMetadata holds the string denoting the metadata field in the database.
@@ -75,13 +83,17 @@ var Columns = []string{
 	FieldSettlementAmount,
 	FieldSettlementCurrency,
 	FieldChannel,
+	FieldChannelAccountID,
 	FieldPayMethod,
+	FieldProviderOrderNo,
 	FieldChannelTradeNo,
 	FieldReturnURL,
 	FieldCheckoutTokenHash,
 	FieldStatus,
 	FieldExpiresAt,
 	FieldPaidAt,
+	FieldFailedAt,
+	FieldFailureReason,
 	FieldClosedAt,
 	FieldMetadata,
 	FieldCreatedAt,
@@ -172,9 +184,19 @@ func ByChannel(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldChannel, opts...).ToFunc()
 }
 
+// ByChannelAccountID orders the results by the channel_account_id field.
+func ByChannelAccountID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChannelAccountID, opts...).ToFunc()
+}
+
 // ByPayMethod orders the results by the pay_method field.
 func ByPayMethod(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPayMethod, opts...).ToFunc()
+}
+
+// ByProviderOrderNo orders the results by the provider_order_no field.
+func ByProviderOrderNo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProviderOrderNo, opts...).ToFunc()
 }
 
 // ByChannelTradeNo orders the results by the channel_trade_no field.
@@ -205,6 +227,16 @@ func ByExpiresAt(opts ...sql.OrderTermOption) OrderOption {
 // ByPaidAt orders the results by the paid_at field.
 func ByPaidAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPaidAt, opts...).ToFunc()
+}
+
+// ByFailedAt orders the results by the failed_at field.
+func ByFailedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFailedAt, opts...).ToFunc()
+}
+
+// ByFailureReason orders the results by the failure_reason field.
+func ByFailureReason(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFailureReason, opts...).ToFunc()
 }
 
 // ByClosedAt orders the results by the closed_at field.

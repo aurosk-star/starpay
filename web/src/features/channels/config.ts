@@ -23,6 +23,7 @@ export type ChannelConfig = {
   webhook_id?: string;
   brand_name?: string;
   intent?: string;
+  locale?: string;
 };
 
 export const emptyChannelConfig: Record<PaymentChannel, ChannelConfig> = {
@@ -55,6 +56,7 @@ export const emptyChannelConfig: Record<PaymentChannel, ChannelConfig> = {
     webhook_id: "",
     brand_name: "",
     intent: "CAPTURE",
+    locale: "zh-CN",
   },
 };
 
@@ -99,7 +101,9 @@ export function buildChangedConfigPayload(
       if (!normalizedValue || normalizedValue === "********") {
         return false;
       }
-      const initialValue = String(initial[key as keyof ChannelConfig] ?? "").trim();
+      const initialValue = String(
+        initial[key as keyof ChannelConfig] ?? "",
+      ).trim();
       return normalizedValue !== initialValue;
     }),
   );

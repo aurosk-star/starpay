@@ -141,11 +141,14 @@
       "settlementCurrency": "Settlement currency",
       "channel": "Channel",
       "payMethod": "Pay method",
+      "providerOrderNo": "Provider order no.",
       "channelTradeNo": "Channel trade no.",
       "returnUrl": "Payment return URL",
       "status": "Status",
       "expiresAt": "Expires at",
       "paidAt": "Paid at",
+      "failedAt": "Failed at",
+      "failureReason": "Failure reason",
       "closedAt": "Closed at",
       "metadata": "Metadata",
       "createdAt": "Created at",
@@ -252,9 +255,9 @@
     "paypal": "PayPal",
     "sandbox": "Sandbox",
     "prod": "Production",
-    "wechatConfigHint": "WeChat Pay v3 config: app_id, mch_id, api_v3_key, serial_no, private_key, cert, wechat_pay_public_key, wechat_pay_public_key_id, and terminal-aware capabilities.",
+    "wechatConfigHint": "WeChat Pay v3 config: app_id, mch_id, api_v3_key, serial_no, private_key, wechat_pay_public_key, wechat_pay_public_key_id, and terminal-aware capabilities. WeChat Pay API v3 has no separate sandbox endpoint.",
     "alipayConfigHint": "Alipay v3 config: app_id, private_key, alipay_public_key, server_url, and terminal-aware capabilities.",
-    "paypalConfigHint": "PayPal config: client_id, client_secret, webhook_id, brand_name, intent.",
+    "paypalConfigHint": "PayPal config: client_id, client_secret, webhook_id, brand_name, intent, and locale. Only CAPTURE is currently supported.",
     "fields": {
       "app_id": "App ID",
       "mch_id": "Merchant ID",
@@ -277,7 +280,8 @@
       "client_secret": "Client Secret",
       "webhook_id": "Webhook ID",
       "brand_name": "Brand name",
-      "intent": "Intent"
+      "intent": "Intent",
+      "locale": "Locale"
     },
     "placeholders": {
       "name": "Example: WeChat Pay production merchant",
@@ -292,12 +296,13 @@
       "alipay_public_key": "Paste Alipay public key",
       "server_url": "https://openapi.alipay.com/gateway.do",
       "product_code": "Example: FAST_INSTANT_TRADE_PAY",
-      "mode": "Example: native / h5 / jsapi / page / qr",
+      "mode": "Example: native / h5 / qr / page",
       "client_id": "PayPal REST App Client ID",
       "client_secret": "PayPal REST App Secret",
       "webhook_id": "PayPal Webhook ID",
       "brand_name": "Brand name shown on payment page",
-      "intent": "CAPTURE or AUTHORIZE"
+      "intent": "CAPTURE",
+      "locale": "Example: zh-CN or en-US"
     },
     "hints": {
       "app_id": "Application identifier assigned by the payment provider.",
@@ -305,7 +310,6 @@
       "api_v3_key": "WeChat Pay API v3 key for callbacks and signing.",
       "serial_no": "Merchant API certificate serial number.",
       "private_key": "Merchant private key for request signing.",
-      "cert": "WeChat merchant certificate content or related certificate config.",
       "wechat_pay_public_key": "WeChat Pay platform public key for callback verification.",
       "wechat_pay_public_key_id": "WeChat Pay public key ID. Keep the PUB_KEY_ID_ prefix when public-key verification is enabled.",
       "alipay_public_key": "Used to verify Alipay responses and callbacks.",
@@ -321,7 +325,8 @@
       "client_secret": "PayPal app Secret.",
       "webhook_id": "PayPal Webhook ID for event verification.",
       "brand_name": "Merchant brand name shown on PayPal checkout.",
-      "intent": "PayPal order intent, usually CAPTURE or AUTHORIZE."
+      "intent": "The current payment completion flow only supports CAPTURE.",
+      "locale": "Locale used by the PayPal checkout page."
     },
     "table": {
       "channel": "Channel",

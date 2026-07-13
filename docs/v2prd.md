@@ -15,14 +15,13 @@ V2 的目标不是重新设计支付网关，而是在现有 V1 基础上补齐�
 - 订单：创建、查询、按商户订单号查询、关闭、幂等创建、checkout token、过期关闭。
 - 支付：支付宝、微信、PayPal provider；支付启动；统一支付回调；PayPal capture/return。
 - 路由：按应用、支付方式、通道、币种、金额区间、终端、优先级和目标通道做基础路由。
-- Webhook：`payment.succeeded`、`order.expired` 事件，投递记录，HMAC 签名，自动重试，手动重试。
+- Webhook：`payment.succeeded`、`payment.failed`、`order.expired` 事件，投递记录，HMAC 签名，自动重试，手动重试。
 - 后台：应用、用户、通道、路由、订单、webhook、配置、监控、测试支付、公共收银台。
 - 运行时：订单过期 worker、webhook worker、webhook retry scanner、基础监控概览。
 - SDK：Go SDK 支持签名下单、查单、关单和 webhook 验签。
 
 ### 2.2 明确缺口
 
-- 没有支付失败状态闭环和 `payment.failed` 事件。
 - 没有主动查单补偿，回调丢失时 pending 订单无法自动修复。
 - 没有退款域：无退款表、退款 API、退款后台、退款事件和退款状态流转。
 - 没有订阅域：只有目录占位，没有计划、订阅、账单、续费和订阅事件。
@@ -37,7 +36,6 @@ V2 的目标不是重新设计支付网关，而是在现有 V1 基础上补齐�
 
 ### 3.1 必须完成
 
-- 补齐支付失败状态流转和 `payment.failed` webhook。
 - 补齐主动查单补偿，自动修复回调丢失、回调延迟、用户完成支付但本地仍 pending 的订单。
 - 补齐退款核心能力：退款创建、查询、状态流转、后台管理和退款 webhook。
 - 扩展 webhook 事件模型，支持订单、支付、退款等多资源类型幂等事件。
@@ -74,6 +72,8 @@ V2 仍不做以下能力：
 ## 5. 功能范围
 
 ### 5.1 支付失败闭环
+
+该项已于 2026-07-13 完成，包括失败状态、失败原因、失败时间和 `payment.failed` webhook。
 
 当前支付回调只对 `paid` 和 `closed` 做明确处理，失败状态没有落库和事件。
 
@@ -323,7 +323,6 @@ invoice.payment_failed
 
 ### P0：主链路闭环
 
-- `payment.failed` 状态和事件。
 - 主动查单补偿。
 - webhook 事件模型扩展。
 - 根目录验证命令覆盖 SDK 测试。

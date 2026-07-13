@@ -228,7 +228,9 @@ export function ChannelFormPage({ mode }: { mode: "create" | "edit" }) {
                         }))
                       }
                     />
-                    <FieldDescription>{t("channels.nameHint")}</FieldDescription>
+                    <FieldDescription>
+                      {t("channels.nameHint")}
+                    </FieldDescription>
                   </Field>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                     <Field>
@@ -363,13 +365,6 @@ function ChannelConfigFields({
           onChange={onChange}
         />
         <ConfigTextarea
-          name="cert"
-          value={config.cert}
-          secret
-          editing={editing}
-          onChange={onChange}
-        />
-        <ConfigTextarea
           name="wechat_pay_public_key"
           value={config.wechat_pay_public_key}
           secret
@@ -469,6 +464,7 @@ function ChannelConfigFields({
         onChange={onChange}
       />
       <ConfigInput name="intent" value={config.intent} onChange={onChange} />
+      <ConfigInput name="locale" value={config.locale} onChange={onChange} />
       {editing ? (
         <p className="text-sm text-muted-foreground">
           {t("channels.secretEditHint")}

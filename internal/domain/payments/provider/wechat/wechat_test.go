@@ -27,14 +27,17 @@ type fakeWechatClient struct {
 	h5Rsp     *wechatv3.H5Rsp
 	err       error
 	body      gopay.BodyMap
+	calls     int
 }
 
 func (c *fakeWechatClient) V3TransactionNative(ctx context.Context, body gopay.BodyMap) (*wechatv3.NativeRsp, error) {
+	c.calls++
 	c.body = body
 	return c.nativeRsp, c.err
 }
 
 func (c *fakeWechatClient) V3TransactionH5(ctx context.Context, body gopay.BodyMap) (*wechatv3.H5Rsp, error) {
+	c.calls++
 	c.body = body
 	return c.h5Rsp, c.err
 }
@@ -71,6 +74,31 @@ func TestParseConfigReadsWechatCapabilities(t *testing.T) {
 	}
 	if cfg.EnableNativePay || !cfg.EnableH5Pay {
 		t.Fatalf("capabilities = native:%v h5:%v, want h5 only", cfg.EnableNativePay, cfg.EnableH5Pay)
+	}
+}
+
+func TestParseConfigRejectsUnsupportedMode(t *testing.T) {
+	_, err := ParseConfig(map[string]any{
+		"app_id": "wx_app", "mch_id": "mch", "api_v3_key": testAPIV3Key, "serial_no": "serial", "private_key": "private", "mode": "jsapi",
+	}, "prod")
+	if err == nil {
+		t.Fatal("ParseConfig() error = nil, want unsupported mode error")
+	}
+}
+
+func TestStartPaymentRejectsDisabledMode(t *testing.T) {
+	client := &fakeWechatClient{}
+	p := NewWithClientFactory(func(Config) (wechatClient, error) { return client, nil })
+	_, err := p.StartPayment(context.Background(), provider.StartPaymentRequest{
+		Order:          &ent.PaymentOrder{GatewayOrderNo: "pay_disabled", Subject: "Pro", Amount: 9900, Currency: "CNY"},
+		ChannelAccount: account(map[string]any{"mode": "native", "enable_native_pay": false}),
+		Channel:        "wechat", PayMethod: "wechat",
+	})
+	if err == nil {
+		t.Fatal("StartPayment() error = nil, want disabled mode error")
+	}
+	if client.calls != 0 {
+		t.Fatalf("client calls = %d, want 0", client.calls)
 	}
 }
 

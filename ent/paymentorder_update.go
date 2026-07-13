@@ -226,6 +226,33 @@ func (_u *PaymentOrderUpdate) ClearChannel() *PaymentOrderUpdate {
 	return _u
 }
 
+// SetChannelAccountID sets the "channel_account_id" field.
+func (_u *PaymentOrderUpdate) SetChannelAccountID(v int) *PaymentOrderUpdate {
+	_u.mutation.ResetChannelAccountID()
+	_u.mutation.SetChannelAccountID(v)
+	return _u
+}
+
+// SetNillableChannelAccountID sets the "channel_account_id" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableChannelAccountID(v *int) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetChannelAccountID(*v)
+	}
+	return _u
+}
+
+// AddChannelAccountID adds value to the "channel_account_id" field.
+func (_u *PaymentOrderUpdate) AddChannelAccountID(v int) *PaymentOrderUpdate {
+	_u.mutation.AddChannelAccountID(v)
+	return _u
+}
+
+// ClearChannelAccountID clears the value of the "channel_account_id" field.
+func (_u *PaymentOrderUpdate) ClearChannelAccountID() *PaymentOrderUpdate {
+	_u.mutation.ClearChannelAccountID()
+	return _u
+}
+
 // SetPayMethod sets the "pay_method" field.
 func (_u *PaymentOrderUpdate) SetPayMethod(v string) *PaymentOrderUpdate {
 	_u.mutation.SetPayMethod(v)
@@ -243,6 +270,26 @@ func (_u *PaymentOrderUpdate) SetNillablePayMethod(v *string) *PaymentOrderUpdat
 // ClearPayMethod clears the value of the "pay_method" field.
 func (_u *PaymentOrderUpdate) ClearPayMethod() *PaymentOrderUpdate {
 	_u.mutation.ClearPayMethod()
+	return _u
+}
+
+// SetProviderOrderNo sets the "provider_order_no" field.
+func (_u *PaymentOrderUpdate) SetProviderOrderNo(v string) *PaymentOrderUpdate {
+	_u.mutation.SetProviderOrderNo(v)
+	return _u
+}
+
+// SetNillableProviderOrderNo sets the "provider_order_no" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableProviderOrderNo(v *string) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetProviderOrderNo(*v)
+	}
+	return _u
+}
+
+// ClearProviderOrderNo clears the value of the "provider_order_no" field.
+func (_u *PaymentOrderUpdate) ClearProviderOrderNo() *PaymentOrderUpdate {
+	_u.mutation.ClearProviderOrderNo()
 	return _u
 }
 
@@ -357,6 +404,46 @@ func (_u *PaymentOrderUpdate) SetNillablePaidAt(v *time.Time) *PaymentOrderUpdat
 // ClearPaidAt clears the value of the "paid_at" field.
 func (_u *PaymentOrderUpdate) ClearPaidAt() *PaymentOrderUpdate {
 	_u.mutation.ClearPaidAt()
+	return _u
+}
+
+// SetFailedAt sets the "failed_at" field.
+func (_u *PaymentOrderUpdate) SetFailedAt(v time.Time) *PaymentOrderUpdate {
+	_u.mutation.SetFailedAt(v)
+	return _u
+}
+
+// SetNillableFailedAt sets the "failed_at" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableFailedAt(v *time.Time) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetFailedAt(*v)
+	}
+	return _u
+}
+
+// ClearFailedAt clears the value of the "failed_at" field.
+func (_u *PaymentOrderUpdate) ClearFailedAt() *PaymentOrderUpdate {
+	_u.mutation.ClearFailedAt()
+	return _u
+}
+
+// SetFailureReason sets the "failure_reason" field.
+func (_u *PaymentOrderUpdate) SetFailureReason(v string) *PaymentOrderUpdate {
+	_u.mutation.SetFailureReason(v)
+	return _u
+}
+
+// SetNillableFailureReason sets the "failure_reason" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableFailureReason(v *string) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetFailureReason(*v)
+	}
+	return _u
+}
+
+// ClearFailureReason clears the value of the "failure_reason" field.
+func (_u *PaymentOrderUpdate) ClearFailureReason() *PaymentOrderUpdate {
+	_u.mutation.ClearFailureReason()
 	return _u
 }
 
@@ -502,11 +589,26 @@ func (_u *PaymentOrderUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if _u.mutation.ChannelCleared() {
 		_spec.ClearField(paymentorder.FieldChannel, field.TypeString)
 	}
+	if value, ok := _u.mutation.ChannelAccountID(); ok {
+		_spec.SetField(paymentorder.FieldChannelAccountID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedChannelAccountID(); ok {
+		_spec.AddField(paymentorder.FieldChannelAccountID, field.TypeInt, value)
+	}
+	if _u.mutation.ChannelAccountIDCleared() {
+		_spec.ClearField(paymentorder.FieldChannelAccountID, field.TypeInt)
+	}
 	if value, ok := _u.mutation.PayMethod(); ok {
 		_spec.SetField(paymentorder.FieldPayMethod, field.TypeString, value)
 	}
 	if _u.mutation.PayMethodCleared() {
 		_spec.ClearField(paymentorder.FieldPayMethod, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProviderOrderNo(); ok {
+		_spec.SetField(paymentorder.FieldProviderOrderNo, field.TypeString, value)
+	}
+	if _u.mutation.ProviderOrderNoCleared() {
+		_spec.ClearField(paymentorder.FieldProviderOrderNo, field.TypeString)
 	}
 	if value, ok := _u.mutation.ChannelTradeNo(); ok {
 		_spec.SetField(paymentorder.FieldChannelTradeNo, field.TypeString, value)
@@ -540,6 +642,18 @@ func (_u *PaymentOrderUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.PaidAtCleared() {
 		_spec.ClearField(paymentorder.FieldPaidAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.FailedAt(); ok {
+		_spec.SetField(paymentorder.FieldFailedAt, field.TypeTime, value)
+	}
+	if _u.mutation.FailedAtCleared() {
+		_spec.ClearField(paymentorder.FieldFailedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.FailureReason(); ok {
+		_spec.SetField(paymentorder.FieldFailureReason, field.TypeString, value)
+	}
+	if _u.mutation.FailureReasonCleared() {
+		_spec.ClearField(paymentorder.FieldFailureReason, field.TypeString)
 	}
 	if value, ok := _u.mutation.ClosedAt(); ok {
 		_spec.SetField(paymentorder.FieldClosedAt, field.TypeTime, value)
@@ -774,6 +888,33 @@ func (_u *PaymentOrderUpdateOne) ClearChannel() *PaymentOrderUpdateOne {
 	return _u
 }
 
+// SetChannelAccountID sets the "channel_account_id" field.
+func (_u *PaymentOrderUpdateOne) SetChannelAccountID(v int) *PaymentOrderUpdateOne {
+	_u.mutation.ResetChannelAccountID()
+	_u.mutation.SetChannelAccountID(v)
+	return _u
+}
+
+// SetNillableChannelAccountID sets the "channel_account_id" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableChannelAccountID(v *int) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetChannelAccountID(*v)
+	}
+	return _u
+}
+
+// AddChannelAccountID adds value to the "channel_account_id" field.
+func (_u *PaymentOrderUpdateOne) AddChannelAccountID(v int) *PaymentOrderUpdateOne {
+	_u.mutation.AddChannelAccountID(v)
+	return _u
+}
+
+// ClearChannelAccountID clears the value of the "channel_account_id" field.
+func (_u *PaymentOrderUpdateOne) ClearChannelAccountID() *PaymentOrderUpdateOne {
+	_u.mutation.ClearChannelAccountID()
+	return _u
+}
+
 // SetPayMethod sets the "pay_method" field.
 func (_u *PaymentOrderUpdateOne) SetPayMethod(v string) *PaymentOrderUpdateOne {
 	_u.mutation.SetPayMethod(v)
@@ -791,6 +932,26 @@ func (_u *PaymentOrderUpdateOne) SetNillablePayMethod(v *string) *PaymentOrderUp
 // ClearPayMethod clears the value of the "pay_method" field.
 func (_u *PaymentOrderUpdateOne) ClearPayMethod() *PaymentOrderUpdateOne {
 	_u.mutation.ClearPayMethod()
+	return _u
+}
+
+// SetProviderOrderNo sets the "provider_order_no" field.
+func (_u *PaymentOrderUpdateOne) SetProviderOrderNo(v string) *PaymentOrderUpdateOne {
+	_u.mutation.SetProviderOrderNo(v)
+	return _u
+}
+
+// SetNillableProviderOrderNo sets the "provider_order_no" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableProviderOrderNo(v *string) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetProviderOrderNo(*v)
+	}
+	return _u
+}
+
+// ClearProviderOrderNo clears the value of the "provider_order_no" field.
+func (_u *PaymentOrderUpdateOne) ClearProviderOrderNo() *PaymentOrderUpdateOne {
+	_u.mutation.ClearProviderOrderNo()
 	return _u
 }
 
@@ -905,6 +1066,46 @@ func (_u *PaymentOrderUpdateOne) SetNillablePaidAt(v *time.Time) *PaymentOrderUp
 // ClearPaidAt clears the value of the "paid_at" field.
 func (_u *PaymentOrderUpdateOne) ClearPaidAt() *PaymentOrderUpdateOne {
 	_u.mutation.ClearPaidAt()
+	return _u
+}
+
+// SetFailedAt sets the "failed_at" field.
+func (_u *PaymentOrderUpdateOne) SetFailedAt(v time.Time) *PaymentOrderUpdateOne {
+	_u.mutation.SetFailedAt(v)
+	return _u
+}
+
+// SetNillableFailedAt sets the "failed_at" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableFailedAt(v *time.Time) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetFailedAt(*v)
+	}
+	return _u
+}
+
+// ClearFailedAt clears the value of the "failed_at" field.
+func (_u *PaymentOrderUpdateOne) ClearFailedAt() *PaymentOrderUpdateOne {
+	_u.mutation.ClearFailedAt()
+	return _u
+}
+
+// SetFailureReason sets the "failure_reason" field.
+func (_u *PaymentOrderUpdateOne) SetFailureReason(v string) *PaymentOrderUpdateOne {
+	_u.mutation.SetFailureReason(v)
+	return _u
+}
+
+// SetNillableFailureReason sets the "failure_reason" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableFailureReason(v *string) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetFailureReason(*v)
+	}
+	return _u
+}
+
+// ClearFailureReason clears the value of the "failure_reason" field.
+func (_u *PaymentOrderUpdateOne) ClearFailureReason() *PaymentOrderUpdateOne {
+	_u.mutation.ClearFailureReason()
 	return _u
 }
 
@@ -1080,11 +1281,26 @@ func (_u *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentOrd
 	if _u.mutation.ChannelCleared() {
 		_spec.ClearField(paymentorder.FieldChannel, field.TypeString)
 	}
+	if value, ok := _u.mutation.ChannelAccountID(); ok {
+		_spec.SetField(paymentorder.FieldChannelAccountID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedChannelAccountID(); ok {
+		_spec.AddField(paymentorder.FieldChannelAccountID, field.TypeInt, value)
+	}
+	if _u.mutation.ChannelAccountIDCleared() {
+		_spec.ClearField(paymentorder.FieldChannelAccountID, field.TypeInt)
+	}
 	if value, ok := _u.mutation.PayMethod(); ok {
 		_spec.SetField(paymentorder.FieldPayMethod, field.TypeString, value)
 	}
 	if _u.mutation.PayMethodCleared() {
 		_spec.ClearField(paymentorder.FieldPayMethod, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProviderOrderNo(); ok {
+		_spec.SetField(paymentorder.FieldProviderOrderNo, field.TypeString, value)
+	}
+	if _u.mutation.ProviderOrderNoCleared() {
+		_spec.ClearField(paymentorder.FieldProviderOrderNo, field.TypeString)
 	}
 	if value, ok := _u.mutation.ChannelTradeNo(); ok {
 		_spec.SetField(paymentorder.FieldChannelTradeNo, field.TypeString, value)
@@ -1118,6 +1334,18 @@ func (_u *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentOrd
 	}
 	if _u.mutation.PaidAtCleared() {
 		_spec.ClearField(paymentorder.FieldPaidAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.FailedAt(); ok {
+		_spec.SetField(paymentorder.FieldFailedAt, field.TypeTime, value)
+	}
+	if _u.mutation.FailedAtCleared() {
+		_spec.ClearField(paymentorder.FieldFailedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.FailureReason(); ok {
+		_spec.SetField(paymentorder.FieldFailureReason, field.TypeString, value)
+	}
+	if _u.mutation.FailureReasonCleared() {
+		_spec.ClearField(paymentorder.FieldFailureReason, field.TypeString)
 	}
 	if value, ok := _u.mutation.ClosedAt(); ok {
 		_spec.SetField(paymentorder.FieldClosedAt, field.TypeTime, value)

@@ -27,6 +27,12 @@ var (
 	ErrDuplicateOrder                = errors.New("merchant order already exists for app")
 	ErrIdempotencyConflict           = errors.New("idempotency conflict")
 	ErrOrderCannotBeClosed           = errors.New("order cannot be closed in current status")
+	ErrOrderCannotBePaid             = errors.New("order cannot be paid in current status")
+	ErrOrderCannotBeFailed           = errors.New("order cannot be failed in current status")
+	ErrPaymentChannelMismatch        = errors.New("payment channel does not match order")
+	ErrPaymentAccountMismatch        = errors.New("payment channel account does not match order")
+	ErrPaymentAmountMismatch         = errors.New("payment amount does not match order")
+	ErrPaymentCurrencyMismatch       = errors.New("payment currency does not match order")
 	ErrAppNotFound                   = errors.New("app not found")
 	ErrAppDisabled                   = errors.New("app is disabled")
 	ErrUnsupportedCurrencyForChannel = errors.New("currency is not supported by channel")
@@ -145,6 +151,16 @@ type ListOrdersResult struct {
 	Total    int                 `json:"total"`
 	Page     int                 `json:"page"`
 	PageSize int                 `json:"page_size"`
+}
+
+type PaymentResultInput struct {
+	Channel          string
+	ChannelAccountID int
+	ChannelTradeNo   string
+	Status           string
+	Amount           int64
+	Currency         string
+	FailureReason    string
 }
 
 type CreatedOrder struct {
@@ -447,6 +463,17 @@ func (s Service) MarkPaid(ctx context.Context, id int, channelTradeNo string) (*
 	if err != nil {
 		return nil, err
 	}
+	if existing.Status == "paid" {
+		if !s.webhooks.IsZero() {
+			if _, err := s.webhooks.RecordPaymentSucceeded(ctx, existing); err != nil {
+				return nil, err
+			}
+		}
+		return existing, nil
+	}
+	if existing.Status != "pending" && existing.Status != "failed" {
+		return nil, ErrOrderCannotBePaid
+	}
 	paid, err := s.orders.MarkPaid(ctx, id, strings.TrimSpace(channelTradeNo), s.now())
 	if err != nil {
 		return nil, err
@@ -457,6 +484,80 @@ func (s Service) MarkPaid(ctx context.Context, id int, channelTradeNo string) (*
 		}
 	}
 	return paid, nil
+}
+
+func (s Service) MarkFailed(ctx context.Context, id int, reason string) (*ent.PaymentOrder, error) {
+	existing, err := s.orders.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if existing.Status == "failed" {
+		if !s.webhooks.IsZero() {
+			if _, err := s.webhooks.RecordPaymentFailed(ctx, existing); err != nil {
+				return nil, err
+			}
+		}
+		return existing, nil
+	}
+	if existing.Status != "pending" {
+		return nil, ErrOrderCannotBeFailed
+	}
+	failed, err := s.orders.MarkFailed(ctx, id, strings.TrimSpace(reason), s.now())
+	if err != nil {
+		return nil, err
+	}
+	if !s.webhooks.IsZero() {
+		if _, err := s.webhooks.RecordPaymentFailed(ctx, failed); err != nil {
+			return nil, err
+		}
+	}
+	return failed, nil
+}
+
+func (s Service) ApplyPaymentResult(ctx context.Context, id int, input PaymentResultInput) (*ent.PaymentOrder, error) {
+	existing, err := s.orders.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	channel := strings.ToLower(strings.TrimSpace(input.Channel))
+	if existing.Channel != "" && !strings.EqualFold(existing.Channel, channel) {
+		return nil, ErrPaymentChannelMismatch
+	}
+	if existing.ChannelAccountID > 0 && existing.ChannelAccountID != input.ChannelAccountID {
+		return nil, ErrPaymentAccountMismatch
+	}
+	status := strings.ToLower(strings.TrimSpace(input.Status))
+	if status == "paid" {
+		if existing.Amount != input.Amount {
+			return nil, ErrPaymentAmountMismatch
+		}
+		if !strings.EqualFold(existing.Currency, strings.TrimSpace(input.Currency)) {
+			return nil, ErrPaymentCurrencyMismatch
+		}
+	}
+	if existing.Channel == "" || existing.PayMethod == "" || existing.ChannelAccountID == 0 {
+		payMethod := existing.PayMethod
+		if payMethod == "" {
+			payMethod = channel
+		}
+		existing, err = s.orders.SetPaymentSelection(ctx, id, channel, payMethod, input.ChannelAccountID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	switch status {
+	case "paid":
+		return s.MarkPaid(ctx, id, input.ChannelTradeNo)
+	case "failed":
+		return s.MarkFailed(ctx, id, input.FailureReason)
+	case "closed":
+		if existing.Status == "closed" {
+			return existing, nil
+		}
+		return s.CloseOrder(ctx, id)
+	default:
+		return existing, nil
+	}
 }
 
 func (s Service) defaultExpiresAt(ctx context.Context) *time.Time {
@@ -485,8 +586,12 @@ func (s Service) SetChannelTradeNo(ctx context.Context, id int, channelTradeNo s
 	return s.orders.SetChannelTradeNo(ctx, id, strings.TrimSpace(channelTradeNo))
 }
 
-func (s Service) SetPaymentSelection(ctx context.Context, id int, channel string, payMethod string) (*ent.PaymentOrder, error) {
-	return s.orders.SetPaymentSelection(ctx, id, strings.ToLower(strings.TrimSpace(channel)), strings.ToLower(strings.TrimSpace(payMethod)))
+func (s Service) SetProviderOrderNo(ctx context.Context, id int, providerOrderNo string) (*ent.PaymentOrder, error) {
+	return s.orders.SetProviderOrderNo(ctx, id, strings.TrimSpace(providerOrderNo))
+}
+
+func (s Service) SetPaymentSelection(ctx context.Context, id int, channel string, payMethod string, channelAccountID int) (*ent.PaymentOrder, error) {
+	return s.orders.SetPaymentSelection(ctx, id, strings.ToLower(strings.TrimSpace(channel)), strings.ToLower(strings.TrimSpace(payMethod)), channelAccountID)
 }
 
 func normalizeManageInput(input ManageOrderInput) (ManageOrderInput, error) {

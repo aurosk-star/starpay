@@ -14,10 +14,11 @@ import (
 )
 
 type fakeClient struct {
-	body      gopay.BodyMap
-	verifyBM  gopay.BodyMap
-	rsp       *gopaypaypal.CreateOrderRsp
-	verifyRsp *gopaypaypal.VerifyWebhookResponse
+	body       gopay.BodyMap
+	verifyBM   gopay.BodyMap
+	rsp        *gopaypaypal.CreateOrderRsp
+	captureRsp *gopaypaypal.OrderCaptureRsp
+	verifyRsp  *gopaypaypal.VerifyWebhookResponse
 }
 
 func (c *fakeClient) CreateOrder(ctx context.Context, body gopay.BodyMap) (*gopaypaypal.CreateOrderRsp, error) {
@@ -30,7 +31,7 @@ func (c *fakeClient) OrderCapture(ctx context.Context, orderID string, body gopa
 	_ = ctx
 	_ = orderID
 	_ = body
-	return nil, nil
+	return c.captureRsp, nil
 }
 
 func (c *fakeClient) VerifyWebhookSignature(ctx context.Context, body gopay.BodyMap) (*gopaypaypal.VerifyWebhookResponse, error) {
@@ -50,6 +51,13 @@ func TestParseConfigRequiresClientSecret(t *testing.T) {
 	_, err := ParseConfig(map[string]any{"client_id": "client"}, "sandbox")
 	if err == nil {
 		t.Fatal("ParseConfig() error = nil, want missing client_secret error")
+	}
+}
+
+func TestParseConfigRejectsUnsupportedIntent(t *testing.T) {
+	_, err := ParseConfig(map[string]any{"client_id": "client", "client_secret": "secret", "intent": "AUTHORIZE"}, "sandbox")
+	if err == nil {
+		t.Fatal("ParseConfig() error = nil, want unsupported intent error")
 	}
 }
 
@@ -161,6 +169,52 @@ func TestProviderCreateOrderReturnsPayerActionURL(t *testing.T) {
 	}
 	if result.PayURL != "https://www.sandbox.paypal.com/checkoutnow?token=PAYPAL_ORDER_001" {
 		t.Fatalf("PayURL = %q, want payer-action link", result.PayURL)
+	}
+}
+
+func TestCapturePaymentReturnsValidatedOrderIdentityAndAmount(t *testing.T) {
+	client := &fakeClient{
+		captureRsp: &gopaypaypal.OrderCaptureRsp{
+			Code: gopaypaypal.Success,
+			Response: &gopaypaypal.OrderDetail{
+				Id:     "PAYPAL_ORDER_001",
+				Status: "COMPLETED",
+				PurchaseUnits: []*gopaypaypal.PurchaseUnit{
+					{
+						CustomId: "pay_001",
+						Amount:   &gopaypaypal.Amount{CurrencyCode: "USD", Value: "99.00"},
+						Payments: &gopaypaypal.Payments{Captures: []*gopaypaypal.Capture{
+							{Id: "CAPTURE_001", Status: "COMPLETED", Amount: &gopaypaypal.Amount{CurrencyCode: "USD", Value: "99.00"}},
+						}},
+					},
+				},
+			},
+		},
+	}
+	p := NewWithClientFactory(func(Config) (paypalClient, error) { return client, nil })
+
+	result, err := p.CapturePayment(context.Background(), provider.CapturePaymentRequest{
+		ChannelAccount:  &ent.ChannelAccount{Config: map[string]any{"client_id": "client", "client_secret": "secret"}},
+		ProviderOrderNo: "PAYPAL_ORDER_001",
+		GatewayOrderNo:  "pay_001",
+	})
+	if err != nil {
+		t.Fatalf("CapturePayment() error = %v", err)
+	}
+	if result.Status != "paid" || result.ChannelTradeNo != "CAPTURE_001" {
+		t.Fatalf("result = %#v, want completed capture", result)
+	}
+	if result.GatewayOrderNo != "pay_001" || result.Amount != 9900 || result.Currency != "USD" {
+		t.Fatalf("result identity/amount = %#v, want pay_001 9900 USD", result)
+	}
+}
+
+func TestNormalizeWebhookStatusKeepsApprovedOrderPending(t *testing.T) {
+	if got := normalizeWebhookStatus("CHECKOUT.ORDER.APPROVED", "APPROVED"); got != "pending" {
+		t.Fatalf("normalizeWebhookStatus() = %q, want pending", got)
+	}
+	if got := normalizeWebhookStatus("PAYMENT.CAPTURE.COMPLETED", "COMPLETED"); got != "paid" {
+		t.Fatalf("normalizeWebhookStatus() = %q, want paid", got)
 	}
 }
 
@@ -305,7 +359,7 @@ func TestParseNotifyVerifiesPaypalWebhookSignature(t *testing.T) {
 			"Paypal-Transmission-Sig":  {"signature"},
 			"Paypal-Transmission-Time": {"2026-07-01T00:00:00Z"},
 		},
-		RawBody: []byte(`{"event_type":"CHECKOUT.ORDER.APPROVED","resource":{"id":"PAYPAL_ORDER_001","custom_id":"pay_001","status":"COMPLETED"}}`),
+		RawBody: []byte(`{"event_type":"PAYMENT.CAPTURE.COMPLETED","resource":{"id":"CAPTURE_001","custom_id":"pay_001","status":"COMPLETED","amount":{"currency_code":"USD","value":"99.00"}}}`),
 	})
 	if err != nil {
 		t.Fatalf("ParseNotify() error = %v", err)
@@ -313,7 +367,7 @@ func TestParseNotifyVerifiesPaypalWebhookSignature(t *testing.T) {
 	if client.verifyBM.GetString("webhook_id") != "WH-123" || client.verifyBM.GetString("transmission_id") != "transmission-id" {
 		t.Fatalf("verify body = %#v, want webhook id and transmission id", client.verifyBM)
 	}
-	if result.GatewayOrderNo != "pay_001" || result.ChannelTradeNo != "PAYPAL_ORDER_001" || result.Status != "paid" {
+	if result.GatewayOrderNo != "pay_001" || result.ChannelTradeNo != "CAPTURE_001" || result.Status != "paid" || result.Amount != 9900 || result.Currency != "USD" {
 		t.Fatalf("result = %#v, want paid PayPal notify", result)
 	}
 }
@@ -343,7 +397,7 @@ func TestParseNotifyRejectsUnverifiedPaypalWebhookSignature(t *testing.T) {
 			"Paypal-Transmission-Sig":  {"signature"},
 			"Paypal-Transmission-Time": {"2026-07-01T00:00:00Z"},
 		},
-		RawBody: []byte(`{"event_type":"CHECKOUT.ORDER.APPROVED","resource":{"id":"PAYPAL_ORDER_001","custom_id":"pay_001","status":"COMPLETED"}}`),
+		RawBody: []byte(`{"event_type":"PAYMENT.CAPTURE.COMPLETED","resource":{"id":"CAPTURE_001","custom_id":"pay_001","status":"COMPLETED","amount":{"currency_code":"USD","value":"99.00"}}}`),
 	})
 	if err == nil {
 		t.Fatal("ParseNotify() error = nil, want unverified webhook error")

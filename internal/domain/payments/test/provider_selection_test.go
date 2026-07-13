@@ -3,6 +3,8 @@ package paymentstest
 import (
 	"context"
 	"errors"
+	"net/url"
+	"strconv"
 	"testing"
 
 	"entgo.io/ent/dialect"
@@ -82,11 +84,20 @@ func TestStartPaymentUsesEnabledAlipayProvider(t *testing.T) {
 	if provider.req.ReturnURL != "https://merchant.example.com/return" {
 		t.Fatalf("ReturnURL = %q, want request return URL", provider.req.ReturnURL)
 	}
-	if provider.req.NotifyURL != "https://pay.example.com/v1/channel/notify" {
-		t.Fatalf("NotifyURL = %q, want runtime notify URL", provider.req.NotifyURL)
+	notifyURL, err := url.Parse(provider.req.NotifyURL)
+	if err != nil {
+		t.Fatalf("parse NotifyURL error = %v", err)
+	}
+	if notifyURL.Scheme+"://"+notifyURL.Host+notifyURL.Path != "https://pay.example.com/v1/channel/notify" ||
+		notifyURL.Query().Get("channel") != "alipay" ||
+		notifyURL.Query().Get("channel_account_id") != strconv.Itoa(provider.req.ChannelAccount.ID) {
+		t.Fatalf("NotifyURL = %q, want channel and account binding", provider.req.NotifyURL)
 	}
 	if result.ProviderOrderNo != "provider_"+order.GatewayOrderNo {
 		t.Fatalf("ProviderOrderNo = %q, want provider result", result.ProviderOrderNo)
+	}
+	if result.ChannelAccountID != provider.req.ChannelAccount.ID {
+		t.Fatalf("ChannelAccountID = %d, want %d", result.ChannelAccountID, provider.req.ChannelAccount.ID)
 	}
 }
 

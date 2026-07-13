@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.3
+
+- Add channel account, provider order, and payment failure fields to order and webhook models.
+
 ## v0.1.2
 
 - Preserve HTTP status and structured error details from gateway responses.

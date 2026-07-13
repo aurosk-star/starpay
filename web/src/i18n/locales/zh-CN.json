@@ -261,9 +261,9 @@
     "paypal": "PayPal",
     "sandbox": "沙箱",
     "prod": "生产",
-    "wechatConfigHint": "微信支付 v3 配置：app_id、mch_id、api_v3_key、serial_no、private_key、cert、wechat_pay_public_key、wechat_pay_public_key_id，并按终端开启支付能力。",
+    "wechatConfigHint": "微信支付 v3 配置：app_id、mch_id、api_v3_key、serial_no、private_key、wechat_pay_public_key、wechat_pay_public_key_id，并按终端开启支付能力。微信支付 API v3 不提供独立沙箱端点。",
     "alipayConfigHint": "支付宝 v3 配置：app_id、private_key、alipay_public_key、server_url，并按终端开启支付能力。",
-    "paypalConfigHint": "PayPal 配置：client_id、client_secret、webhook_id、brand_name、intent。",
+    "paypalConfigHint": "PayPal 配置：client_id、client_secret、webhook_id、brand_name、intent、locale。当前仅支持 CAPTURE。",
     "fields": {
       "app_id": "App ID",
       "mch_id": "商户号",
@@ -286,7 +286,8 @@
       "client_secret": "Client Secret",
       "webhook_id": "Webhook ID",
       "brand_name": "品牌名称",
-      "intent": "支付意图"
+      "intent": "支付意图",
+      "locale": "语言区域"
     },
     "placeholders": {
       "name": "例如：微信支付生产商户号",
@@ -301,12 +302,13 @@
       "alipay_public_key": "粘贴支付宝公钥内容",
       "server_url": "https://openapi.alipay.com/gateway.do",
       "product_code": "例如：FAST_INSTANT_TRADE_PAY",
-      "mode": "例如：native / h5 / jsapi / page / qr",
+      "mode": "例如：native / h5 / qr / page",
       "client_id": "PayPal REST App Client ID",
       "client_secret": "PayPal REST App Secret",
       "webhook_id": "PayPal Webhook ID",
       "brand_name": "品牌显示名称",
-      "intent": "CAPTURE 或 AUTHORIZE"
+      "intent": "CAPTURE",
+      "locale": "例如：zh-CN 或 en-US"
     },
     "hints": {
       "app_id": "支付机构分配的应用标识，用于发起支付请求。",
@@ -314,7 +316,6 @@
       "api_v3_key": "微信支付 v3 回调解密和接口签名相关密钥，生产环境请妥善保管。",
       "serial_no": "微信商户 API 证书序列号，用于声明当前签名证书。",
       "private_key": "商户私钥用于请求签名；编辑时留空会保留原密钥。",
-      "cert": "微信商户证书内容或路径相关配置；如不使用证书模式可留空。",
       "wechat_pay_public_key": "微信支付平台公钥，用于回调验签或平台证书模式。",
       "wechat_pay_public_key_id": "微信支付公钥 ID；配置公钥验签时必须保留 PUB_KEY_ID_ 前缀。",
       "alipay_public_key": "用于验证支付宝返回结果和异步通知签名。",
@@ -330,7 +331,8 @@
       "client_secret": "PayPal 应用 Secret；编辑时留空会保留原值。",
       "webhook_id": "PayPal Webhook ID，用于验证 Webhook 事件。",
       "brand_name": "支付页品牌名称，通常展示商户名。",
-      "intent": "PayPal 订单意图，常用 CAPTURE 或 AUTHORIZE。"
+      "intent": "当前支付完成流程仅支持 CAPTURE。",
+      "locale": "PayPal 支付页使用的语言区域。"
     },
     "table": {
       "channel": "通道",
@@ -525,11 +527,14 @@
       "settlementCurrency": "结算币种",
       "channel": "通道",
       "payMethod": "支付方式",
+      "providerOrderNo": "通道订单号",
       "channelTradeNo": "通道流水号",
       "returnUrl": "支付完成返回地址",
       "status": "状态",
       "expiresAt": "过期时间",
       "paidAt": "支付时间",
+      "failedAt": "失败时间",
+      "failureReason": "失败原因",
       "closedAt": "关闭时间",
       "metadata": "元数据",
       "createdAt": "创建时间",

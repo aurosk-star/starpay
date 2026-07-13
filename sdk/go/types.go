@@ -40,12 +40,16 @@ type Order struct {
 	SettlementAmount   int64                  `json:"settlement_amount,omitempty"`
 	SettlementCurrency string                 `json:"settlement_currency,omitempty"`
 	Channel            string                 `json:"channel,omitempty"`
+	ChannelAccountID   int                    `json:"channel_account_id,omitempty"`
 	PayMethod          string                 `json:"pay_method,omitempty"`
+	ProviderOrderNo    string                 `json:"provider_order_no,omitempty"`
 	ChannelTradeNo     string                 `json:"channel_trade_no,omitempty"`
 	ReturnURL          string                 `json:"return_url,omitempty"`
 	Status             string                 `json:"status"`
 	ExpiresAt          *time.Time             `json:"expires_at,omitempty"`
 	PaidAt             *time.Time             `json:"paid_at,omitempty"`
+	FailedAt           *time.Time             `json:"failed_at,omitempty"`
+	FailureReason      string                 `json:"failure_reason,omitempty"`
 	ClosedAt           *time.Time             `json:"closed_at,omitempty"`
 	Metadata           map[string]any         `json:"metadata,omitempty"`
 	CreatedAt          *time.Time             `json:"created_at,omitempty"`

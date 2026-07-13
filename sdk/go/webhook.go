@@ -43,6 +43,8 @@ type WebhookEvent struct {
 	PayMethod       string         `json:"pay_method,omitempty"`
 	ChannelTradeNo  string         `json:"channel_trade_no,omitempty"`
 	PaidAt          string         `json:"paid_at,omitempty"`
+	FailedAt        string         `json:"failed_at,omitempty"`
+	FailureReason   string         `json:"failure_reason,omitempty"`
 	ExpiresAt       string         `json:"expires_at,omitempty"`
 	ClosedAt        string         `json:"closed_at,omitempty"`
 	Metadata        map[string]any `json:"metadata,omitempty"`

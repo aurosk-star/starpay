@@ -13,6 +13,7 @@ const (
 var (
 	ErrClientIDRequired     = errors.New("paypal client_id is required")
 	ErrClientSecretRequired = errors.New("paypal client_secret is required")
+	ErrIntentUnsupported    = errors.New("paypal intent must be CAPTURE")
 )
 
 type Config struct {
@@ -43,6 +44,9 @@ func ParseConfig(values map[string]any, env string) (Config, error) {
 	}
 	if cfg.Intent == "" {
 		cfg.Intent = DefaultIntent
+	}
+	if cfg.Intent != DefaultIntent {
+		return Config{}, ErrIntentUnsupported
 	}
 	if cfg.Locale == "" {
 		cfg.Locale = DefaultLocale

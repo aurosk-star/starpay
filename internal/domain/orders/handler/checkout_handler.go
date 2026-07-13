@@ -294,6 +294,7 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 	}
 	lockedChannel := strings.ToLower(strings.TrimSpace(order.Channel))
 	lockedPayMethod := strings.ToLower(strings.TrimSpace(order.PayMethod))
+	channelAccountID := req.ChannelAccountID
 	if lockedChannel != "" || lockedPayMethod != "" {
 		expectedChannel := lockedChannel
 		if expectedChannel == "" {
@@ -310,13 +311,20 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 		channel = expectedChannel
 		payMethod = expectedPayMethod
 	}
+	if order.ChannelAccountID > 0 {
+		if channelAccountID > 0 && channelAccountID != order.ChannelAccountID {
+			httpx.JSONError(ctx, http.StatusConflict, httpx.CodeOrderStatusNotAllowed, "channel account is locked by the order")
+			return
+		}
+		channelAccountID = order.ChannelAccountID
+	}
 	if !paymentsvc.ChannelSupportsCurrency(channel, order.Currency) {
 		httpx.JSONError(ctx, http.StatusBadRequest, httpx.CodeCurrencyNotSupported, "currency is not supported by channel")
 		return
 	}
 	payMode := ""
 	if channel == "alipay" || channel == "wechat" {
-		resolvedMode, ok, err := h.resolvePayMode(ctx, channel, ctx.Request.UserAgent())
+		resolvedMode, ok, err := h.resolvePayMode(ctx, channel, channelAccountID, ctx.Request.UserAgent())
 		if err != nil {
 			httpx.JSONError(ctx, http.StatusInternalServerError, "resolve_payment_mode_failed", err.Error())
 			return
@@ -341,7 +349,7 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 		Order:            order,
 		PayMethod:        payMethod,
 		Channel:          channel,
-		ChannelAccountID: req.ChannelAccountID,
+		ChannelAccountID: channelAccountID,
 		PayMode:          payMode,
 		ClientIP:         req.ClientIP,
 		ReturnURL:        returnURL,
@@ -351,14 +359,14 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 		httpx.WriteAPIError(ctx, httpx.OrderAPIError(err, httpx.CodeChannelResponseError, "failed to start payment"))
 		return
 	}
-	if order.Channel == "" || order.PayMethod == "" {
-		if _, err := h.service.SetPaymentSelection(ctx.Request.Context(), order.ID, payment.Channel, payment.PayMethod); err != nil {
+	if order.Channel == "" || order.PayMethod == "" || order.ChannelAccountID == 0 {
+		if _, err := h.service.SetPaymentSelection(ctx.Request.Context(), order.ID, payment.Channel, payment.PayMethod, payment.ChannelAccountID); err != nil {
 			httpx.JSONError(ctx, http.StatusBadRequest, "persist_payment_selection_failed", err.Error())
 			return
 		}
 	}
-	if payment.ProviderOrderNo != "" && order.ChannelTradeNo == "" {
-		if _, err := h.service.SetChannelTradeNo(ctx.Request.Context(), order.ID, payment.ProviderOrderNo); err != nil {
+	if payment.ProviderOrderNo != "" && order.ProviderOrderNo == "" {
+		if _, err := h.service.SetProviderOrderNo(ctx.Request.Context(), order.ID, payment.ProviderOrderNo); err != nil {
 			httpx.JSONError(ctx, http.StatusBadRequest, "persist_provider_order_failed", err.Error())
 			return
 		}
@@ -380,7 +388,18 @@ func (h CheckoutHandler) authorizeCheckout(ctx *gin.Context) (*ent.PaymentOrder,
 	return order, true
 }
 
-func (h CheckoutHandler) resolvePayMode(ctx *gin.Context, channel string, userAgent string) (string, bool, error) {
+func (h CheckoutHandler) resolvePayMode(ctx *gin.Context, channel string, channelAccountID int, userAgent string) (string, bool, error) {
+	if channelAccountID > 0 && !h.channels.IsZero() {
+		account, err := h.channels.FindChannelAccount(ctx.Request.Context(), channelAccountID)
+		if err != nil {
+			return "", false, err
+		}
+		if !account.Enabled || !strings.EqualFold(account.Channel, channel) {
+			return "", false, nil
+		}
+		payMode, ok := resolveAccountPayMode(*account, userAgent)
+		return payMode, ok, nil
+	}
 	switch channel {
 	case "alipay":
 		return h.resolveAlipayPayMode(ctx, userAgent)
@@ -505,33 +524,57 @@ func (h CheckoutHandler) CompletePaypalPayment(ctx *gin.Context) {
 		httpx.JSONError(ctx, http.StatusNotFound, "order_not_found", "payment order not found")
 		return
 	}
+	if !strings.EqualFold(strings.TrimSpace(order.Channel), "paypal") {
+		httpx.JSONError(ctx, http.StatusConflict, httpx.CodeOrderStatusNotAllowed, "payment order is not bound to paypal")
+		return
+	}
 	finalReturnURL := paypalFinalReturnURL(ctx, order.ReturnURL)
 	if ctx.Query("cancel") == "1" {
 		redirectAfterPaypal(ctx, finalReturnURL, gatewayOrderNo, "cancelled")
 		return
 	}
 	paypalOrderID := strings.TrimSpace(ctx.Query("token"))
+	storedPaypalOrderID := strings.TrimSpace(order.ProviderOrderNo)
+	if paypalOrderID != "" && storedPaypalOrderID != "" && paypalOrderID != storedPaypalOrderID {
+		httpx.JSONError(ctx, http.StatusBadRequest, httpx.CodeInvalidRequest, "paypal order token does not match payment order")
+		return
+	}
 	if paypalOrderID == "" {
-		paypalOrderID = strings.TrimSpace(order.ChannelTradeNo)
+		paypalOrderID = storedPaypalOrderID
 	}
 	if paypalOrderID == "" {
 		httpx.JSONError(ctx, http.StatusBadRequest, "invalid_request", "paypal order token is required")
 		return
 	}
 	result, err := h.payments.CapturePayment(ctx.Request.Context(), paymentsvc.CapturePaymentInput{
-		Channel:         "paypal",
-		ProviderOrderNo: paypalOrderID,
-		GatewayOrderNo:  gatewayOrderNo,
+		Channel:          "paypal",
+		ChannelAccountID: order.ChannelAccountID,
+		ProviderOrderNo:  paypalOrderID,
+		GatewayOrderNo:   gatewayOrderNo,
 	})
 	if err != nil {
 		httpx.JSONError(ctx, http.StatusBadRequest, "paypal_capture_failed", err.Error())
 		return
 	}
-	if result.Status == "paid" && order.Status != "paid" {
-		if _, err := h.service.MarkPaid(ctx.Request.Context(), order.ID, result.ChannelTradeNo); err != nil {
-			httpx.JSONError(ctx, http.StatusBadRequest, "mark_paid_failed", err.Error())
-			return
-		}
+	if result.GatewayOrderNo != gatewayOrderNo {
+		httpx.JSONError(ctx, http.StatusBadRequest, httpx.CodeChannelResponseError, "paypal capture order does not match payment order")
+		return
+	}
+	if result.ProviderOrderNo != "" && result.ProviderOrderNo != paypalOrderID {
+		httpx.JSONError(ctx, http.StatusBadRequest, httpx.CodeChannelResponseError, "paypal capture provider order does not match payment order")
+		return
+	}
+	if _, err := h.service.ApplyPaymentResult(ctx.Request.Context(), order.ID, ordersvc.PaymentResultInput{
+		Channel:          result.Channel,
+		ChannelAccountID: result.ChannelAccountID,
+		ChannelTradeNo:   result.ChannelTradeNo,
+		Status:           result.Status,
+		Amount:           result.Amount,
+		Currency:         result.Currency,
+		FailureReason:    result.FailureReason,
+	}); err != nil {
+		httpx.JSONError(ctx, http.StatusBadRequest, httpx.CodeChannelResponseError, err.Error())
+		return
 	}
 	redirectAfterPaypal(ctx, finalReturnURL, gatewayOrderNo, result.Status)
 }

@@ -16,10 +16,11 @@ import (
 )
 
 type fakeNotifyProvider struct {
-	channel string
-	result  *paymentprovider.NotifyResult
-	err     error
-	called  bool
+	channel   string
+	result    *paymentprovider.NotifyResult
+	err       error
+	called    bool
+	accountID int
 }
 
 func (p *fakeNotifyProvider) Channel() string {
@@ -34,8 +35,10 @@ func (p *fakeNotifyProvider) StartPayment(ctx context.Context, req paymentprovid
 
 func (p *fakeNotifyProvider) ParseNotify(ctx context.Context, req paymentprovider.NotifyRequest) (*paymentprovider.NotifyResult, error) {
 	_ = ctx
-	_ = req
 	p.called = true
+	if req.ChannelAccount != nil {
+		p.accountID = req.ChannelAccount.ID
+	}
 	return p.result, p.err
 }
 
@@ -85,6 +88,37 @@ func TestHandleNotifyUsesEnabledChannelProvider(t *testing.T) {
 	}
 	if result.GatewayOrderNo != "GW202607010001" || result.ChannelTradeNo != "2026070122000000001" || result.Status != "paid" {
 		t.Fatalf("result = %#v, want normalized paid notify", result)
+	}
+	if result.ChannelAccountID == 0 || result.ChannelAccountID != provider.accountID {
+		t.Fatalf("ChannelAccountID = %d, provider account = %d", result.ChannelAccountID, provider.accountID)
+	}
+}
+
+func TestHandleNotifyRequiresAccountIDWhenChannelHasMultipleAccounts(t *testing.T) {
+	ctx := context.Background()
+	client := enttest.Open(t, dialect.SQLite, "file:payment_notify_multiple_accounts?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	channels := channelrepo.New(client)
+	first, err := channels.Create(ctx, channelrepo.CreateChannelAccountInput{Channel: "alipay", Name: "First", Enabled: true, Env: "prod", Config: map[string]any{}})
+	if err != nil {
+		t.Fatalf("Create first account error = %v", err)
+	}
+	if _, err := channels.Create(ctx, channelrepo.CreateChannelAccountInput{Channel: "alipay", Name: "Second", Enabled: true, Env: "prod", Config: map[string]any{}}); err != nil {
+		t.Fatalf("Create second account error = %v", err)
+	}
+	provider := &fakeNotifyProvider{channel: "alipay", result: &paymentprovider.NotifyResult{Channel: "alipay", GatewayOrderNo: "pay_001", Status: "paid", Amount: 100, Currency: "CNY"}}
+	service := paymentsvc.New(paymentsvc.WithChannelRepository(channels), paymentsvc.WithProvider(provider))
+
+	if _, err := service.HandleNotify(ctx, paymentsvc.NotifyInput{Channel: "alipay"}); !errors.Is(err, paymentsvc.ErrChannelAccountRequired) {
+		t.Fatalf("HandleNotify() error = %v, want ErrChannelAccountRequired", err)
+	}
+	result, err := service.HandleNotify(ctx, paymentsvc.NotifyInput{Channel: "alipay", ChannelAccountID: first.ID})
+	if err != nil {
+		t.Fatalf("HandleNotify(account) error = %v", err)
+	}
+	if result.ChannelAccountID != first.ID || provider.accountID != first.ID {
+		t.Fatalf("result/provider account = %d/%d, want %d", result.ChannelAccountID, provider.accountID, first.ID)
 	}
 }
 

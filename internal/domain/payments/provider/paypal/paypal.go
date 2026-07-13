@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/go-pay/gopay"
@@ -125,19 +126,31 @@ func (p Provider) CapturePayment(ctx context.Context, req provider.CapturePaymen
 	if rsp.Response == nil {
 		return nil, fmt.Errorf("paypal capture response is empty")
 	}
+	if responseOrderID := strings.TrimSpace(rsp.Response.Id); responseOrderID != "" && responseOrderID != orderID {
+		return nil, fmt.Errorf("paypal capture order mismatch: got %s, want %s", responseOrderID, orderID)
+	}
 	status := "pending"
 	if strings.EqualFold(rsp.Response.Status, "COMPLETED") {
 		status = "paid"
 	}
-	channelTradeNo := captureID(rsp.Response)
+	gatewayOrderNo, amount, currency, channelTradeNo, err := captureDetails(rsp.Response)
+	if err != nil {
+		return nil, err
+	}
 	if channelTradeNo == "" {
 		channelTradeNo = orderID
 	}
+	if gatewayOrderNo == "" {
+		gatewayOrderNo = strings.TrimSpace(req.GatewayOrderNo)
+	}
 	return &provider.CapturePaymentResult{
-		Channel:        "paypal",
-		GatewayOrderNo: req.GatewayOrderNo,
-		ChannelTradeNo: channelTradeNo,
-		Status:         status,
+		Channel:         "paypal",
+		ProviderOrderNo: orderID,
+		GatewayOrderNo:  gatewayOrderNo,
+		ChannelTradeNo:  channelTradeNo,
+		Status:          status,
+		Amount:          amount,
+		Currency:        currency,
 		Raw: map[string]any{
 			"paypal_order_id": orderID,
 			"paypal_status":   rsp.Response.Status,
@@ -185,11 +198,18 @@ func (p Provider) ParseNotify(ctx context.Context, req provider.NotifyRequest) (
 		gatewayOrderNo = strings.TrimSpace(event.Resource.InvoiceID)
 	}
 	status := normalizeWebhookStatus(event.EventType, event.Resource.Status)
+	amount, err := parsePayPalAmount(event.Resource.Amount.Value, event.Resource.Amount.CurrencyCode)
+	if err != nil {
+		return nil, err
+	}
 	return &provider.NotifyResult{
 		Channel:        "paypal",
 		GatewayOrderNo: gatewayOrderNo,
 		ChannelTradeNo: strings.TrimSpace(event.Resource.ID),
 		Status:         status,
+		Amount:         amount,
+		Currency:       strings.ToUpper(strings.TrimSpace(event.Resource.Amount.CurrencyCode)),
+		FailureReason:  strings.TrimSpace(event.Resource.Status),
 		Raw: map[string]any{
 			"event_id":     event.ID,
 			"event_type":   event.EventType,
@@ -210,26 +230,33 @@ type paypalWebhookEvent struct {
 }
 
 type paypalWebhookResource struct {
-	ID        string `json:"id"`
-	CustomID  string `json:"custom_id"`
-	InvoiceID string `json:"invoice_id"`
-	Status    string `json:"status"`
+	ID        string              `json:"id"`
+	CustomID  string              `json:"custom_id"`
+	InvoiceID string              `json:"invoice_id"`
+	Status    string              `json:"status"`
+	Amount    paypalWebhookAmount `json:"amount"`
+}
+
+type paypalWebhookAmount struct {
+	CurrencyCode string `json:"currency_code"`
+	Value        string `json:"value"`
 }
 
 func normalizeWebhookStatus(eventType string, resourceStatus string) string {
 	normalizedEventType := strings.ToUpper(strings.TrimSpace(eventType))
 	normalizedStatus := strings.ToUpper(strings.TrimSpace(resourceStatus))
-	if strings.Contains(normalizedEventType, "COMPLETED") ||
-		strings.Contains(normalizedEventType, "APPROVED") ||
-		normalizedStatus == "COMPLETED" ||
-		normalizedStatus == "APPROVED" {
+	if normalizedEventType == "PAYMENT.CAPTURE.COMPLETED" ||
+		(strings.HasPrefix(normalizedEventType, "PAYMENT.CAPTURE.") && normalizedStatus == "COMPLETED") {
 		return "paid"
 	}
-	if strings.Contains(normalizedEventType, "VOIDED") ||
+	if normalizedEventType == "CHECKOUT.ORDER.VOIDED" ||
 		strings.Contains(normalizedEventType, "CANCELLED") ||
 		normalizedStatus == "VOIDED" ||
 		normalizedStatus == "CANCELLED" {
 		return "closed"
+	}
+	if normalizedEventType == "PAYMENT.CAPTURE.DENIED" || normalizedStatus == "DENIED" || normalizedStatus == "FAILED" {
+		return "failed"
 	}
 	return "pending"
 }
@@ -364,21 +391,83 @@ func formatErrorDetails(details []gopaypaypal.ErrorDetail) string {
 	return " [" + strings.Join(parts, "; ") + "]"
 }
 
-func captureID(detail *gopaypaypal.OrderDetail) string {
+func captureDetails(detail *gopaypaypal.OrderDetail) (string, int64, string, string, error) {
 	if detail == nil {
-		return ""
+		return "", 0, "", "", nil
 	}
 	for _, unit := range detail.PurchaseUnits {
-		if unit == nil || unit.Payments == nil {
+		if unit == nil {
 			continue
 		}
-		for _, capture := range unit.Payments.Captures {
-			if capture != nil && strings.TrimSpace(capture.Id) != "" {
-				return strings.TrimSpace(capture.Id)
+		gatewayOrderNo := strings.TrimSpace(unit.CustomId)
+		if gatewayOrderNo == "" {
+			gatewayOrderNo = strings.TrimSpace(unit.InvoiceId)
+		}
+		amountValue := ""
+		currency := ""
+		channelTradeNo := ""
+		if unit.Payments != nil {
+			for _, capture := range unit.Payments.Captures {
+				if capture == nil {
+					continue
+				}
+				channelTradeNo = strings.TrimSpace(capture.Id)
+				if capture.Amount != nil {
+					amountValue = capture.Amount.Value
+					currency = capture.Amount.CurrencyCode
+				}
+				break
 			}
 		}
+		if amountValue == "" && unit.Amount != nil {
+			amountValue = unit.Amount.Value
+			currency = unit.Amount.CurrencyCode
+		}
+		amount, err := parsePayPalAmount(amountValue, currency)
+		if err != nil {
+			return "", 0, "", "", err
+		}
+		return gatewayOrderNo, amount, strings.ToUpper(strings.TrimSpace(currency)), channelTradeNo, nil
 	}
-	return ""
+	return "", 0, "", "", nil
+}
+
+func parsePayPalAmount(value string, currency string) (int64, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, nil
+	}
+	if zeroDecimalCurrency(currency) {
+		amount, err := strconv.ParseInt(value, 10, 64)
+		if err != nil || amount < 0 {
+			return 0, fmt.Errorf("invalid paypal amount: %s", value)
+		}
+		return amount, nil
+	}
+	parts := strings.Split(value, ".")
+	if len(parts) > 2 || parts[0] == "" {
+		return 0, fmt.Errorf("invalid paypal amount: %s", value)
+	}
+	whole, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil || whole < 0 {
+		return 0, fmt.Errorf("invalid paypal amount: %s", value)
+	}
+	fraction := ""
+	if len(parts) == 2 {
+		fraction = parts[1]
+	}
+	if len(fraction) > 2 {
+		return 0, fmt.Errorf("invalid paypal amount: %s", value)
+	}
+	fraction += strings.Repeat("0", 2-len(fraction))
+	cents := int64(0)
+	if fraction != "" {
+		cents, err = strconv.ParseInt(fraction, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("invalid paypal amount: %s", value)
+		}
+	}
+	return whole*100 + cents, nil
 }
 
 func paypalResponseError(action string, code int, detail string) error {

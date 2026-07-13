@@ -14,11 +14,14 @@ export type PaymentOrder = {
   settlement_currency?: string;
   channel?: string;
   pay_method?: string;
+  provider_order_no?: string;
   channel_trade_no?: string;
   return_url?: string;
   status: PaymentOrderStatus;
   expires_at?: string | null;
   paid_at?: string | null;
+  failed_at?: string | null;
+  failure_reason?: string;
   closed_at?: string | null;
   metadata: Record<string, unknown>;
   created_at: string;

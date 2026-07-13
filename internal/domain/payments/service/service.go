@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,13 +14,14 @@ import (
 )
 
 var (
-	ErrOrderRequired       = errors.New("order is required")
-	ErrOrderNotPayable     = errors.New("order is not payable")
-	ErrOrderExpired        = errors.New("order is expired")
-	ErrPayMethodRequired   = errors.New("pay_method is required")
-	ErrProviderUnavailable = errors.New("payment provider unavailable")
-	ErrNotifyUnsupported   = errors.New("payment notify unsupported")
-	ErrCaptureUnsupported  = errors.New("payment capture unsupported")
+	ErrOrderRequired          = errors.New("order is required")
+	ErrOrderNotPayable        = errors.New("order is not payable")
+	ErrOrderExpired           = errors.New("order is expired")
+	ErrPayMethodRequired      = errors.New("pay_method is required")
+	ErrProviderUnavailable    = errors.New("payment provider unavailable")
+	ErrNotifyUnsupported      = errors.New("payment notify unsupported")
+	ErrCaptureUnsupported     = errors.New("payment capture unsupported")
+	ErrChannelAccountRequired = errors.New("channel_account_id is required when multiple channel accounts are enabled")
 )
 
 type Service struct {
@@ -84,37 +86,43 @@ type StartPaymentInput struct {
 }
 
 type PaymentResult struct {
-	Status          string         `json:"status"`
-	Channel         string         `json:"channel"`
-	PayMethod       string         `json:"pay_method"`
-	ProviderOrderNo string         `json:"provider_order_no"`
-	PayURL          string         `json:"pay_url,omitempty"`
-	QRCode          string         `json:"qr_code,omitempty"`
-	FormHTML        string         `json:"form_html,omitempty"`
-	Raw             map[string]any `json:"raw,omitempty"`
+	Status           string         `json:"status"`
+	Channel          string         `json:"channel"`
+	ChannelAccountID int            `json:"channel_account_id"`
+	PayMethod        string         `json:"pay_method"`
+	ProviderOrderNo  string         `json:"provider_order_no"`
+	PayURL           string         `json:"pay_url,omitempty"`
+	QRCode           string         `json:"qr_code,omitempty"`
+	FormHTML         string         `json:"form_html,omitempty"`
+	Raw              map[string]any `json:"raw,omitempty"`
 }
 
 type NotifyInput struct {
-	Channel string
-	Header  map[string][]string
-	Form    url.Values
-	RawBody []byte
+	Channel          string
+	ChannelAccountID int
+	Header           map[string][]string
+	Form             url.Values
+	RawBody          []byte
 }
 
 type NotifyResult struct {
-	Channel        string         `json:"channel"`
-	GatewayOrderNo string         `json:"gateway_order_no"`
-	ChannelTradeNo string         `json:"channel_trade_no"`
-	Status         string         `json:"status"`
-	Amount         int64          `json:"amount"`
-	Currency       string         `json:"currency"`
-	Raw            map[string]any `json:"raw"`
+	Channel          string         `json:"channel"`
+	ChannelAccountID int            `json:"channel_account_id"`
+	ProviderOrderNo  string         `json:"provider_order_no,omitempty"`
+	GatewayOrderNo   string         `json:"gateway_order_no"`
+	ChannelTradeNo   string         `json:"channel_trade_no"`
+	Status           string         `json:"status"`
+	Amount           int64          `json:"amount"`
+	Currency         string         `json:"currency"`
+	FailureReason    string         `json:"failure_reason,omitempty"`
+	Raw              map[string]any `json:"raw"`
 }
 
 type CapturePaymentInput struct {
-	Channel         string
-	ProviderOrderNo string
-	GatewayOrderNo  string
+	Channel          string
+	ChannelAccountID int
+	ProviderOrderNo  string
+	GatewayOrderNo   string
 }
 
 func (s Service) StartPayment(ctx context.Context, input StartPaymentInput) (*PaymentResult, error) {
@@ -169,20 +177,21 @@ func (s Service) StartPayment(ctx context.Context, input StartPaymentInput) (*Pa
 		Channel:        channel,
 		ClientIP:       input.ClientIP,
 		ReturnURL:      input.ReturnURL,
-		NotifyURL:      input.NotifyURL,
+		NotifyURL:      appendNotifyBinding(input.NotifyURL, channel, channelAccount.ID),
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &PaymentResult{
-		Status:          result.Status,
-		Channel:         result.Channel,
-		PayMethod:       result.PayMethod,
-		ProviderOrderNo: result.ProviderOrderNo,
-		PayURL:          result.PayURL,
-		QRCode:          result.QRCode,
-		FormHTML:        result.FormHTML,
-		Raw:             result.Raw,
+		Status:           result.Status,
+		Channel:          result.Channel,
+		ChannelAccountID: channelAccount.ID,
+		PayMethod:        result.PayMethod,
+		ProviderOrderNo:  result.ProviderOrderNo,
+		PayURL:           result.PayURL,
+		QRCode:           result.QRCode,
+		FormHTML:         result.FormHTML,
+		Raw:              result.Raw,
 	}, nil
 }
 
@@ -213,7 +222,7 @@ func (s Service) HandleNotify(ctx context.Context, input NotifyInput) (*NotifyRe
 	if s.channels.IsZero() {
 		return nil, ErrProviderUnavailable
 	}
-	channelAccount, err := s.channels.FindEnabledByChannel(ctx, channel)
+	channelAccount, err := s.resolveNotifyAccount(ctx, channel, input.ChannelAccountID)
 	if err != nil {
 		return nil, err
 	}
@@ -227,14 +236,56 @@ func (s Service) HandleNotify(ctx context.Context, input NotifyInput) (*NotifyRe
 		return nil, err
 	}
 	return &NotifyResult{
-		Channel:        result.Channel,
-		GatewayOrderNo: strings.TrimSpace(result.GatewayOrderNo),
-		ChannelTradeNo: strings.TrimSpace(result.ChannelTradeNo),
-		Status:         result.Status,
-		Amount:         result.Amount,
-		Currency:       result.Currency,
-		Raw:            result.Raw,
+		Channel:          result.Channel,
+		ChannelAccountID: channelAccount.ID,
+		GatewayOrderNo:   strings.TrimSpace(result.GatewayOrderNo),
+		ChannelTradeNo:   strings.TrimSpace(result.ChannelTradeNo),
+		Status:           result.Status,
+		Amount:           result.Amount,
+		Currency:         result.Currency,
+		FailureReason:    result.FailureReason,
+		Raw:              result.Raw,
 	}, nil
+}
+
+func (s Service) resolveNotifyAccount(ctx context.Context, channel string, channelAccountID int) (*ent.ChannelAccount, error) {
+	if channelAccountID > 0 {
+		account, err := s.channels.FindEnabledByID(ctx, channelAccountID)
+		if err != nil {
+			return nil, err
+		}
+		if !strings.EqualFold(strings.TrimSpace(account.Channel), channel) {
+			return nil, ErrProviderUnavailable
+		}
+		return account, nil
+	}
+	accounts, err := s.channels.ListEnabledByChannel(ctx, channel)
+	if err != nil {
+		return nil, err
+	}
+	if len(accounts) == 0 {
+		return nil, ErrProviderUnavailable
+	}
+	if len(accounts) > 1 {
+		return nil, ErrChannelAccountRequired
+	}
+	return accounts[0], nil
+}
+
+func appendNotifyBinding(rawURL string, channel string, channelAccountID int) string {
+	trimmed := strings.TrimSpace(rawURL)
+	if trimmed == "" || channelAccountID <= 0 {
+		return trimmed
+	}
+	parsed, err := url.Parse(trimmed)
+	if err != nil {
+		return trimmed
+	}
+	query := parsed.Query()
+	query.Set("channel", channel)
+	query.Set("channel_account_id", strconv.Itoa(channelAccountID))
+	parsed.RawQuery = query.Encode()
+	return parsed.String()
 }
 
 func (s Service) CapturePayment(ctx context.Context, input CapturePaymentInput) (*NotifyResult, error) {
@@ -250,23 +301,37 @@ func (s Service) CapturePayment(ctx context.Context, input CapturePaymentInput) 
 	if s.channels.IsZero() {
 		return nil, ErrProviderUnavailable
 	}
-	channelAccount, err := s.channels.FindEnabledByChannel(ctx, channel)
+	var channelAccount *ent.ChannelAccount
+	var err error
+	if input.ChannelAccountID > 0 {
+		channelAccount, err = s.channels.FindEnabledByID(ctx, input.ChannelAccountID)
+	} else {
+		channelAccount, err = s.channels.FindEnabledByChannel(ctx, channel)
+	}
 	if err != nil {
 		return nil, err
 	}
+	if !strings.EqualFold(channelAccount.Channel, channel) {
+		return nil, ErrProviderUnavailable
+	}
 	result, err := captureProvider.CapturePayment(ctx, provider.CapturePaymentRequest{
-		ChannelAccount:  channelAccount,
-		ProviderOrderNo: strings.TrimSpace(input.ProviderOrderNo),
-		GatewayOrderNo:  strings.TrimSpace(input.GatewayOrderNo),
+		ChannelAccount:   channelAccount,
+		ChannelAccountID: channelAccount.ID,
+		ProviderOrderNo:  strings.TrimSpace(input.ProviderOrderNo),
+		GatewayOrderNo:   strings.TrimSpace(input.GatewayOrderNo),
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &NotifyResult{
-		Channel:        result.Channel,
-		GatewayOrderNo: result.GatewayOrderNo,
-		ChannelTradeNo: result.ChannelTradeNo,
-		Status:         result.Status,
-		Raw:            result.Raw,
+		Channel:          result.Channel,
+		ChannelAccountID: channelAccount.ID,
+		ProviderOrderNo:  result.ProviderOrderNo,
+		GatewayOrderNo:   result.GatewayOrderNo,
+		ChannelTradeNo:   result.ChannelTradeNo,
+		Status:           result.Status,
+		Amount:           result.Amount,
+		Currency:         result.Currency,
+		Raw:              result.Raw,
 	}, nil
 }

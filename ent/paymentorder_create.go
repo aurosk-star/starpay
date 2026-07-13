@@ -126,6 +126,20 @@ func (_c *PaymentOrderCreate) SetNillableChannel(v *string) *PaymentOrderCreate 
 	return _c
 }
 
+// SetChannelAccountID sets the "channel_account_id" field.
+func (_c *PaymentOrderCreate) SetChannelAccountID(v int) *PaymentOrderCreate {
+	_c.mutation.SetChannelAccountID(v)
+	return _c
+}
+
+// SetNillableChannelAccountID sets the "channel_account_id" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableChannelAccountID(v *int) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetChannelAccountID(*v)
+	}
+	return _c
+}
+
 // SetPayMethod sets the "pay_method" field.
 func (_c *PaymentOrderCreate) SetPayMethod(v string) *PaymentOrderCreate {
 	_c.mutation.SetPayMethod(v)
@@ -136,6 +150,20 @@ func (_c *PaymentOrderCreate) SetPayMethod(v string) *PaymentOrderCreate {
 func (_c *PaymentOrderCreate) SetNillablePayMethod(v *string) *PaymentOrderCreate {
 	if v != nil {
 		_c.SetPayMethod(*v)
+	}
+	return _c
+}
+
+// SetProviderOrderNo sets the "provider_order_no" field.
+func (_c *PaymentOrderCreate) SetProviderOrderNo(v string) *PaymentOrderCreate {
+	_c.mutation.SetProviderOrderNo(v)
+	return _c
+}
+
+// SetNillableProviderOrderNo sets the "provider_order_no" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableProviderOrderNo(v *string) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetProviderOrderNo(*v)
 	}
 	return _c
 }
@@ -220,6 +248,34 @@ func (_c *PaymentOrderCreate) SetPaidAt(v time.Time) *PaymentOrderCreate {
 func (_c *PaymentOrderCreate) SetNillablePaidAt(v *time.Time) *PaymentOrderCreate {
 	if v != nil {
 		_c.SetPaidAt(*v)
+	}
+	return _c
+}
+
+// SetFailedAt sets the "failed_at" field.
+func (_c *PaymentOrderCreate) SetFailedAt(v time.Time) *PaymentOrderCreate {
+	_c.mutation.SetFailedAt(v)
+	return _c
+}
+
+// SetNillableFailedAt sets the "failed_at" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableFailedAt(v *time.Time) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetFailedAt(*v)
+	}
+	return _c
+}
+
+// SetFailureReason sets the "failure_reason" field.
+func (_c *PaymentOrderCreate) SetFailureReason(v string) *PaymentOrderCreate {
+	_c.mutation.SetFailureReason(v)
+	return _c
+}
+
+// SetNillableFailureReason sets the "failure_reason" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableFailureReason(v *string) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetFailureReason(*v)
 	}
 	return _c
 }
@@ -420,9 +476,17 @@ func (_c *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec)
 		_spec.SetField(paymentorder.FieldChannel, field.TypeString, value)
 		_node.Channel = value
 	}
+	if value, ok := _c.mutation.ChannelAccountID(); ok {
+		_spec.SetField(paymentorder.FieldChannelAccountID, field.TypeInt, value)
+		_node.ChannelAccountID = value
+	}
 	if value, ok := _c.mutation.PayMethod(); ok {
 		_spec.SetField(paymentorder.FieldPayMethod, field.TypeString, value)
 		_node.PayMethod = value
+	}
+	if value, ok := _c.mutation.ProviderOrderNo(); ok {
+		_spec.SetField(paymentorder.FieldProviderOrderNo, field.TypeString, value)
+		_node.ProviderOrderNo = value
 	}
 	if value, ok := _c.mutation.ChannelTradeNo(); ok {
 		_spec.SetField(paymentorder.FieldChannelTradeNo, field.TypeString, value)
@@ -447,6 +511,14 @@ func (_c *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.PaidAt(); ok {
 		_spec.SetField(paymentorder.FieldPaidAt, field.TypeTime, value)
 		_node.PaidAt = &value
+	}
+	if value, ok := _c.mutation.FailedAt(); ok {
+		_spec.SetField(paymentorder.FieldFailedAt, field.TypeTime, value)
+		_node.FailedAt = &value
+	}
+	if value, ok := _c.mutation.FailureReason(); ok {
+		_spec.SetField(paymentorder.FieldFailureReason, field.TypeString, value)
+		_node.FailureReason = value
 	}
 	if value, ok := _c.mutation.ClosedAt(); ok {
 		_spec.SetField(paymentorder.FieldClosedAt, field.TypeTime, value)

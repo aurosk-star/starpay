@@ -40,8 +40,12 @@ type PaymentOrder struct {
 	SettlementCurrency string `json:"settlement_currency,omitempty"`
 	// Channel holds the value of the "channel" field.
 	Channel string `json:"channel,omitempty"`
+	// ChannelAccountID holds the value of the "channel_account_id" field.
+	ChannelAccountID int `json:"channel_account_id,omitempty"`
 	// PayMethod holds the value of the "pay_method" field.
 	PayMethod string `json:"pay_method,omitempty"`
+	// ProviderOrderNo holds the value of the "provider_order_no" field.
+	ProviderOrderNo string `json:"provider_order_no,omitempty"`
 	// ChannelTradeNo holds the value of the "channel_trade_no" field.
 	ChannelTradeNo string `json:"channel_trade_no,omitempty"`
 	// ReturnURL holds the value of the "return_url" field.
@@ -54,6 +58,10 @@ type PaymentOrder struct {
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 	// PaidAt holds the value of the "paid_at" field.
 	PaidAt *time.Time `json:"paid_at,omitempty"`
+	// FailedAt holds the value of the "failed_at" field.
+	FailedAt *time.Time `json:"failed_at,omitempty"`
+	// FailureReason holds the value of the "failure_reason" field.
+	FailureReason string `json:"failure_reason,omitempty"`
 	// ClosedAt holds the value of the "closed_at" field.
 	ClosedAt *time.Time `json:"closed_at,omitempty"`
 	// Metadata holds the value of the "metadata" field.
@@ -72,11 +80,11 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case paymentorder.FieldMetadata:
 			values[i] = new([]byte)
-		case paymentorder.FieldID, paymentorder.FieldAmount, paymentorder.FieldSettlementAmount:
+		case paymentorder.FieldID, paymentorder.FieldAmount, paymentorder.FieldSettlementAmount, paymentorder.FieldChannelAccountID:
 			values[i] = new(sql.NullInt64)
-		case paymentorder.FieldGatewayOrderNo, paymentorder.FieldAppID, paymentorder.FieldMerchantOrderNo, paymentorder.FieldBusinessType, paymentorder.FieldSubject, paymentorder.FieldDescription, paymentorder.FieldCurrency, paymentorder.FieldSettlementCurrency, paymentorder.FieldChannel, paymentorder.FieldPayMethod, paymentorder.FieldChannelTradeNo, paymentorder.FieldReturnURL, paymentorder.FieldCheckoutTokenHash, paymentorder.FieldStatus:
+		case paymentorder.FieldGatewayOrderNo, paymentorder.FieldAppID, paymentorder.FieldMerchantOrderNo, paymentorder.FieldBusinessType, paymentorder.FieldSubject, paymentorder.FieldDescription, paymentorder.FieldCurrency, paymentorder.FieldSettlementCurrency, paymentorder.FieldChannel, paymentorder.FieldPayMethod, paymentorder.FieldProviderOrderNo, paymentorder.FieldChannelTradeNo, paymentorder.FieldReturnURL, paymentorder.FieldCheckoutTokenHash, paymentorder.FieldStatus, paymentorder.FieldFailureReason:
 			values[i] = new(sql.NullString)
-		case paymentorder.FieldExpiresAt, paymentorder.FieldPaidAt, paymentorder.FieldClosedAt, paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt:
+		case paymentorder.FieldExpiresAt, paymentorder.FieldPaidAt, paymentorder.FieldFailedAt, paymentorder.FieldClosedAt, paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -165,11 +173,23 @@ func (_m *PaymentOrder) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Channel = value.String
 			}
+		case paymentorder.FieldChannelAccountID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field channel_account_id", values[i])
+			} else if value.Valid {
+				_m.ChannelAccountID = int(value.Int64)
+			}
 		case paymentorder.FieldPayMethod:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field pay_method", values[i])
 			} else if value.Valid {
 				_m.PayMethod = value.String
+			}
+		case paymentorder.FieldProviderOrderNo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field provider_order_no", values[i])
+			} else if value.Valid {
+				_m.ProviderOrderNo = value.String
 			}
 		case paymentorder.FieldChannelTradeNo:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -208,6 +228,19 @@ func (_m *PaymentOrder) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.PaidAt = new(time.Time)
 				*_m.PaidAt = value.Time
+			}
+		case paymentorder.FieldFailedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field failed_at", values[i])
+			} else if value.Valid {
+				_m.FailedAt = new(time.Time)
+				*_m.FailedAt = value.Time
+			}
+		case paymentorder.FieldFailureReason:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field failure_reason", values[i])
+			} else if value.Valid {
+				_m.FailureReason = value.String
 			}
 		case paymentorder.FieldClosedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -305,8 +338,14 @@ func (_m *PaymentOrder) String() string {
 	builder.WriteString("channel=")
 	builder.WriteString(_m.Channel)
 	builder.WriteString(", ")
+	builder.WriteString("channel_account_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ChannelAccountID))
+	builder.WriteString(", ")
 	builder.WriteString("pay_method=")
 	builder.WriteString(_m.PayMethod)
+	builder.WriteString(", ")
+	builder.WriteString("provider_order_no=")
+	builder.WriteString(_m.ProviderOrderNo)
 	builder.WriteString(", ")
 	builder.WriteString("channel_trade_no=")
 	builder.WriteString(_m.ChannelTradeNo)
@@ -329,6 +368,14 @@ func (_m *PaymentOrder) String() string {
 		builder.WriteString("paid_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	if v := _m.FailedAt; v != nil {
+		builder.WriteString("failed_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("failure_reason=")
+	builder.WriteString(_m.FailureReason)
 	builder.WriteString(", ")
 	if v := _m.ClosedAt; v != nil {
 		builder.WriteString("closed_at=")

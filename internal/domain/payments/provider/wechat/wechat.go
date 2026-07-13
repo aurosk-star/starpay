@@ -43,6 +43,9 @@ func (p Provider) StartPayment(ctx context.Context, req provider.StartPaymentReq
 	if err != nil {
 		return nil, err
 	}
+	if !wechatModeEnabled(cfg) {
+		return nil, fmt.Errorf("wechat %s payment mode is disabled", cfg.Mode)
+	}
 	if !strings.EqualFold(strings.TrimSpace(req.Order.Currency), "CNY") {
 		return nil, fmt.Errorf("wechat only supports CNY currency")
 	}
@@ -98,6 +101,17 @@ func (p Provider) StartPayment(ctx context.Context, req provider.StartPaymentReq
 	}
 }
 
+func wechatModeEnabled(cfg Config) bool {
+	switch cfg.Mode {
+	case "native", "qr":
+		return cfg.EnableNativePay
+	case "h5":
+		return cfg.EnableH5Pay
+	default:
+		return false
+	}
+}
+
 func (p Provider) ParseNotify(ctx context.Context, req provider.NotifyRequest) (*provider.NotifyResult, error) {
 	_ = ctx
 	cfg, err := ParseConfig(req.ChannelAccount.Config, req.ChannelAccount.Env)
@@ -143,6 +157,7 @@ func (p Provider) ParseNotify(ctx context.Context, req provider.NotifyRequest) (
 		Status:         mapWechatTradeState(payResult.TradeState),
 		Amount:         amount,
 		Currency:       currency,
+		FailureReason:  strings.TrimSpace(payResult.TradeState),
 		Raw: map[string]any{
 			"event_type":  notifyReq.EventType,
 			"trade_state": payResult.TradeState,

@@ -167,6 +167,41 @@ func TestRecordOrderExpiredIsIdempotentPerOrder(t *testing.T) {
 	}
 }
 
+func TestRecordPaymentFailedQueuesOneDeliveryForAppNotifyURL(t *testing.T) {
+	ctx := context.Background()
+	client := enttest.Open(t, dialect.SQLite, "file:webhook_payment_failed?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	createApp(t, client, "snsgo", "https://merchant.example.com/webhooks/payment")
+	orderService := ordersvc.New(client)
+	order, err := orderService.CreateOrder(ctx, ordersvc.ManageOrderInput{
+		AppID: "snsgo", MerchantOrderNo: "pay_failed_001", Subject: "Pro", Amount: 9900, Currency: "CNY", Channel: "wechat", PayMethod: "wechat",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	failedAt := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	if _, err := client.PaymentOrder.UpdateOneID(order.ID).SetStatus("failed").SetFailedAt(failedAt).SetFailureReason("PAYERROR").Save(ctx); err != nil {
+		t.Fatalf("seed failed order error = %v", err)
+	}
+	order, _ = client.PaymentOrder.Get(ctx, order.ID)
+
+	event, err := webhooksvc.New(client).RecordPaymentFailed(ctx, order)
+	if err != nil {
+		t.Fatalf("RecordPaymentFailed() error = %v", err)
+	}
+	if event.EventType != webhooksvc.EventPaymentFailed || event.Payload["failure_reason"] != "PAYERROR" {
+		t.Fatalf("event = %#v, want payment.failed payload", event)
+	}
+	deliveries, total, err := webhookrepo.New(client).ListDeliveries(ctx, webhookrepo.ListDeliveriesInput{EventType: webhooksvc.EventPaymentFailed})
+	if err != nil {
+		t.Fatalf("ListDeliveries() error = %v", err)
+	}
+	if total != 1 || deliveries[0].Status != "pending" {
+		t.Fatalf("deliveries = %#v total=%d, want one pending", deliveries, total)
+	}
+}
+
 func TestRecordPaymentSucceededReturnsErrorWhenEnqueueFails(t *testing.T) {
 	ctx := context.Background()
 	client := enttest.Open(t, dialect.SQLite, "file:webhook_payment_succeeded_enqueue_fail?mode=memory&cache=shared&_fk=1")

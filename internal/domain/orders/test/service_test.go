@@ -666,3 +666,63 @@ func TestCloseExpiredPendingOrderRecordsWebhookOnlyWhenClosed(t *testing.T) {
 		t.Fatalf("totals events=%d deliveries=%d, want one order.expired event and delivery", totalEvents, totalDeliveries)
 	}
 }
+
+func TestApplyPaymentResultRejectsAmountMismatch(t *testing.T) {
+	ctx := t.Context()
+	client := enttest.Open(t, dialect.SQLite, "file:apply_payment_result_amount?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	createEnabledApp(t, client, "snsgo")
+	svc := ordersvc.New(client)
+	order, err := svc.CreateOrder(ctx, ordersvc.ManageOrderInput{
+		AppID: "snsgo", MerchantOrderNo: "biz_amount_mismatch", Subject: "Pro", Amount: 9900, Currency: "USD", Channel: "paypal", PayMethod: "paypal",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	if _, err := svc.SetPaymentSelection(ctx, order.ID, "paypal", "paypal", 17); err != nil {
+		t.Fatalf("SetPaymentSelection() error = %v", err)
+	}
+
+	_, err = svc.ApplyPaymentResult(ctx, order.ID, ordersvc.PaymentResultInput{
+		Channel: "paypal", ChannelAccountID: 17, ChannelTradeNo: "CAPTURE_001", Status: "paid", Amount: 9800, Currency: "USD",
+	})
+	if !errors.Is(err, ordersvc.ErrPaymentAmountMismatch) {
+		t.Fatalf("ApplyPaymentResult() error = %v, want ErrPaymentAmountMismatch", err)
+	}
+	stored, err := svc.FindOrder(ctx, order.ID)
+	if err != nil {
+		t.Fatalf("FindOrder() error = %v", err)
+	}
+	if stored.Status != "pending" {
+		t.Fatalf("Status = %q, want pending", stored.Status)
+	}
+}
+
+func TestApplyPaymentResultMarksFailedWithReason(t *testing.T) {
+	ctx := t.Context()
+	client := enttest.Open(t, dialect.SQLite, "file:apply_payment_result_failed?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	createEnabledApp(t, client, "snsgo")
+	svc := ordersvc.New(client)
+	order, err := svc.CreateOrder(ctx, ordersvc.ManageOrderInput{
+		AppID: "snsgo", MerchantOrderNo: "biz_payment_failed", Subject: "Pro", Amount: 9900, Currency: "CNY", Channel: "wechat", PayMethod: "wechat",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	if _, err := svc.SetPaymentSelection(ctx, order.ID, "wechat", "wechat", 23); err != nil {
+		t.Fatalf("SetPaymentSelection() error = %v", err)
+	}
+
+	failed, err := svc.ApplyPaymentResult(ctx, order.ID, ordersvc.PaymentResultInput{
+		Channel: "wechat", ChannelAccountID: 23, Status: "failed", FailureReason: "PAYERROR",
+	})
+	if err != nil {
+		t.Fatalf("ApplyPaymentResult() error = %v", err)
+	}
+	if failed.Status != "failed" || failed.FailedAt == nil || failed.FailureReason != "PAYERROR" {
+		t.Fatalf("failed order = %#v", failed)
+	}
+}
