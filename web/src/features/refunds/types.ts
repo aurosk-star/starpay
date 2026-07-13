@@ -1,0 +1,52 @@
+export type RefundStatus = "pending" | "succeeded" | "failed" | "closed";
+export type Refund = {
+  id: number;
+  refund_no: string;
+  app_id: string;
+  payment_order_id: number;
+  gateway_order_no: string;
+  merchant_order_no: string;
+  merchant_refund_no: string;
+  channel: string;
+  channel_account_id: number;
+  provider_order_no?: string;
+  channel_trade_no: string;
+  channel_refund_no?: string;
+  amount: number;
+  currency: string;
+  reason?: string;
+  status: RefundStatus;
+  failure_reason?: string;
+  metadata: Record<string, unknown>;
+  attempt_count: number;
+  next_attempt_at?: string | null;
+  last_error?: string;
+  succeeded_at?: string | null;
+  failed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type RefundListParams = {
+  app_id?: string;
+  status?: string;
+  channel?: string;
+  gateway_order_no?: string;
+  merchant_refund_no?: string;
+  page?: number;
+  page_size?: number;
+};
+export type RefundListResponse = {
+  items: Refund[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+export type CreateRefundPayload = {
+  app_id: string;
+  gateway_order_no: string;
+  merchant_refund_no: string;
+  amount: number;
+  currency: string;
+  reason?: string;
+  metadata?: Record<string, unknown>;
+};

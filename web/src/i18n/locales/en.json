@@ -20,7 +20,9 @@
     "search": "Search",
     "reset": "Reset",
     "all": "All",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "view": "View",
+    "retry": "Retry"
   },
   "nav": {
     "overview": "Overview",
@@ -32,11 +34,88 @@
     "routing": "Routing",
     "webhooks": "Webhooks",
     "refunds": "Refunds",
+    "reconciliations": "Compensation",
     "subscriptions": "Subscriptions",
     "groups": {
       "workspace": "Workspace",
       "payments": "Payments",
       "platform": "Platform"
+    }
+  },
+  "refunds": {
+    "title": "Refunds",
+    "description": "Create, review, and recover payment refunds.",
+    "detailTitle": "Refund details",
+    "filters": "Filters",
+    "overview": "Overview",
+    "failure": "Failure information",
+    "create": "Create refund",
+    "creating": "Creating...",
+    "created": "Refund created.",
+    "createTitle": "Create refund",
+    "createDescription": "Refund a paid order using integer minor units.",
+    "createFailed": "Failed to create refund.",
+    "loadFailed": "Failed to load refunds.",
+    "retryFailed": "Failed to retry refund.",
+    "status": {
+      "pending": "Pending",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "closed": "Closed"
+    },
+    "fields": {
+      "app": "App ID",
+      "status": "Status",
+      "channel": "Channel",
+      "order": "Gateway order no.",
+      "merchantRefund": "Merchant refund no.",
+      "refundNo": "Refund no.",
+      "amount": "Amount",
+      "currency": "Currency",
+      "reason": "Reason",
+      "channelRefund": "Provider refund no.",
+      "attempts": "Attempts",
+      "createdAt": "Created at"
+    },
+    "table": {
+      "refund": "Refund no.",
+      "order": "Order",
+      "merchantRefund": "Merchant refund no.",
+      "amount": "Amount",
+      "channel": "Channel",
+      "status": "Status",
+      "createdAt": "Created at"
+    }
+  },
+  "reconciliations": {
+    "title": "Payment compensation",
+    "description": "Review provider query attempts and manually recover unresolved payments.",
+    "detailTitle": "Compensation details",
+    "filters": "Filters",
+    "overview": "Overview",
+    "failure": "Last failure",
+    "loadFailed": "Failed to load compensation tasks.",
+    "retryFailed": "Failed to retry compensation task.",
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "resolved": "Resolved",
+      "manual_required": "Manual review"
+    },
+    "fields": {
+      "status": "Status",
+      "channel": "Channel",
+      "order": "Gateway order no.",
+      "attempts": "Attempts",
+      "nextAttempt": "Next attempt"
+    },
+    "table": {
+      "order": "Order",
+      "channel": "Channel",
+      "status": "Status",
+      "attempts": "Attempts",
+      "providerStatus": "Provider status",
+      "nextAttempt": "Next attempt"
     }
   },
   "webhooks": {
@@ -74,9 +153,12 @@
     "filter": {
       "app": "App ID",
       "eventType": "Event type",
+      "resourceType": "Resource type",
       "status": "Status",
-      "orderNo": "Gateway order no."
+      "orderNo": "Gateway order no.",
+      "refundNo": "Refund no."
     },
+    "resourceTypes": { "payment_order": "Payment order", "refund": "Refund" },
     "status": {
       "pending": "Pending",
       "succeeded": "Succeeded",
@@ -126,6 +208,9 @@
       "basic": "Basic info",
       "payment": "Payment info",
       "timeline": "Timeline",
+      "refunds": "Refunds",
+      "reconciliation": "Payment compensation",
+      "none": "None",
       "raw": "Raw data"
     },
     "total": "{{count}} orders",

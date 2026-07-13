@@ -19,6 +19,10 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DetailCard, DetailSkeleton, DetailTable } from "@/components/detail";
 import { useAuthStore } from "@/features/auth/store";
+import { listReconciliations } from "@/features/reconciliations/api";
+import type { PaymentReconciliation } from "@/features/reconciliations/types";
+import { listRefunds } from "@/features/refunds/api";
+import type { Refund } from "@/features/refunds/types";
 import { APIError } from "@/lib/api";
 import { formatDateTime } from "@/lib/date";
 import { formatMinorAmount } from "@/lib/money";
@@ -32,6 +36,10 @@ export function OrderDetailPage() {
   const { orderId } = useParams({ from: "/orders/$orderId" });
   const accessToken = useAuthStore((state) => state.accessToken);
   const [order, setOrder] = useState<PaymentOrder | null>(null);
+  const [refunds, setRefunds] = useState<Refund[]>([]);
+  const [reconciliations, setReconciliations] = useState<
+    PaymentReconciliation[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
 
@@ -101,6 +109,18 @@ export function OrderDetailPage() {
     try {
       const result = await getOrder(accessToken, Number(orderId));
       setOrder(result.order);
+      const [refundResult, reconciliationResult] = await Promise.all([
+        listRefunds(accessToken, {
+          gateway_order_no: result.order.gateway_order_no,
+          page_size: 100,
+        }),
+        listReconciliations(accessToken, {
+          gateway_order_no: result.order.gateway_order_no,
+          page_size: 100,
+        }),
+      ]);
+      setRefunds(refundResult.items);
+      setReconciliations(reconciliationResult.items);
     } catch (err) {
       toast.error(
         err instanceof APIError ? err.message : t("orders.loadFailed"),
@@ -183,6 +203,30 @@ export function OrderDetailPage() {
           </div>
 
           <div className="flex min-w-0 flex-col gap-4">
+            <DetailCard title={t("orders.detail.refunds")}>
+              <DetailTable
+                rows={
+                  refunds.length
+                    ? refunds.map((refund) => [
+                        refund.refund_no,
+                        `${formatMinorAmount(refund.amount, refund.currency)} · ${t(`refunds.status.${refund.status}`)}`,
+                      ])
+                    : [[t("orders.detail.none"), "-"]]
+                }
+              />
+            </DetailCard>
+            <DetailCard title={t("orders.detail.reconciliation")}>
+              <DetailTable
+                rows={
+                  reconciliations.length
+                    ? reconciliations.map((item) => [
+                        t(`reconciliations.status.${item.status}`),
+                        `${item.attempt_count}`,
+                      ])
+                    : [[t("orders.detail.none"), "-"]]
+                }
+              />
+            </DetailCard>
             <DetailCard title={t("orders.fields.metadata")}>
               <ScrollArea className="max-h-[56vh] rounded-md border bg-muted">
                 <pre className="min-w-max px-3 py-2 text-xs leading-6">

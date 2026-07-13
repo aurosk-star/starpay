@@ -373,7 +373,7 @@ go test -count=1 ./...
 go vet ./...
 ```
 
-- [ ] **Step 5: Commit the SDK unit**
+- [x] **Step 5: Commit the SDK unit**
 
 ```bash
 git add sdk/go
@@ -411,23 +411,23 @@ git commit -m "Add refund support to Go SDK"
 - Consumes the new admin APIs.
 - Enables existing Refund navigation and adds Compensation navigation.
 
-- [ ] **Step 1: Write failing frontend contract tests**
+- [x] **Step 1: Write failing frontend contract tests**
 
 Test query parameter builders, supported status options, event resource filters, and amount formatting without rendering internals.
 
-- [ ] **Step 2: Run Node tests and verify missing modules fail**
+- [x] **Step 2: Run Node tests and verify missing modules fail**
 
 Run: `cd web && node --test test/*.test.mts`
 
-- [ ] **Step 3: Add typed APIs and Data Table pages**
+- [x] **Step 3: Add typed APIs and Data Table pages**
 
 Use full-width filter bands, existing Cards only for repeated/detail items, `Select` controls for finite status/channel/resource values, and Data Table factory for lists. Retry buttons use `RotateCcw`; detail links use `Eye`.
 
-- [ ] **Step 4: Add routes, navigation, order summaries, and translations**
+- [x] **Step 4: Add routes, navigation, order summaries, and translations**
 
 Ensure all English and Chinese text exists, controls fit mobile widths, and no route remains disabled.
 
-- [ ] **Step 5: Run frontend verification and commit**
+- [x] **Step 5: Run frontend verification and commit**
 
 ```bash
 cd web

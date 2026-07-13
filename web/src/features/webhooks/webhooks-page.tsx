@@ -45,8 +45,10 @@ const WebhooksDataTable = createDataTable<WebhookDelivery>();
 const defaultFilters = {
   appId: "",
   eventType: "all",
+  resourceType: "all",
   status: "all",
   gatewayOrderNo: "",
+  refundNo: "",
 };
 
 export function WebhooksPage() {
@@ -157,8 +159,11 @@ export function WebhooksPage() {
       const result = await listWebhookDeliveries(accessToken, {
         app_id: nextFilters.appId,
         event_type: normalizeWebhookEventTypeFilter(nextFilters.eventType),
+        resource_type:
+          nextFilters.resourceType === "all" ? "" : nextFilters.resourceType,
         status: nextFilters.status === "all" ? "" : nextFilters.status,
         gateway_order_no: nextFilters.gatewayOrderNo,
+        refund_no: nextFilters.refundNo,
         page: 1,
         page_size: 100,
       });
@@ -231,7 +236,7 @@ export function WebhooksPage() {
         </CardHeader>
         <CardContent className="min-w-0">
           <form
-            className="grid min-w-0 gap-4 md:grid-cols-[repeat(4,minmax(0,1fr))]"
+            className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-[repeat(6,minmax(0,1fr))]"
             onSubmit={applyFilters}
           >
             <FieldGroup>
@@ -243,6 +248,32 @@ export function WebhooksPage() {
                     setFilters((curr) => ({ ...curr, appId: e.target.value }))
                   }
                 />
+              </Field>
+            </FieldGroup>
+            <FieldGroup>
+              <Field>
+                <FieldLabel>{t("webhooks.filter.resourceType")}</FieldLabel>
+                <Select
+                  value={filters.resourceType}
+                  onValueChange={(resourceType) =>
+                    setFilters((current) => ({ ...current, resourceType }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="all">{t("common.all")}</SelectItem>
+                      <SelectItem value="payment_order">
+                        {t("webhooks.resourceTypes.payment_order")}
+                      </SelectItem>
+                      <SelectItem value="refund">
+                        {t("webhooks.resourceTypes.refund")}
+                      </SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </Field>
             </FieldGroup>
             <FieldGroup>
@@ -268,6 +299,20 @@ export function WebhooksPage() {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
+              </Field>
+            </FieldGroup>
+            <FieldGroup>
+              <Field>
+                <FieldLabel>{t("webhooks.filter.refundNo")}</FieldLabel>
+                <Input
+                  value={filters.refundNo}
+                  onChange={(event) =>
+                    setFilters((current) => ({
+                      ...current,
+                      refundNo: event.target.value,
+                    }))
+                  }
+                />
               </Field>
             </FieldGroup>
             <FieldGroup>
@@ -313,7 +358,7 @@ export function WebhooksPage() {
                 />
               </Field>
             </FieldGroup>
-            <div className="flex flex-col gap-2 md:col-span-4 sm:flex-row">
+            <div className="flex flex-col gap-2 md:col-span-2 xl:col-span-6 sm:flex-row">
               <Button type="submit" className="w-full sm:w-auto">
                 <Search />
                 {t("common.search")}

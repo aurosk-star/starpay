@@ -93,7 +93,12 @@ function ShellLayout() {
       items: [
         { label: t("nav.orders"), icon: ClipboardList, to: "/orders" },
         { label: t("nav.webhooks"), icon: Webhook, to: "/webhooks" },
-        { label: t("nav.refunds"), icon: RefreshCw, disabled: true },
+        { label: t("nav.refunds"), icon: RefreshCw, to: "/refunds" },
+        {
+          label: t("nav.reconciliations"),
+          icon: RefreshCw,
+          to: "/reconciliations",
+        },
         { label: t("nav.subscriptions"), icon: ReceiptText, disabled: true },
       ],
     },
@@ -187,7 +192,10 @@ function ShellLayout() {
   );
 }
 
-function getPageTitle(pathname: string, t: ReturnType<typeof useTranslation>["t"]) {
+function getPageTitle(
+  pathname: string,
+  t: ReturnType<typeof useTranslation>["t"],
+) {
   if (pathname === "/") return t("nav.overview");
   if (pathname === "/users") return t("users.title");
   if (pathname === "/apps") return t("apps.title");
@@ -195,6 +203,11 @@ function getPageTitle(pathname: string, t: ReturnType<typeof useTranslation>["t"
   if (pathname.startsWith("/orders/")) return t("orders.detailTitle");
   if (pathname === "/webhooks") return t("webhooks.title");
   if (pathname.startsWith("/webhooks/")) return t("webhooks.detailTitle");
+  if (pathname === "/refunds") return t("refunds.title");
+  if (pathname.startsWith("/refunds/")) return t("refunds.detailTitle");
+  if (pathname === "/reconciliations") return t("reconciliations.title");
+  if (pathname.startsWith("/reconciliations/"))
+    return t("reconciliations.detailTitle");
   if (pathname === "/test-pay") return t("testPay.title");
   if (pathname.startsWith("/channels")) return t("channels.title");
   if (pathname.startsWith("/routing")) return t("routing.title");

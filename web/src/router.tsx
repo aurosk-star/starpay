@@ -20,6 +20,10 @@ import { webhooksRoute } from "./routes/webhooks";
 import { webhookDetailRoute } from "./routes/webhook-detail";
 import { testPayRoute } from "./routes/test-pay";
 import { usersRoute } from "./routes/users";
+import { refundsRoute } from "./routes/refunds";
+import { refundDetailRoute } from "./routes/refund-detail";
+import { reconciliationsRoute } from "./routes/reconciliations";
+import { reconciliationDetailRoute } from "./routes/reconciliation-detail";
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -30,6 +34,10 @@ const routeTree = rootRoute.addChildren([
   orderDetailRoute,
   webhooksRoute,
   webhookDetailRoute,
+  refundsRoute,
+  refundDetailRoute,
+  reconciliationsRoute,
+  reconciliationDetailRoute,
   testPayRoute,
   checkoutRoute,
   checkoutResultRoute,

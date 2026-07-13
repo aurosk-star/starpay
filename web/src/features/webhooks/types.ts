@@ -4,6 +4,9 @@ export type WebhookEvent = {
   id: number;
   event_id: string;
   event_type: string;
+  resource_type: string;
+  resource_id: string;
+  refund_no?: string;
   app_id: string;
   gateway_order_no: string;
   payment_order_id?: number;
@@ -18,6 +21,9 @@ export type WebhookDelivery = {
   event_id: number;
   app_id: string;
   event_type: string;
+  resource_type: string;
+  resource_id: string;
+  refund_no?: string;
   gateway_order_no: string;
   target_url: string;
   status: WebhookDeliveryStatus;
