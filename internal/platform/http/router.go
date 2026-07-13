@@ -50,6 +50,7 @@ import (
 	"payment-gateway/internal/platform/config"
 	"payment-gateway/internal/platform/httpx"
 	"payment-gateway/internal/platform/rbac"
+	"payment-gateway/internal/platform/webui"
 )
 
 func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config) http.Handler {
@@ -191,6 +192,13 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 	})
 	orderrouter.RegisterOpen(open, orderhandler.NewOpen(orderService, orderhandler.WithCheckoutURLResolver(checkoutURLResolver)))
 	refundrouter.RegisterOpen(open, refundhandler.NewOpen(refundService))
+	assets, err := webui.Assets()
+	if err != nil {
+		panic(err)
+	}
+	if err := webui.Register(router, assets); err != nil {
+		panic(err)
+	}
 
 	return router
 }

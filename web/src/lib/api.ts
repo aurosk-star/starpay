@@ -1,5 +1,7 @@
-// 前端开发环境统一通过 /api 代理转发到后端，避免手工切换地址。
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
+import { resolveAPIBaseURL } from "./api-base-url";
+
+// Development uses /api through Rsbuild; production calls the same origin.
+const API_BASE_URL = resolveAPIBaseURL(import.meta.env.VITE_API_BASE_URL);
 
 type RequestOptions = RequestInit & {
   accessToken?: string | null;

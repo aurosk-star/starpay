@@ -1,6 +1,6 @@
 # 线上部署教程
 
-本文档说明 StarPay 支付网关的生产部署方式。推荐使用前后端分离部署：后端通过 Docker Compose 运行 API、PostgreSQL、Redis，前端构建为静态文件后由 Nginx 托管，并由同一个域名反向代理 `/v1/` 到后端。
+本文档说明 StarPay 支付网关的生产部署方式。生产镜像会在构建阶段编译 React 前端，并通过 `go:embed` 内嵌到 Go 可执行文件。后端通过 Docker Compose 运行 API、内嵌前端、PostgreSQL 和 Redis，Nginx 只需把同一个域名反向代理到应用端口。
 
 ## 1. 服务器准备
 
@@ -113,23 +113,19 @@ curl http://127.0.0.1:8080/v1/ping
 {"code":"ok","data":{"status":"ok"},"error":null,"message":"ok"}
 ```
 
-## 5. 构建前端
+## 5. 前端构建
 
-前端位于 `web/`，使用 Bun：
+前端位于 `web/`，使用 Bun。执行生产镜像构建时，Dockerfile 会自动安装锁定依赖、构建 `web/dist`，并把产物内嵌进 Go 二进制，无需在服务器单独安装 Bun 或保留静态文件目录：
 
 ```bash
-cd /opt/starpay/pay-gateway/web
-bun install
-bun run build
+docker build -t payment-gateway:latest .
 ```
 
-构建产物在：
+本地前端开发仍使用：
 
-```text
-/opt/starpay/pay-gateway/web/dist
+```bash
+make web-dev
 ```
-
-生产环境通过 Nginx 直接托管该目录。
 
 ## 6. 配置 Nginx
 
@@ -159,29 +155,14 @@ server {
     ssl_certificate     /etc/letsencrypt/live/pay.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/pay.example.com/privkey.pem;
 
-    root /opt/starpay/pay-gateway/web/dist;
-    index index.html;
-
     client_max_body_size 10m;
 
-    location /healthz {
-        proxy_pass http://127.0.0.1:8080/healthz;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /v1/ {
-        proxy_pass http://127.0.0.1:8080/v1/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
     location / {
-        try_files $uri $uri/ /index.html;
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 EOF
@@ -231,16 +212,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d --bui
 docker compose --env-file .env.production -f docker-compose.prod.yml logs -f api
 ```
 
-前端更新：
-
-```bash
-cd /opt/starpay/pay-gateway
-git pull
-cd web
-bun install
-bun run build
-sudo systemctl reload nginx
-```
+前端和后端位于同一个镜像，更新时执行一次 `docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build api` 即可，无需单独发布静态文件或重载 Nginx。
 
 如果 Ent schema 有变更，后端启动时会自动执行当前项目内置的迁移逻辑。生产数据库仍建议在更新前做备份。
 
@@ -288,13 +260,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d --bui
 
 ### 前端刷新 404
 
-Nginx 必须配置：
-
-```nginx
-location / {
-    try_files $uri $uri/ /index.html;
-}
-```
+确认 Nginx 把所有路径代理到应用的 8080 端口。Go 服务会对前端导航路径返回内嵌的 `index.html`，但未知 `/v1/*` API 和缺失的 JS/CSS 文件仍会返回 404。
 
 ### API 404 或跨域问题
 

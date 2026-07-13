@@ -29,3 +29,4 @@ coverage.out
 # Docker/local runtime data
 docker-data/
 .claude/
+internal/platform/webui/dist/

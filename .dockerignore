@@ -1,10 +1,14 @@
 .git
+.gitignore
 .tmp
 web/node_modules
 web/dist
 web/.rsbuild
-.env
+internal/platform/webui/dist
+.env*
 server
 bin
 docs
 *.log
+*.out
+coverage.out
