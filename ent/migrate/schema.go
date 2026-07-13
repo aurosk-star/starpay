@@ -179,6 +179,57 @@ var (
 			},
 		},
 	}
+	// PaymentReconciliationsColumns holds the columns for the "payment_reconciliations" table.
+	PaymentReconciliationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "payment_order_id", Type: field.TypeInt, Unique: true},
+		{Name: "gateway_order_no", Type: field.TypeString},
+		{Name: "channel", Type: field.TypeString},
+		{Name: "channel_account_id", Type: field.TypeInt},
+		{Name: "status", Type: field.TypeString, Default: "pending"},
+		{Name: "attempt_count", Type: field.TypeInt, Default: 0},
+		{Name: "next_attempt_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_attempt_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_provider_status", Type: field.TypeString, Nullable: true},
+		{Name: "last_error", Type: field.TypeString, Nullable: true},
+		{Name: "provider_snapshot", Type: field.TypeJSON, Nullable: true},
+		{Name: "resolved_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PaymentReconciliationsTable holds the schema information for the "payment_reconciliations" table.
+	PaymentReconciliationsTable = &schema.Table{
+		Name:       "payment_reconciliations",
+		Columns:    PaymentReconciliationsColumns,
+		PrimaryKey: []*schema.Column{PaymentReconciliationsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "paymentreconciliation_gateway_order_no",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentReconciliationsColumns[2]},
+			},
+			{
+				Name:    "paymentreconciliation_status_next_attempt_at",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentReconciliationsColumns[5], PaymentReconciliationsColumns[7]},
+			},
+			{
+				Name:    "paymentreconciliation_channel",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentReconciliationsColumns[3]},
+			},
+			{
+				Name:    "paymentreconciliation_channel_account_id",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentReconciliationsColumns[4]},
+			},
+			{
+				Name:    "paymentreconciliation_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentReconciliationsColumns[14]},
+			},
+		},
+	}
 	// RefreshTokensColumns holds the columns for the "refresh_tokens" table.
 	RefreshTokensColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -505,6 +556,7 @@ var (
 		ChannelAccountsTable,
 		GatewayConfigsTable,
 		PaymentOrdersTable,
+		PaymentReconciliationsTable,
 		RefreshTokensTable,
 		RolesTable,
 		RoutingRulesTable,

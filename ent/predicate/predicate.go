@@ -21,6 +21,9 @@ type GatewayConfig func(*sql.Selector)
 // PaymentOrder is the predicate function for paymentorder builders.
 type PaymentOrder func(*sql.Selector)
 
+// PaymentReconciliation is the predicate function for paymentreconciliation builders.
+type PaymentReconciliation func(*sql.Selector)
+
 // RefreshToken is the predicate function for refreshtoken builders.
 type RefreshToken func(*sql.Selector)
 

@@ -7,6 +7,7 @@ import (
 	"payment-gateway/ent/channelaccount"
 	"payment-gateway/ent/gatewayconfig"
 	"payment-gateway/ent/paymentorder"
+	"payment-gateway/ent/paymentreconciliation"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
 	"payment-gateway/ent/routingrule"
@@ -142,6 +143,26 @@ func init() {
 	paymentorder.DefaultUpdatedAt = paymentorderDescUpdatedAt.Default.(func() time.Time)
 	// paymentorder.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	paymentorder.UpdateDefaultUpdatedAt = paymentorderDescUpdatedAt.UpdateDefault.(func() time.Time)
+	paymentreconciliationFields := schema.PaymentReconciliation{}.Fields()
+	_ = paymentreconciliationFields
+	// paymentreconciliationDescStatus is the schema descriptor for status field.
+	paymentreconciliationDescStatus := paymentreconciliationFields[4].Descriptor()
+	// paymentreconciliation.DefaultStatus holds the default value on creation for the status field.
+	paymentreconciliation.DefaultStatus = paymentreconciliationDescStatus.Default.(string)
+	// paymentreconciliationDescAttemptCount is the schema descriptor for attempt_count field.
+	paymentreconciliationDescAttemptCount := paymentreconciliationFields[5].Descriptor()
+	// paymentreconciliation.DefaultAttemptCount holds the default value on creation for the attempt_count field.
+	paymentreconciliation.DefaultAttemptCount = paymentreconciliationDescAttemptCount.Default.(int)
+	// paymentreconciliationDescCreatedAt is the schema descriptor for created_at field.
+	paymentreconciliationDescCreatedAt := paymentreconciliationFields[12].Descriptor()
+	// paymentreconciliation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	paymentreconciliation.DefaultCreatedAt = paymentreconciliationDescCreatedAt.Default.(func() time.Time)
+	// paymentreconciliationDescUpdatedAt is the schema descriptor for updated_at field.
+	paymentreconciliationDescUpdatedAt := paymentreconciliationFields[13].Descriptor()
+	// paymentreconciliation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	paymentreconciliation.DefaultUpdatedAt = paymentreconciliationDescUpdatedAt.Default.(func() time.Time)
+	// paymentreconciliation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	paymentreconciliation.UpdateDefaultUpdatedAt = paymentreconciliationDescUpdatedAt.UpdateDefault.(func() time.Time)
 	refreshtokenFields := schema.RefreshToken{}.Fields()
 	_ = refreshtokenFields
 	// refreshtokenDescCreatedAt is the schema descriptor for created_at field.

@@ -11,6 +11,7 @@ import (
 	"payment-gateway/ent/channelaccount"
 	"payment-gateway/ent/gatewayconfig"
 	"payment-gateway/ent/paymentorder"
+	"payment-gateway/ent/paymentreconciliation"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
 	"payment-gateway/ent/routingrule"
@@ -84,18 +85,19 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			app.Table:             app.ValidColumn,
-			casbinrule.Table:      casbinrule.ValidColumn,
-			channelaccount.Table:  channelaccount.ValidColumn,
-			gatewayconfig.Table:   gatewayconfig.ValidColumn,
-			paymentorder.Table:    paymentorder.ValidColumn,
-			refreshtoken.Table:    refreshtoken.ValidColumn,
-			role.Table:            role.ValidColumn,
-			routingrule.Table:     routingrule.ValidColumn,
-			routingtarget.Table:   routingtarget.ValidColumn,
-			user.Table:            user.ValidColumn,
-			webhookdelivery.Table: webhookdelivery.ValidColumn,
-			webhookevent.Table:    webhookevent.ValidColumn,
+			app.Table:                   app.ValidColumn,
+			casbinrule.Table:            casbinrule.ValidColumn,
+			channelaccount.Table:        channelaccount.ValidColumn,
+			gatewayconfig.Table:         gatewayconfig.ValidColumn,
+			paymentorder.Table:          paymentorder.ValidColumn,
+			paymentreconciliation.Table: paymentreconciliation.ValidColumn,
+			refreshtoken.Table:          refreshtoken.ValidColumn,
+			role.Table:                  role.ValidColumn,
+			routingrule.Table:           routingrule.ValidColumn,
+			routingtarget.Table:         routingtarget.ValidColumn,
+			user.Table:                  user.ValidColumn,
+			webhookdelivery.Table:       webhookdelivery.ValidColumn,
+			webhookevent.Table:          webhookevent.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

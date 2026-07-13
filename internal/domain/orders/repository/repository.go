@@ -167,6 +167,11 @@ func (r Repository) ListExpiredPending(ctx context.Context, now time.Time, limit
 			paymentorder.Status("pending"),
 			paymentorder.ExpiresAtNotNil(),
 			paymentorder.ExpiresAtLTE(now),
+			paymentorder.Or(
+				paymentorder.ChannelAccountIDIsNil(),
+				paymentorder.ProviderOrderNoIsNil(),
+				paymentorder.ProviderOrderNoEQ(""),
+			),
 		).
 		Order(ent.Asc(paymentorder.FieldExpiresAt)).
 		Limit(limit).

@@ -32,6 +32,9 @@ import (
 	wechatprovider "payment-gateway/internal/domain/payments/provider/wechat"
 	paymentrouter "payment-gateway/internal/domain/payments/router"
 	paymentsvc "payment-gateway/internal/domain/payments/service"
+	reconciliationhandler "payment-gateway/internal/domain/reconciliations/handler"
+	reconciliationrouter "payment-gateway/internal/domain/reconciliations/router"
+	reconciliationsvc "payment-gateway/internal/domain/reconciliations/service"
 	routinghandler "payment-gateway/internal/domain/routing/handler"
 	routingrouter "payment-gateway/internal/domain/routing/router"
 	routingsvc "payment-gateway/internal/domain/routing/service"
@@ -62,6 +65,7 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 		monitorsvc.WithStreams([]monitorsvc.StreamTarget{
 			{Name: "orders", Stream: ordersvc.OrderExpirationStreamName(), Group: ordersvc.OrderExpirationWorkerGroup()},
 			{Name: "webhooks", Stream: webhooksvc.WebhookStreamName(), Group: webhooksvc.WebhookWorkerGroup()},
+			{Name: "reconciliations", Stream: reconciliationsvc.ReconciliationStreamName(), Group: reconciliationsvc.ReconciliationWorkerGroup()},
 		}),
 	)
 	monitorrouter.Register(router.Group("/v1/admin"), monitorhandler.New(monitorService), userService, enforcer)
@@ -111,12 +115,19 @@ func NewRouter(client *ent.Client, redisClient *redis.Client, cfg config.Config)
 		paymentsvc.WithProvider(paypalprovider.New()),
 		paymentsvc.WithProvider(wechatprovider.New()),
 	)
+	reconciliationService := reconciliationsvc.New(client,
+		reconciliationsvc.WithPaymentGateway(paymentService),
+		reconciliationsvc.WithOrderService(orderService),
+		reconciliationsvc.WithEnqueuer(reconciliationsvc.NewRedisEnqueuer(redisClient)),
+	)
+	reconciliationrouter.Register(router.Group("/v1/admin"), reconciliationhandler.New(reconciliationService), userService, enforcer)
 	paymentrouter.RegisterNotify(router.Group("/v1/channel"), paymenthandler.NewNotify(paymentService, orderService))
 	orderrouter.RegisterCheckout(router.Group("/v1/checkout"), orderhandler.NewCheckout(
 		orderService,
 		orderhandler.WithChannelService(channelService),
 		orderhandler.WithRoutingService(routingService),
 		orderhandler.WithPaymentService(paymentService),
+		orderhandler.WithReconciliationScheduler(reconciliationService),
 		orderhandler.WithNotifyURLResolver(func(ctx *gin.Context) string {
 			gatewayConfig, err := configService.GetGatewayConfig(ctx.Request.Context())
 			if err != nil {

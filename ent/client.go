@@ -16,6 +16,7 @@ import (
 	"payment-gateway/ent/channelaccount"
 	"payment-gateway/ent/gatewayconfig"
 	"payment-gateway/ent/paymentorder"
+	"payment-gateway/ent/paymentreconciliation"
 	"payment-gateway/ent/refreshtoken"
 	"payment-gateway/ent/role"
 	"payment-gateway/ent/routingrule"
@@ -45,6 +46,8 @@ type Client struct {
 	GatewayConfig *GatewayConfigClient
 	// PaymentOrder is the client for interacting with the PaymentOrder builders.
 	PaymentOrder *PaymentOrderClient
+	// PaymentReconciliation is the client for interacting with the PaymentReconciliation builders.
+	PaymentReconciliation *PaymentReconciliationClient
 	// RefreshToken is the client for interacting with the RefreshToken builders.
 	RefreshToken *RefreshTokenClient
 	// Role is the client for interacting with the Role builders.
@@ -75,6 +78,7 @@ func (c *Client) init() {
 	c.ChannelAccount = NewChannelAccountClient(c.config)
 	c.GatewayConfig = NewGatewayConfigClient(c.config)
 	c.PaymentOrder = NewPaymentOrderClient(c.config)
+	c.PaymentReconciliation = NewPaymentReconciliationClient(c.config)
 	c.RefreshToken = NewRefreshTokenClient(c.config)
 	c.Role = NewRoleClient(c.config)
 	c.RoutingRule = NewRoutingRuleClient(c.config)
@@ -172,20 +176,21 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:             ctx,
-		config:          cfg,
-		App:             NewAppClient(cfg),
-		CasbinRule:      NewCasbinRuleClient(cfg),
-		ChannelAccount:  NewChannelAccountClient(cfg),
-		GatewayConfig:   NewGatewayConfigClient(cfg),
-		PaymentOrder:    NewPaymentOrderClient(cfg),
-		RefreshToken:    NewRefreshTokenClient(cfg),
-		Role:            NewRoleClient(cfg),
-		RoutingRule:     NewRoutingRuleClient(cfg),
-		RoutingTarget:   NewRoutingTargetClient(cfg),
-		User:            NewUserClient(cfg),
-		WebhookDelivery: NewWebhookDeliveryClient(cfg),
-		WebhookEvent:    NewWebhookEventClient(cfg),
+		ctx:                   ctx,
+		config:                cfg,
+		App:                   NewAppClient(cfg),
+		CasbinRule:            NewCasbinRuleClient(cfg),
+		ChannelAccount:        NewChannelAccountClient(cfg),
+		GatewayConfig:         NewGatewayConfigClient(cfg),
+		PaymentOrder:          NewPaymentOrderClient(cfg),
+		PaymentReconciliation: NewPaymentReconciliationClient(cfg),
+		RefreshToken:          NewRefreshTokenClient(cfg),
+		Role:                  NewRoleClient(cfg),
+		RoutingRule:           NewRoutingRuleClient(cfg),
+		RoutingTarget:         NewRoutingTargetClient(cfg),
+		User:                  NewUserClient(cfg),
+		WebhookDelivery:       NewWebhookDeliveryClient(cfg),
+		WebhookEvent:          NewWebhookEventClient(cfg),
 	}, nil
 }
 
@@ -203,20 +208,21 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:             ctx,
-		config:          cfg,
-		App:             NewAppClient(cfg),
-		CasbinRule:      NewCasbinRuleClient(cfg),
-		ChannelAccount:  NewChannelAccountClient(cfg),
-		GatewayConfig:   NewGatewayConfigClient(cfg),
-		PaymentOrder:    NewPaymentOrderClient(cfg),
-		RefreshToken:    NewRefreshTokenClient(cfg),
-		Role:            NewRoleClient(cfg),
-		RoutingRule:     NewRoutingRuleClient(cfg),
-		RoutingTarget:   NewRoutingTargetClient(cfg),
-		User:            NewUserClient(cfg),
-		WebhookDelivery: NewWebhookDeliveryClient(cfg),
-		WebhookEvent:    NewWebhookEventClient(cfg),
+		ctx:                   ctx,
+		config:                cfg,
+		App:                   NewAppClient(cfg),
+		CasbinRule:            NewCasbinRuleClient(cfg),
+		ChannelAccount:        NewChannelAccountClient(cfg),
+		GatewayConfig:         NewGatewayConfigClient(cfg),
+		PaymentOrder:          NewPaymentOrderClient(cfg),
+		PaymentReconciliation: NewPaymentReconciliationClient(cfg),
+		RefreshToken:          NewRefreshTokenClient(cfg),
+		Role:                  NewRoleClient(cfg),
+		RoutingRule:           NewRoutingRuleClient(cfg),
+		RoutingTarget:         NewRoutingTargetClient(cfg),
+		User:                  NewUserClient(cfg),
+		WebhookDelivery:       NewWebhookDeliveryClient(cfg),
+		WebhookEvent:          NewWebhookEventClient(cfg),
 	}, nil
 }
 
@@ -247,8 +253,8 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.App, c.CasbinRule, c.ChannelAccount, c.GatewayConfig, c.PaymentOrder,
-		c.RefreshToken, c.Role, c.RoutingRule, c.RoutingTarget, c.User,
-		c.WebhookDelivery, c.WebhookEvent,
+		c.PaymentReconciliation, c.RefreshToken, c.Role, c.RoutingRule,
+		c.RoutingTarget, c.User, c.WebhookDelivery, c.WebhookEvent,
 	} {
 		n.Use(hooks...)
 	}
@@ -259,8 +265,8 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.App, c.CasbinRule, c.ChannelAccount, c.GatewayConfig, c.PaymentOrder,
-		c.RefreshToken, c.Role, c.RoutingRule, c.RoutingTarget, c.User,
-		c.WebhookDelivery, c.WebhookEvent,
+		c.PaymentReconciliation, c.RefreshToken, c.Role, c.RoutingRule,
+		c.RoutingTarget, c.User, c.WebhookDelivery, c.WebhookEvent,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -279,6 +285,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.GatewayConfig.mutate(ctx, m)
 	case *PaymentOrderMutation:
 		return c.PaymentOrder.mutate(ctx, m)
+	case *PaymentReconciliationMutation:
+		return c.PaymentReconciliation.mutate(ctx, m)
 	case *RefreshTokenMutation:
 		return c.RefreshToken.mutate(ctx, m)
 	case *RoleMutation:
@@ -960,6 +968,139 @@ func (c *PaymentOrderClient) mutate(ctx context.Context, m *PaymentOrderMutation
 		return (&PaymentOrderDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown PaymentOrder mutation op: %q", m.Op())
+	}
+}
+
+// PaymentReconciliationClient is a client for the PaymentReconciliation schema.
+type PaymentReconciliationClient struct {
+	config
+}
+
+// NewPaymentReconciliationClient returns a client for the PaymentReconciliation from the given config.
+func NewPaymentReconciliationClient(c config) *PaymentReconciliationClient {
+	return &PaymentReconciliationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `paymentreconciliation.Hooks(f(g(h())))`.
+func (c *PaymentReconciliationClient) Use(hooks ...Hook) {
+	c.hooks.PaymentReconciliation = append(c.hooks.PaymentReconciliation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `paymentreconciliation.Intercept(f(g(h())))`.
+func (c *PaymentReconciliationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PaymentReconciliation = append(c.inters.PaymentReconciliation, interceptors...)
+}
+
+// Create returns a builder for creating a PaymentReconciliation entity.
+func (c *PaymentReconciliationClient) Create() *PaymentReconciliationCreate {
+	mutation := newPaymentReconciliationMutation(c.config, OpCreate)
+	return &PaymentReconciliationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PaymentReconciliation entities.
+func (c *PaymentReconciliationClient) CreateBulk(builders ...*PaymentReconciliationCreate) *PaymentReconciliationCreateBulk {
+	return &PaymentReconciliationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PaymentReconciliationClient) MapCreateBulk(slice any, setFunc func(*PaymentReconciliationCreate, int)) *PaymentReconciliationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PaymentReconciliationCreateBulk{err: fmt.Errorf("calling to PaymentReconciliationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PaymentReconciliationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PaymentReconciliationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PaymentReconciliation.
+func (c *PaymentReconciliationClient) Update() *PaymentReconciliationUpdate {
+	mutation := newPaymentReconciliationMutation(c.config, OpUpdate)
+	return &PaymentReconciliationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PaymentReconciliationClient) UpdateOne(_m *PaymentReconciliation) *PaymentReconciliationUpdateOne {
+	mutation := newPaymentReconciliationMutation(c.config, OpUpdateOne, withPaymentReconciliation(_m))
+	return &PaymentReconciliationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PaymentReconciliationClient) UpdateOneID(id int) *PaymentReconciliationUpdateOne {
+	mutation := newPaymentReconciliationMutation(c.config, OpUpdateOne, withPaymentReconciliationID(id))
+	return &PaymentReconciliationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PaymentReconciliation.
+func (c *PaymentReconciliationClient) Delete() *PaymentReconciliationDelete {
+	mutation := newPaymentReconciliationMutation(c.config, OpDelete)
+	return &PaymentReconciliationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PaymentReconciliationClient) DeleteOne(_m *PaymentReconciliation) *PaymentReconciliationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PaymentReconciliationClient) DeleteOneID(id int) *PaymentReconciliationDeleteOne {
+	builder := c.Delete().Where(paymentreconciliation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PaymentReconciliationDeleteOne{builder}
+}
+
+// Query returns a query builder for PaymentReconciliation.
+func (c *PaymentReconciliationClient) Query() *PaymentReconciliationQuery {
+	return &PaymentReconciliationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePaymentReconciliation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PaymentReconciliation entity by its id.
+func (c *PaymentReconciliationClient) Get(ctx context.Context, id int) (*PaymentReconciliation, error) {
+	return c.Query().Where(paymentreconciliation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PaymentReconciliationClient) GetX(ctx context.Context, id int) *PaymentReconciliation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PaymentReconciliationClient) Hooks() []Hook {
+	return c.hooks.PaymentReconciliation
+}
+
+// Interceptors returns the client interceptors.
+func (c *PaymentReconciliationClient) Interceptors() []Interceptor {
+	return c.inters.PaymentReconciliation
+}
+
+func (c *PaymentReconciliationClient) mutate(ctx context.Context, m *PaymentReconciliationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PaymentReconciliationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PaymentReconciliationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PaymentReconciliationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PaymentReconciliationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PaymentReconciliation mutation op: %q", m.Op())
 	}
 }
 
@@ -1961,13 +2102,13 @@ func (c *WebhookEventClient) mutate(ctx context.Context, m *WebhookEventMutation
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		App, CasbinRule, ChannelAccount, GatewayConfig, PaymentOrder, RefreshToken,
-		Role, RoutingRule, RoutingTarget, User, WebhookDelivery,
-		WebhookEvent []ent.Hook
+		App, CasbinRule, ChannelAccount, GatewayConfig, PaymentOrder,
+		PaymentReconciliation, RefreshToken, Role, RoutingRule, RoutingTarget, User,
+		WebhookDelivery, WebhookEvent []ent.Hook
 	}
 	inters struct {
-		App, CasbinRule, ChannelAccount, GatewayConfig, PaymentOrder, RefreshToken,
-		Role, RoutingRule, RoutingTarget, User, WebhookDelivery,
-		WebhookEvent []ent.Interceptor
+		App, CasbinRule, ChannelAccount, GatewayConfig, PaymentOrder,
+		PaymentReconciliation, RefreshToken, Role, RoutingRule, RoutingTarget, User,
+		WebhookDelivery, WebhookEvent []ent.Interceptor
 	}
 )

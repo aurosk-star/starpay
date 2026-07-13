@@ -11,8 +11,14 @@ import (
 	"syscall"
 	"time"
 
+	channelrepo "payment-gateway/internal/domain/channels/repository"
 	configsvc "payment-gateway/internal/domain/configs/service"
 	ordersvc "payment-gateway/internal/domain/orders/service"
+	alipayprovider "payment-gateway/internal/domain/payments/provider/alipay"
+	paypalprovider "payment-gateway/internal/domain/payments/provider/paypal"
+	wechatprovider "payment-gateway/internal/domain/payments/provider/wechat"
+	paymentsvc "payment-gateway/internal/domain/payments/service"
+	reconciliationsvc "payment-gateway/internal/domain/reconciliations/service"
 	webhooksvc "payment-gateway/internal/domain/webhooks/service"
 	"payment-gateway/internal/platform/cache"
 	"payment-gateway/internal/platform/config"
@@ -64,6 +70,20 @@ func main() {
 		ordersvc.WithDefaultOrderTTLResolver(configService.OrderDefaultTTL),
 		ordersvc.WithExpirationEnqueuer(ordersvc.NewRedisExpirationEnqueuer(redisClient)),
 	)
+	paymentService := paymentsvc.New(
+		paymentsvc.WithChannelRepository(channelrepo.New(db)),
+		paymentsvc.WithProvider(alipayprovider.New()),
+		paymentsvc.WithProvider(paypalprovider.New()),
+		paymentsvc.WithProvider(wechatprovider.New()),
+	)
+	reconciliationService := reconciliationsvc.New(db,
+		reconciliationsvc.WithPaymentGateway(paymentService),
+		reconciliationsvc.WithOrderService(orderService),
+		reconciliationsvc.WithEnqueuer(reconciliationsvc.NewRedisEnqueuer(redisClient)),
+	)
+	reconciliationWorker := reconciliationsvc.NewWorker(reconciliationService, redisClient, cfg.App.Name+"-reconciliation")
+	go reconciliationWorker.Run(ctx)
+	go reconciliationWorker.RunScanner(ctx, 30*time.Second, 100)
 	orderWorker := ordersvc.NewWorker(orderService, redisClient, cfg.App.Name)
 	go orderWorker.RunExpireScannerWithResolver(ctx, cfg.Orders.ExpireScanInterval, cfg.Orders.ExpireScanLimit, func(ctx context.Context) (ordersvc.ExpireScannerConfig, error) {
 		interval, limit, err := configService.OrderExpireScanConfig(ctx)

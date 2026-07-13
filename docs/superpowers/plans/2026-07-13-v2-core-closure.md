@@ -185,7 +185,7 @@ Extend the client interface with order detail, capture refund, and refund detail
 
 Return explicit `ErrQueryUnsupported`, `ErrCloseUnsupported`, `ErrRefundUnsupported`, and `ErrRefundQueryUnsupported`. Never fall back to another account when an order has `channel_account_id`.
 
-- [ ] **Step 8: Run payment tests and commit**
+- [x] **Step 8: Run payment tests and commit**
 
 ```bash
 go test ./internal/domain/payments/provider/... ./internal/domain/payments/test
@@ -221,17 +221,17 @@ git commit -m "Add provider query and refund capabilities"
 - Consumes: `payments.Service.QueryPayment/ClosePayment` and `orders.Service.ApplyPaymentResult`.
 - Redis stream: `payment:reconciliations`; group: `payment-reconciliation-workers`.
 
-- [ ] **Step 1: Write failing reconciliation state-machine tests**
+- [x] **Step 1: Write failing reconciliation state-machine tests**
 
 Test paid, failed, closed, pending retry, expired-provider-close, validation error, stale processing recovery, maximum-attempt manual state, duplicate stream messages, and pre-upgrade order backfill.
 
-- [ ] **Step 2: Run tests and verify missing schema/domain failure**
+- [x] **Step 2: Run tests and verify missing schema/domain failure**
 
 Run: `go test ./internal/domain/reconciliations/test ./internal/domain/orders/test`
 
 Expected: FAIL because reconciliation packages and schema are absent.
 
-- [ ] **Step 3: Add schema, repository claims, and retry schedule**
+- [x] **Step 3: Add schema, repository claims, and retry schedule**
 
 Implement conditional claim:
 
@@ -243,15 +243,15 @@ WHERE id=? AND status='pending'
 
 Retry delays are exactly `2m, 5m, 10m, 30m, 1h, 2h, 6h, 24h`; attempt eight moves to `manual_required`. Scanner restores processing claims older than five minutes.
 
-- [ ] **Step 4: Implement reconciliation service and worker**
+- [x] **Step 4: Implement reconciliation service and worker**
 
 `Process` reloads the order, skips terminal orders as resolved, queries the bound provider, validates/applies terminal results, and reschedules pending/errors. Expired pending provider orders are closed through `ClosePayment`; PayPal unsupported close is treated as local close only after a successful pending query.
 
-- [ ] **Step 5: Integrate payment initiation and expiration behavior**
+- [x] **Step 5: Integrate payment initiation and expiration behavior**
 
 After checkout persists payment selection and provider order number, call `EnsureForOrder`. Change expiration scanning so provider-bound orders are left for reconciliation while unbound pending orders retain existing expiration closure.
 
-- [ ] **Step 6: Add admin list/detail/retry endpoints and worker wiring**
+- [x] **Step 6: Add admin list/detail/retry endpoints and worker wiring**
 
 Register `/v1/admin/payment-reconciliations` routes with RBAC. Start scanner and consumers in `cmd/server/main.go`, and add the stream to monitoring queue targets.
 

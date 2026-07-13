@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"strings"
@@ -24,9 +25,18 @@ type CheckoutHandler struct {
 	notifyURL       func(ctx *gin.Context) string
 	paypalReturnURL func(ctx *gin.Context, gatewayOrderNo string) string
 	resultURL       func(ctx *gin.Context, gatewayOrderNo string, token string) string
+	reconciliations ReconciliationScheduler
+}
+
+type ReconciliationScheduler interface {
+	EnsureForOrder(context.Context, *ent.PaymentOrder) (*ent.PaymentReconciliation, error)
 }
 
 type CheckoutOption func(*CheckoutHandler)
+
+func WithReconciliationScheduler(scheduler ReconciliationScheduler) CheckoutOption {
+	return func(h *CheckoutHandler) { h.reconciliations = scheduler }
+}
 
 func WithPaymentService(paymentService paymentsvc.Service) CheckoutOption {
 	return func(h *CheckoutHandler) {
@@ -359,15 +369,24 @@ func (h CheckoutHandler) StartPayment(ctx *gin.Context) {
 		httpx.WriteAPIError(ctx, httpx.OrderAPIError(err, httpx.CodeChannelResponseError, "failed to start payment"))
 		return
 	}
+	boundOrder := order
 	if order.Channel == "" || order.PayMethod == "" || order.ChannelAccountID == 0 {
-		if _, err := h.service.SetPaymentSelection(ctx.Request.Context(), order.ID, payment.Channel, payment.PayMethod, payment.ChannelAccountID); err != nil {
+		boundOrder, err = h.service.SetPaymentSelection(ctx.Request.Context(), order.ID, payment.Channel, payment.PayMethod, payment.ChannelAccountID)
+		if err != nil {
 			httpx.JSONError(ctx, http.StatusBadRequest, "persist_payment_selection_failed", err.Error())
 			return
 		}
 	}
 	if payment.ProviderOrderNo != "" && order.ProviderOrderNo == "" {
-		if _, err := h.service.SetProviderOrderNo(ctx.Request.Context(), order.ID, payment.ProviderOrderNo); err != nil {
+		boundOrder, err = h.service.SetProviderOrderNo(ctx.Request.Context(), order.ID, payment.ProviderOrderNo)
+		if err != nil {
 			httpx.JSONError(ctx, http.StatusBadRequest, "persist_provider_order_failed", err.Error())
+			return
+		}
+	}
+	if h.reconciliations != nil && boundOrder.ProviderOrderNo != "" {
+		if _, err := h.reconciliations.EnsureForOrder(ctx.Request.Context(), boundOrder); err != nil {
+			httpx.JSONError(ctx, http.StatusInternalServerError, "schedule_payment_reconciliation_failed", err.Error())
 			return
 		}
 	}

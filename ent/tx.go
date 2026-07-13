@@ -22,6 +22,8 @@ type Tx struct {
 	GatewayConfig *GatewayConfigClient
 	// PaymentOrder is the client for interacting with the PaymentOrder builders.
 	PaymentOrder *PaymentOrderClient
+	// PaymentReconciliation is the client for interacting with the PaymentReconciliation builders.
+	PaymentReconciliation *PaymentReconciliationClient
 	// RefreshToken is the client for interacting with the RefreshToken builders.
 	RefreshToken *RefreshTokenClient
 	// Role is the client for interacting with the Role builders.
@@ -172,6 +174,7 @@ func (tx *Tx) init() {
 	tx.ChannelAccount = NewChannelAccountClient(tx.config)
 	tx.GatewayConfig = NewGatewayConfigClient(tx.config)
 	tx.PaymentOrder = NewPaymentOrderClient(tx.config)
+	tx.PaymentReconciliation = NewPaymentReconciliationClient(tx.config)
 	tx.RefreshToken = NewRefreshTokenClient(tx.config)
 	tx.Role = NewRoleClient(tx.config)
 	tx.RoutingRule = NewRoutingRuleClient(tx.config)
