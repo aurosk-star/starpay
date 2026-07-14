@@ -114,6 +114,8 @@ case "payment.succeeded":
     // 发放权益
 case "refund.succeeded":
     // 确认退款完成
+case "order.closed":
+    // 根据 event.CloseSource 区分管理员或商户主动关闭
 case "order.expired":
     // 标记本地订单超时
 }

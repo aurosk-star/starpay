@@ -15,7 +15,7 @@ V2 的目标不是重新设计支付网关，而是在现有 V1 基础上补齐�
 - 订单：创建、查询、按商户订单号查询、关闭、幂等创建、checkout token、过期关闭。
 - 支付：支付宝、微信、PayPal provider；支付启动；统一支付回调；PayPal capture/return。
 - 路由：按应用、支付方式、通道、币种、金额区间、终端、优先级和目标通道做基础路由。
-- Webhook：`payment.succeeded`、`payment.failed`、`order.expired` 事件，投递记录，HMAC 签名，自动重试，手动重试。
+- Webhook：`payment.succeeded`、`payment.failed`、`order.closed`、`order.expired`、`refund.succeeded`、`refund.failed` 事件，投递记录，HMAC 签名，自动重试，手动重试。
 - 后台：应用、用户、通道、路由、订单、webhook、配置、监控、测试支付、公共收银台。
 - 运行时：订单过期 worker、webhook worker、webhook retry scanner、基础监控概览。
 - SDK：Go SDK 支持签名下单、查单、关单和 webhook 验签。

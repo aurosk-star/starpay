@@ -10,6 +10,7 @@ test("lists only webhook event types currently emitted by the gateway", () => {
   assert.deepEqual(supportedWebhookEventTypes, [
     "payment.succeeded",
     "payment.failed",
+    "order.closed",
     "order.expired",
   ]);
 });

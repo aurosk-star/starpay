@@ -400,18 +400,7 @@ func (s Service) UpdateOrder(ctx context.Context, id int, input UpdateOrderInput
 }
 
 func (s Service) CloseOrder(ctx context.Context, id int) (*ent.PaymentOrder, error) {
-	existing, err := s.orders.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if existing.Status != "pending" && existing.Status != "failed" {
-		return nil, ErrOrderCannotBeClosed
-	}
-	closed, err := s.orders.SetStatus(ctx, id, "closed", s.now())
-	if errors.Is(err, orderrepo.ErrStatusTransitionRejected) {
-		return nil, ErrOrderCannotBeClosed
-	}
-	return closed, err
+	return s.closeOrderWithEvent(ctx, id, "admin")
 }
 
 func (s Service) CloseOrderForApp(ctx context.Context, appID string, gatewayOrderNo string) (*ent.PaymentOrder, error) {
@@ -422,7 +411,46 @@ func (s Service) CloseOrderForApp(ctx context.Context, appID string, gatewayOrde
 	if existing.Status != "pending" && existing.Status != "failed" {
 		return nil, ErrOrderCannotBeClosed
 	}
-	closed, err := s.orders.SetStatus(ctx, existing.ID, "closed", s.now())
+	return s.closeOrderWithEvent(ctx, existing.ID, "merchant")
+}
+
+func (s Service) closeOrderWithEvent(ctx context.Context, id int, closeSource string) (*ent.PaymentOrder, error) {
+	if s.webhooks.IsZero() {
+		return s.closeOrderWithoutEvent(ctx, id)
+	}
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rollback := func(cause error) (*ent.PaymentOrder, error) {
+		_ = tx.Rollback()
+		return nil, cause
+	}
+	txOrders := orderrepo.New(tx.Client())
+	closed, err := txOrders.SetStatus(ctx, id, "closed", s.now())
+	if errors.Is(err, orderrepo.ErrStatusTransitionRejected) {
+		return rollback(ErrOrderCannotBeClosed)
+	}
+	if err != nil {
+		return rollback(err)
+	}
+	event, err := s.webhooks.WithTransactionalClient(tx.Client()).RecordOrderClosed(ctx, closed, closeSource)
+	if err != nil {
+		return rollback(err)
+	}
+	eventID := event.ID
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	closed.Unwrap()
+	if err := s.webhooks.EnqueueEventDelivery(ctx, eventID); err != nil {
+		slog.Warn("enqueue order closed webhook delivery", "order_id", id, "event_id", eventID, "error", err)
+	}
+	return closed, nil
+}
+
+func (s Service) closeOrderWithoutEvent(ctx context.Context, id int) (*ent.PaymentOrder, error) {
+	closed, err := s.orders.SetStatus(ctx, id, "closed", s.now())
 	if errors.Is(err, orderrepo.ErrStatusTransitionRejected) {
 		return nil, ErrOrderCannotBeClosed
 	}
@@ -608,7 +636,7 @@ func (s Service) ApplyPaymentResult(ctx context.Context, id int, input PaymentRe
 		if existing.Status == "closed" {
 			return existing, nil
 		}
-		return s.CloseOrder(ctx, id)
+		return s.closeOrderWithoutEvent(ctx, id)
 	default:
 		return existing, nil
 	}

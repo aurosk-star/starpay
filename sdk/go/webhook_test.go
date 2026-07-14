@@ -74,6 +74,16 @@ func TestParsePaymentFailedWebhookEvent(t *testing.T) {
 	}
 }
 
+func TestParseOrderClosedWebhookEvent(t *testing.T) {
+	event, err := ParseWebhookEvent([]byte(`{"event_type":"order.closed","gateway_order_no":"pay_001","status":"closed","close_source":"merchant","closed_at":"2026-07-14T10:00:00Z"}`))
+	if err != nil {
+		t.Fatalf("ParseWebhookEvent() error = %v", err)
+	}
+	if event.EventType != "order.closed" || event.Status != "closed" || event.CloseSource != "merchant" || event.ClosedAt == "" {
+		t.Fatalf("event = %#v, want merchant order.closed fields", event)
+	}
+}
+
 func TestParseRefundWebhookResourceFields(t *testing.T) {
 	event, err := ParseWebhookEvent([]byte(`{"event_type":"refund.succeeded","resource_type":"refund","resource_id":"rf_1","refund_no":"rf_1","merchant_refund_no":"mrf_1","channel_refund_no":"provider_rf_1"}`))
 	if err != nil {

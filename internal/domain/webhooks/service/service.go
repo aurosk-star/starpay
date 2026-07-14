@@ -25,6 +25,7 @@ import (
 
 const EventPaymentSucceeded = "payment.succeeded"
 const EventPaymentFailed = "payment.failed"
+const EventOrderClosed = "order.closed"
 const EventOrderExpired = "order.expired"
 const EventRefundSucceeded = "refund.succeeded"
 const EventRefundFailed = "refund.failed"
@@ -130,6 +131,21 @@ func (s Service) RecordPaymentFailed(ctx context.Context, order *ent.PaymentOrde
 
 func (s Service) RecordOrderExpired(ctx context.Context, order *ent.PaymentOrder) (*ent.WebhookEvent, error) {
 	return s.recordOrderEvent(ctx, order, EventOrderExpired, orderExpiredPayload)
+}
+
+func (s Service) RecordOrderClosed(ctx context.Context, order *ent.PaymentOrder, closeSource string) (*ent.WebhookEvent, error) {
+	if order == nil {
+		return nil, ErrOrderRequired
+	}
+	return s.RecordResourceEvent(ctx, ResourceEventInput{
+		EventType:      EventOrderClosed,
+		AppID:          order.AppID,
+		ResourceType:   ResourcePaymentOrder,
+		ResourceID:     order.GatewayOrderNo,
+		GatewayOrderNo: order.GatewayOrderNo,
+		PaymentOrderID: order.ID,
+		Payload:        orderClosedPayload(order, closeSource),
+	})
 }
 
 func (s Service) RecordRefundSucceeded(ctx context.Context, refund *ent.Refund) (*ent.WebhookEvent, error) {
@@ -533,6 +549,26 @@ func orderExpiredPayload(order *ent.PaymentOrder) map[string]any {
 	}
 	if order.ExpiresAt != nil {
 		payload["expires_at"] = order.ExpiresAt.Format(time.RFC3339)
+	}
+	if order.ClosedAt != nil {
+		payload["closed_at"] = order.ClosedAt.Format(time.RFC3339)
+	}
+	return payload
+}
+
+func orderClosedPayload(order *ent.PaymentOrder, closeSource string) map[string]any {
+	payload := map[string]any{
+		"event_type":        EventOrderClosed,
+		"app_id":            order.AppID,
+		"gateway_order_no":  order.GatewayOrderNo,
+		"merchant_order_no": order.MerchantOrderNo,
+		"amount":            order.Amount,
+		"currency":          order.Currency,
+		"status":            order.Status,
+		"close_source":      strings.ToLower(strings.TrimSpace(closeSource)),
+		"channel":           order.Channel,
+		"pay_method":        order.PayMethod,
+		"metadata":          order.Metadata,
 	}
 	if order.ClosedAt != nil {
 		payload["closed_at"] = order.ClosedAt.Format(time.RFC3339)

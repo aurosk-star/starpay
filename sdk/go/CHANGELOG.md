@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Expose `close_source` for `order.closed` webhook events.
+
 ## v0.1.4 - 2026-07-13
 
 - Add idempotent refund creation and refund query methods.

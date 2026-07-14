@@ -167,6 +167,58 @@ func TestRecordOrderExpiredIsIdempotentPerOrder(t *testing.T) {
 	}
 }
 
+func TestRecordOrderClosedQueuesIdempotentDeliveryWithCloseSource(t *testing.T) {
+	ctx := t.Context()
+	client := enttest.Open(t, dialect.SQLite, "file:webhook_order_closed?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+
+	createApp(t, client, "snsgo_closed", "https://merchant.example.com/webhooks/payment")
+	orderService := ordersvc.New(client)
+	order, err := orderService.CreateOrder(ctx, ordersvc.ManageOrderInput{
+		AppID: "snsgo_closed", MerchantOrderNo: "biz_closed", Subject: "Closed",
+		Amount: 9900, Currency: "CNY", Channel: "alipay", PayMethod: "alipay",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	closedAt := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
+	order, err = client.PaymentOrder.UpdateOneID(order.ID).SetStatus("closed").SetClosedAt(closedAt).Save(ctx)
+	if err != nil {
+		t.Fatalf("seed closed order error = %v", err)
+	}
+
+	service := webhooksvc.New(client)
+	first, err := service.RecordOrderClosed(ctx, order, "admin")
+	if err != nil {
+		t.Fatalf("RecordOrderClosed() first error = %v", err)
+	}
+	second, err := service.RecordOrderClosed(ctx, order, "admin")
+	if err != nil {
+		t.Fatalf("RecordOrderClosed() second error = %v", err)
+	}
+	if first.ID != second.ID {
+		t.Fatalf("event IDs first=%d second=%d, want idempotent event", first.ID, second.ID)
+	}
+	if first.EventType != webhooksvc.EventOrderClosed || first.Payload["close_source"] != "admin" || first.Payload["status"] != "closed" {
+		t.Fatalf("event = %#v, want admin order.closed payload", first)
+	}
+	if first.Payload["closed_at"] != closedAt.Format(time.RFC3339) {
+		t.Fatalf("closed_at = %#v, want %q", first.Payload["closed_at"], closedAt.Format(time.RFC3339))
+	}
+
+	_, eventTotal, err := webhookrepo.New(client).ListEvents(ctx, webhookrepo.ListEventsInput{EventType: webhooksvc.EventOrderClosed})
+	if err != nil {
+		t.Fatalf("ListEvents() error = %v", err)
+	}
+	deliveries, deliveryTotal, err := webhookrepo.New(client).ListDeliveries(ctx, webhookrepo.ListDeliveriesInput{EventType: webhooksvc.EventOrderClosed})
+	if err != nil {
+		t.Fatalf("ListDeliveries() error = %v", err)
+	}
+	if eventTotal != 1 || deliveryTotal != 1 || len(deliveries) != 1 || deliveries[0].Status != "pending" {
+		t.Fatalf("eventTotal=%d deliveryTotal=%d deliveries=%#v, want one pending delivery", eventTotal, deliveryTotal, deliveries)
+	}
+}
+
 func TestRecordPaymentFailedQueuesOneDeliveryForAppNotifyURL(t *testing.T) {
 	ctx := context.Background()
 	client := enttest.Open(t, dialect.SQLite, "file:webhook_payment_failed?mode=memory&cache=shared&_fk=1")

@@ -41,6 +41,7 @@ type WebhookEvent struct {
 	Amount           int64          `json:"amount"`
 	Currency         string         `json:"currency"`
 	Status           string         `json:"status,omitempty"`
+	CloseSource      string         `json:"close_source,omitempty"`
 	Channel          string         `json:"channel,omitempty"`
 	PayMethod        string         `json:"pay_method,omitempty"`
 	ChannelTradeNo   string         `json:"channel_trade_no,omitempty"`

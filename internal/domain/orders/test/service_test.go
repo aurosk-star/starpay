@@ -2,13 +2,16 @@ package orderstest
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
 
 	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
 	_ "github.com/mattn/go-sqlite3"
 
+	"payment-gateway/ent"
 	"payment-gateway/ent/enttest"
 	appsvc "payment-gateway/internal/domain/apps/service"
 	orderrepo "payment-gateway/internal/domain/orders/repository"
@@ -281,6 +284,195 @@ func TestCloseOrderOnlyAllowsMutableStatuses(t *testing.T) {
 	paid, _ = svc.MarkPaid(ctx, paid.ID, "trade_001")
 	if _, err := svc.CloseOrder(ctx, paid.ID); err == nil {
 		t.Fatal("CloseOrder() paid error = nil, want error")
+	}
+}
+
+func TestIntentionalCloseRecordsWebhookSourceAndIsIdempotent(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		appID      string
+		wantSource string
+		close      func(context.Context, ordersvc.Service, *ent.PaymentOrder) (*ent.PaymentOrder, error)
+	}{
+		{
+			name: "admin", appID: "close_admin", wantSource: "admin",
+			close: func(ctx context.Context, svc ordersvc.Service, order *ent.PaymentOrder) (*ent.PaymentOrder, error) {
+				return svc.CloseOrder(ctx, order.ID)
+			},
+		},
+		{
+			name: "merchant", appID: "close_merchant", wantSource: "merchant",
+			close: func(ctx context.Context, svc ordersvc.Service, order *ent.PaymentOrder) (*ent.PaymentOrder, error) {
+				return svc.CloseOrderForApp(ctx, order.AppID, order.GatewayOrderNo)
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := t.Context()
+			client := enttest.Open(t, dialect.SQLite, "file:intentional_close_"+tt.name+"?mode=memory&cache=shared&_fk=1")
+			defer client.Close()
+			if _, err := appsvc.New(client).CreateApp(ctx, appsvc.ManageAppInput{
+				AppID: tt.appID, Name: tt.appID, NotifyURL: "https://merchant.example.com/webhooks", Status: "enabled",
+			}); err != nil {
+				t.Fatalf("CreateApp() error = %v", err)
+			}
+			svc := ordersvc.New(client, ordersvc.WithWebhookService(webhooksvc.New(client)))
+			order, err := svc.CreateOrder(ctx, ordersvc.ManageOrderInput{
+				AppID: tt.appID, MerchantOrderNo: "biz_" + tt.name, Subject: "Close",
+				Amount: 100, Currency: "CNY", Channel: "alipay", PayMethod: "alipay",
+			})
+			if err != nil {
+				t.Fatalf("CreateOrder() error = %v", err)
+			}
+			closed, err := tt.close(ctx, svc, order)
+			if err != nil {
+				t.Fatalf("close() error = %v", err)
+			}
+			if closed.Status != "closed" || closed.ClosedAt == nil {
+				t.Fatalf("closed = %#v, want closed status", closed)
+			}
+			if _, err := tt.close(ctx, svc, order); !errors.Is(err, ordersvc.ErrOrderCannotBeClosed) {
+				t.Fatalf("duplicate close error = %v, want ErrOrderCannotBeClosed", err)
+			}
+
+			events, total, err := webhookrepo.New(client).ListEvents(ctx, webhookrepo.ListEventsInput{
+				EventType: webhooksvc.EventOrderClosed, GatewayOrderNo: order.GatewayOrderNo,
+			})
+			if err != nil {
+				t.Fatalf("ListEvents() error = %v", err)
+			}
+			if total != 1 || len(events) != 1 || events[0].Payload["close_source"] != tt.wantSource {
+				t.Fatalf("events=%#v total=%d, want one %s close", events, total, tt.wantSource)
+			}
+			_, deliveryTotal, err := webhookrepo.New(client).ListDeliveries(ctx, webhookrepo.ListDeliveriesInput{
+				EventType: webhooksvc.EventOrderClosed, GatewayOrderNo: order.GatewayOrderNo,
+			})
+			if err != nil || deliveryTotal != 1 {
+				t.Fatalf("deliveryTotal=%d err=%v, want 1", deliveryTotal, err)
+			}
+		})
+	}
+}
+
+func TestIntentionalCloseRollsBackWhenWebhookPersistenceFails(t *testing.T) {
+	ctx := t.Context()
+	client := enttest.Open(t, dialect.SQLite, "file:intentional_close_webhook_rollback?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+	app, err := appsvc.New(client).CreateApp(ctx, appsvc.ManageAppInput{
+		AppID: "close_rollback", Name: "Close rollback", NotifyURL: "https://merchant.example.com/webhooks", Status: "enabled",
+	})
+	if err != nil {
+		t.Fatalf("CreateApp() error = %v", err)
+	}
+	svc := ordersvc.New(client, ordersvc.WithWebhookService(webhooksvc.New(client)))
+	order, err := svc.CreateOrder(ctx, ordersvc.ManageOrderInput{
+		AppID: app.App.AppID, MerchantOrderNo: "biz_close_rollback", Subject: "Close",
+		Amount: 100, Currency: "CNY",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	if err := client.App.DeleteOneID(app.App.ID).Exec(ctx); err != nil {
+		t.Fatalf("DeleteOneID(app) error = %v", err)
+	}
+	if _, err := svc.CloseOrder(ctx, order.ID); err == nil {
+		t.Fatal("CloseOrder() error = nil, want webhook persistence failure")
+	}
+	persisted, err := client.PaymentOrder.Get(ctx, order.ID)
+	if err != nil {
+		t.Fatalf("Get order error = %v", err)
+	}
+	if persisted.Status != "pending" || persisted.ClosedAt != nil {
+		t.Fatalf("order = %#v, want pending after rollback", persisted)
+	}
+}
+
+func TestIntentionalCloseRollsBackWhenDeliveryPersistenceFails(t *testing.T) {
+	ctx := t.Context()
+	db, err := sql.Open("sqlite3", "file:intentional_close_delivery_rollback?mode=memory&cache=shared&_fk=1")
+	if err != nil {
+		t.Fatalf("open sqlite error = %v", err)
+	}
+	driver := entsql.OpenDB(dialect.SQLite, db)
+	client := ent.NewClient(ent.Driver(driver))
+	t.Cleanup(func() { _ = client.Close() })
+	if err := client.Schema.Create(ctx); err != nil {
+		t.Fatalf("Schema.Create() error = %v", err)
+	}
+	if _, err := appsvc.New(client).CreateApp(ctx, appsvc.ManageAppInput{
+		AppID: "delivery_rollback", Name: "Delivery rollback",
+		NotifyURL: "https://merchant.example.com/webhooks", Status: "enabled",
+	}); err != nil {
+		t.Fatalf("CreateApp() error = %v", err)
+	}
+	svc := ordersvc.New(client, ordersvc.WithWebhookService(webhooksvc.New(client)))
+	order, err := svc.CreateOrder(ctx, ordersvc.ManageOrderInput{
+		AppID: "delivery_rollback", MerchantOrderNo: "biz_delivery_rollback",
+		Subject: "Close", Amount: 100, Currency: "CNY",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `
+		CREATE TRIGGER fail_webhook_delivery
+		BEFORE INSERT ON webhook_deliveries
+		BEGIN
+			SELECT RAISE(FAIL, 'forced delivery persistence failure');
+		END;
+	`); err != nil {
+		t.Fatalf("create failure trigger error = %v", err)
+	}
+
+	if _, err := svc.CloseOrder(ctx, order.ID); err == nil {
+		t.Fatal("CloseOrder() error = nil, want delivery persistence failure")
+	}
+	persisted, err := client.PaymentOrder.Get(ctx, order.ID)
+	if err != nil {
+		t.Fatalf("Get order error = %v", err)
+	}
+	if persisted.Status != "pending" || persisted.ClosedAt != nil {
+		t.Fatalf("order = %#v, want pending after delivery rollback", persisted)
+	}
+	_, eventTotal, err := webhookrepo.New(client).ListEvents(ctx, webhookrepo.ListEventsInput{EventType: webhooksvc.EventOrderClosed})
+	if err != nil {
+		t.Fatalf("ListEvents() error = %v", err)
+	}
+	_, deliveryTotal, err := webhookrepo.New(client).ListDeliveries(ctx, webhookrepo.ListDeliveriesInput{EventType: webhooksvc.EventOrderClosed})
+	if err != nil {
+		t.Fatalf("ListDeliveries() error = %v", err)
+	}
+	if eventTotal != 0 || deliveryTotal != 0 {
+		t.Fatalf("eventTotal=%d deliveryTotal=%d, want transaction rollback", eventTotal, deliveryTotal)
+	}
+}
+
+func TestProviderClosedResultDoesNotEmitIntentionalCloseEvent(t *testing.T) {
+	ctx := t.Context()
+	client := enttest.Open(t, dialect.SQLite, "file:provider_closed_without_intentional_event?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+	if _, err := appsvc.New(client).CreateApp(ctx, appsvc.ManageAppInput{
+		AppID: "provider_closed", Name: "Provider closed", NotifyURL: "https://merchant.example.com/webhooks", Status: "enabled",
+	}); err != nil {
+		t.Fatalf("CreateApp() error = %v", err)
+	}
+	svc := ordersvc.New(client, ordersvc.WithWebhookService(webhooksvc.New(client)))
+	order, err := svc.CreateOrder(ctx, ordersvc.ManageOrderInput{
+		AppID: "provider_closed", MerchantOrderNo: "biz_provider_closed", Subject: "Provider closed",
+		Amount: 100, Currency: "CNY", Channel: "alipay", PayMethod: "alipay",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	closed, err := svc.ApplyPaymentResult(ctx, order.ID, ordersvc.PaymentResultInput{Channel: "alipay", Status: "closed"})
+	if err != nil {
+		t.Fatalf("ApplyPaymentResult() error = %v", err)
+	}
+	if closed.Status != "closed" {
+		t.Fatalf("status = %q, want closed", closed.Status)
+	}
+	_, total, err := webhookrepo.New(client).ListEvents(ctx, webhookrepo.ListEventsInput{EventType: webhooksvc.EventOrderClosed})
+	if err != nil || total != 0 {
+		t.Fatalf("order.closed total=%d err=%v, want 0", total, err)
 	}
 }
 
@@ -678,6 +870,10 @@ func TestCloseExpiredPendingOrderRecordsWebhookOnlyWhenClosed(t *testing.T) {
 	}
 	if totalEvents != 1 || totalDeliveries != 1 {
 		t.Fatalf("totals events=%d deliveries=%d, want one order.expired event and delivery", totalEvents, totalDeliveries)
+	}
+	_, closedEvents, err := webhookrepo.New(client).ListEvents(ctx, webhookrepo.ListEventsInput{EventType: webhooksvc.EventOrderClosed})
+	if err != nil || closedEvents != 0 {
+		t.Fatalf("order.closed events=%d err=%v, want 0 for automatic expiration", closedEvents, err)
 	}
 }
 

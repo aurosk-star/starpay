@@ -3,6 +3,7 @@ import type { TFunction } from "i18next";
 export const supportedWebhookEventTypes = [
   "payment.succeeded",
   "payment.failed",
+  "order.closed",
   "order.expired",
 ] as const;
 

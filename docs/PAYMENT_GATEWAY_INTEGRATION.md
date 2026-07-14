@@ -361,11 +361,32 @@ POST /v1/channel/notify?channel=paypal&channel_account_id={channel_account_id}
 }
 ```
 
-### 9.4 退款事件
+### 9.4 订单主动关闭
+
+管理员在后台关闭订单，或业务系统调用开放 API 关闭订单时，网关投递 `order.closed`。`close_source` 为 `admin` 或 `merchant`，用于区分关闭来源。系统自动超时关闭仍投递 `order.expired`。
+
+```json
+{
+  "event_type": "order.closed",
+  "app_id": "snsgo",
+  "gateway_order_no": "pay_20260702_xxx",
+  "merchant_order_no": "snsgo_membership_123",
+  "amount": 9900,
+  "currency": "CNY",
+  "status": "closed",
+  "close_source": "merchant",
+  "channel": "alipay",
+  "pay_method": "alipay",
+  "closed_at": "2026-07-02T12:10:00Z",
+  "metadata": {}
+}
+```
+
+### 9.5 退款事件
 
 退款成功投递 `refund.succeeded`，退款失败投递 `refund.failed`。关键字段包括 `refund_no`、`merchant_refund_no`、`gateway_order_no`、整数最小单位金额、币种、渠道交易号和渠道退款号。
 
-### 9.5 请求头
+### 9.6 请求头
 
 ```text
 X-Pay-Gateway-Event-Id

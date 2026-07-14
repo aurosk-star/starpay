@@ -168,6 +168,7 @@
       "withDescription": "{{eventType}}（{{description}}）",
       "payment.succeeded": "支付成功",
       "payment.failed": "支付失败",
+      "order.closed": "订单主动关闭",
       "order.expired": "订单超时关闭",
       "refund.succeeded": "退款成功",
       "refund.failed": "退款失败"

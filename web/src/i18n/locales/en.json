@@ -168,6 +168,7 @@
       "withDescription": "{{eventType}} ({{description}})",
       "payment.succeeded": "Payment succeeded",
       "payment.failed": "Payment failed",
+      "order.closed": "Order closed",
       "order.expired": "Order expired",
       "refund.succeeded": "Refund succeeded",
       "refund.failed": "Refund failed"
