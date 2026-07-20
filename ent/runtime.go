@@ -155,11 +155,11 @@ func init() {
 	// paymentreconciliation.DefaultAttemptCount holds the default value on creation for the attempt_count field.
 	paymentreconciliation.DefaultAttemptCount = paymentreconciliationDescAttemptCount.Default.(int)
 	// paymentreconciliationDescCreatedAt is the schema descriptor for created_at field.
-	paymentreconciliationDescCreatedAt := paymentreconciliationFields[12].Descriptor()
+	paymentreconciliationDescCreatedAt := paymentreconciliationFields[13].Descriptor()
 	// paymentreconciliation.DefaultCreatedAt holds the default value on creation for the created_at field.
 	paymentreconciliation.DefaultCreatedAt = paymentreconciliationDescCreatedAt.Default.(func() time.Time)
 	// paymentreconciliationDescUpdatedAt is the schema descriptor for updated_at field.
-	paymentreconciliationDescUpdatedAt := paymentreconciliationFields[13].Descriptor()
+	paymentreconciliationDescUpdatedAt := paymentreconciliationFields[14].Descriptor()
 	// paymentreconciliation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	paymentreconciliation.DefaultUpdatedAt = paymentreconciliationDescUpdatedAt.Default.(func() time.Time)
 	// paymentreconciliation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

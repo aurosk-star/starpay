@@ -100,6 +100,20 @@ func (_c *PaymentReconciliationCreate) SetNillableLastAttemptAt(v *time.Time) *P
 	return _c
 }
 
+// SetActiveQueryRequestedAt sets the "active_query_requested_at" field.
+func (_c *PaymentReconciliationCreate) SetActiveQueryRequestedAt(v time.Time) *PaymentReconciliationCreate {
+	_c.mutation.SetActiveQueryRequestedAt(v)
+	return _c
+}
+
+// SetNillableActiveQueryRequestedAt sets the "active_query_requested_at" field if the given value is not nil.
+func (_c *PaymentReconciliationCreate) SetNillableActiveQueryRequestedAt(v *time.Time) *PaymentReconciliationCreate {
+	if v != nil {
+		_c.SetActiveQueryRequestedAt(*v)
+	}
+	return _c
+}
+
 // SetLastProviderStatus sets the "last_provider_status" field.
 func (_c *PaymentReconciliationCreate) SetLastProviderStatus(v string) *PaymentReconciliationCreate {
 	_c.mutation.SetLastProviderStatus(v)
@@ -312,6 +326,10 @@ func (_c *PaymentReconciliationCreate) createSpec() (*PaymentReconciliation, *sq
 	if value, ok := _c.mutation.LastAttemptAt(); ok {
 		_spec.SetField(paymentreconciliation.FieldLastAttemptAt, field.TypeTime, value)
 		_node.LastAttemptAt = &value
+	}
+	if value, ok := _c.mutation.ActiveQueryRequestedAt(); ok {
+		_spec.SetField(paymentreconciliation.FieldActiveQueryRequestedAt, field.TypeTime, value)
+		_node.ActiveQueryRequestedAt = &value
 	}
 	if value, ok := _c.mutation.LastProviderStatus(); ok {
 		_spec.SetField(paymentreconciliation.FieldLastProviderStatus, field.TypeString, value)

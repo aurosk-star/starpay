@@ -22,6 +22,7 @@ func (PaymentReconciliation) Fields() []ent.Field {
 		field.Int("attempt_count").Default(0),
 		field.Time("next_attempt_at").Optional().Nillable(),
 		field.Time("last_attempt_at").Optional().Nillable(),
+		field.Time("active_query_requested_at").Optional().Nillable(),
 		field.String("last_provider_status").Optional(),
 		field.String("last_error").Optional(),
 		field.JSON("provider_snapshot", map[string]any{}).Optional(),

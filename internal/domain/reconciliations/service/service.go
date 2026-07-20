@@ -91,6 +91,38 @@ func (s Service) EnsureForOrder(ctx context.Context, order *ent.PaymentOrder) (*
 	return s.reconciliations.EnsureForOrder(ctx, order, next)
 }
 
+func (s Service) RequestForOrder(ctx context.Context, order *ent.PaymentOrder) (*ent.PaymentReconciliation, error) {
+	if order == nil {
+		return nil, ErrOrderNotEligible
+	}
+	if order.Status != "pending" {
+		item, err := s.reconciliations.FindByOrderID(ctx, order.ID)
+		if ent.IsNotFound(err) {
+			return nil, nil
+		}
+		return item, err
+	}
+	item, err := s.EnsureForOrder(ctx, order)
+	if err != nil {
+		return nil, err
+	}
+	if item.Status != "pending" {
+		return item, nil
+	}
+	requestedAt := s.now()
+	item, changed, err := s.reconciliations.RequestActiveQuery(ctx, item.ID, requestedAt)
+	if err != nil {
+		return nil, err
+	}
+	if changed && s.enqueuer != nil {
+		if err := s.enqueuer.EnqueuePaymentReconciliation(ctx, item.ID); err != nil {
+			_ = s.reconciliations.ReleaseActiveQueryRequest(ctx, item.ID, requestedAt)
+			return nil, err
+		}
+	}
+	return item, nil
+}
+
 func (s Service) Process(ctx context.Context, id int) (*ent.PaymentReconciliation, error) {
 	now := s.now()
 	reconciliation, claimed, err := s.reconciliations.Claim(ctx, id, now)

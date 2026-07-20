@@ -5922,30 +5922,31 @@ func (m *PaymentOrderMutation) ResetEdge(name string) error {
 // PaymentReconciliationMutation represents an operation that mutates the PaymentReconciliation nodes in the graph.
 type PaymentReconciliationMutation struct {
 	config
-	op                    Op
-	typ                   string
-	id                    *int
-	payment_order_id      *int
-	addpayment_order_id   *int
-	gateway_order_no      *string
-	channel               *string
-	channel_account_id    *int
-	addchannel_account_id *int
-	status                *string
-	attempt_count         *int
-	addattempt_count      *int
-	next_attempt_at       *time.Time
-	last_attempt_at       *time.Time
-	last_provider_status  *string
-	last_error            *string
-	provider_snapshot     *map[string]interface{}
-	resolved_at           *time.Time
-	created_at            *time.Time
-	updated_at            *time.Time
-	clearedFields         map[string]struct{}
-	done                  bool
-	oldValue              func(context.Context) (*PaymentReconciliation, error)
-	predicates            []predicate.PaymentReconciliation
+	op                        Op
+	typ                       string
+	id                        *int
+	payment_order_id          *int
+	addpayment_order_id       *int
+	gateway_order_no          *string
+	channel                   *string
+	channel_account_id        *int
+	addchannel_account_id     *int
+	status                    *string
+	attempt_count             *int
+	addattempt_count          *int
+	next_attempt_at           *time.Time
+	last_attempt_at           *time.Time
+	active_query_requested_at *time.Time
+	last_provider_status      *string
+	last_error                *string
+	provider_snapshot         *map[string]interface{}
+	resolved_at               *time.Time
+	created_at                *time.Time
+	updated_at                *time.Time
+	clearedFields             map[string]struct{}
+	done                      bool
+	oldValue                  func(context.Context) (*PaymentReconciliation, error)
+	predicates                []predicate.PaymentReconciliation
 }
 
 var _ ent.Mutation = (*PaymentReconciliationMutation)(nil)
@@ -6420,6 +6421,55 @@ func (m *PaymentReconciliationMutation) ResetLastAttemptAt() {
 	delete(m.clearedFields, paymentreconciliation.FieldLastAttemptAt)
 }
 
+// SetActiveQueryRequestedAt sets the "active_query_requested_at" field.
+func (m *PaymentReconciliationMutation) SetActiveQueryRequestedAt(t time.Time) {
+	m.active_query_requested_at = &t
+}
+
+// ActiveQueryRequestedAt returns the value of the "active_query_requested_at" field in the mutation.
+func (m *PaymentReconciliationMutation) ActiveQueryRequestedAt() (r time.Time, exists bool) {
+	v := m.active_query_requested_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActiveQueryRequestedAt returns the old "active_query_requested_at" field's value of the PaymentReconciliation entity.
+// If the PaymentReconciliation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentReconciliationMutation) OldActiveQueryRequestedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActiveQueryRequestedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActiveQueryRequestedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActiveQueryRequestedAt: %w", err)
+	}
+	return oldValue.ActiveQueryRequestedAt, nil
+}
+
+// ClearActiveQueryRequestedAt clears the value of the "active_query_requested_at" field.
+func (m *PaymentReconciliationMutation) ClearActiveQueryRequestedAt() {
+	m.active_query_requested_at = nil
+	m.clearedFields[paymentreconciliation.FieldActiveQueryRequestedAt] = struct{}{}
+}
+
+// ActiveQueryRequestedAtCleared returns if the "active_query_requested_at" field was cleared in this mutation.
+func (m *PaymentReconciliationMutation) ActiveQueryRequestedAtCleared() bool {
+	_, ok := m.clearedFields[paymentreconciliation.FieldActiveQueryRequestedAt]
+	return ok
+}
+
+// ResetActiveQueryRequestedAt resets all changes to the "active_query_requested_at" field.
+func (m *PaymentReconciliationMutation) ResetActiveQueryRequestedAt() {
+	m.active_query_requested_at = nil
+	delete(m.clearedFields, paymentreconciliation.FieldActiveQueryRequestedAt)
+}
+
 // SetLastProviderStatus sets the "last_provider_status" field.
 func (m *PaymentReconciliationMutation) SetLastProviderStatus(s string) {
 	m.last_provider_status = &s
@@ -6722,7 +6772,7 @@ func (m *PaymentReconciliationMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentReconciliationMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 15)
 	if m.payment_order_id != nil {
 		fields = append(fields, paymentreconciliation.FieldPaymentOrderID)
 	}
@@ -6746,6 +6796,9 @@ func (m *PaymentReconciliationMutation) Fields() []string {
 	}
 	if m.last_attempt_at != nil {
 		fields = append(fields, paymentreconciliation.FieldLastAttemptAt)
+	}
+	if m.active_query_requested_at != nil {
+		fields = append(fields, paymentreconciliation.FieldActiveQueryRequestedAt)
 	}
 	if m.last_provider_status != nil {
 		fields = append(fields, paymentreconciliation.FieldLastProviderStatus)
@@ -6789,6 +6842,8 @@ func (m *PaymentReconciliationMutation) Field(name string) (ent.Value, bool) {
 		return m.NextAttemptAt()
 	case paymentreconciliation.FieldLastAttemptAt:
 		return m.LastAttemptAt()
+	case paymentreconciliation.FieldActiveQueryRequestedAt:
+		return m.ActiveQueryRequestedAt()
 	case paymentreconciliation.FieldLastProviderStatus:
 		return m.LastProviderStatus()
 	case paymentreconciliation.FieldLastError:
@@ -6826,6 +6881,8 @@ func (m *PaymentReconciliationMutation) OldField(ctx context.Context, name strin
 		return m.OldNextAttemptAt(ctx)
 	case paymentreconciliation.FieldLastAttemptAt:
 		return m.OldLastAttemptAt(ctx)
+	case paymentreconciliation.FieldActiveQueryRequestedAt:
+		return m.OldActiveQueryRequestedAt(ctx)
 	case paymentreconciliation.FieldLastProviderStatus:
 		return m.OldLastProviderStatus(ctx)
 	case paymentreconciliation.FieldLastError:
@@ -6902,6 +6959,13 @@ func (m *PaymentReconciliationMutation) SetField(name string, value ent.Value) e
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetLastAttemptAt(v)
+		return nil
+	case paymentreconciliation.FieldActiveQueryRequestedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActiveQueryRequestedAt(v)
 		return nil
 	case paymentreconciliation.FieldLastProviderStatus:
 		v, ok := value.(string)
@@ -7020,6 +7084,9 @@ func (m *PaymentReconciliationMutation) ClearedFields() []string {
 	if m.FieldCleared(paymentreconciliation.FieldLastAttemptAt) {
 		fields = append(fields, paymentreconciliation.FieldLastAttemptAt)
 	}
+	if m.FieldCleared(paymentreconciliation.FieldActiveQueryRequestedAt) {
+		fields = append(fields, paymentreconciliation.FieldActiveQueryRequestedAt)
+	}
 	if m.FieldCleared(paymentreconciliation.FieldLastProviderStatus) {
 		fields = append(fields, paymentreconciliation.FieldLastProviderStatus)
 	}
@@ -7051,6 +7118,9 @@ func (m *PaymentReconciliationMutation) ClearField(name string) error {
 		return nil
 	case paymentreconciliation.FieldLastAttemptAt:
 		m.ClearLastAttemptAt()
+		return nil
+	case paymentreconciliation.FieldActiveQueryRequestedAt:
+		m.ClearActiveQueryRequestedAt()
 		return nil
 	case paymentreconciliation.FieldLastProviderStatus:
 		m.ClearLastProviderStatus()
@@ -7095,6 +7165,9 @@ func (m *PaymentReconciliationMutation) ResetField(name string) error {
 		return nil
 	case paymentreconciliation.FieldLastAttemptAt:
 		m.ResetLastAttemptAt()
+		return nil
+	case paymentreconciliation.FieldActiveQueryRequestedAt:
+		m.ResetActiveQueryRequestedAt()
 		return nil
 	case paymentreconciliation.FieldLastProviderStatus:
 		m.ResetLastProviderStatus()

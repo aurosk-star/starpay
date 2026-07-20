@@ -29,6 +29,8 @@ const (
 	FieldNextAttemptAt = "next_attempt_at"
 	// FieldLastAttemptAt holds the string denoting the last_attempt_at field in the database.
 	FieldLastAttemptAt = "last_attempt_at"
+	// FieldActiveQueryRequestedAt holds the string denoting the active_query_requested_at field in the database.
+	FieldActiveQueryRequestedAt = "active_query_requested_at"
 	// FieldLastProviderStatus holds the string denoting the last_provider_status field in the database.
 	FieldLastProviderStatus = "last_provider_status"
 	// FieldLastError holds the string denoting the last_error field in the database.
@@ -56,6 +58,7 @@ var Columns = []string{
 	FieldAttemptCount,
 	FieldNextAttemptAt,
 	FieldLastAttemptAt,
+	FieldActiveQueryRequestedAt,
 	FieldLastProviderStatus,
 	FieldLastError,
 	FieldProviderSnapshot,
@@ -133,6 +136,11 @@ func ByNextAttemptAt(opts ...sql.OrderTermOption) OrderOption {
 // ByLastAttemptAt orders the results by the last_attempt_at field.
 func ByLastAttemptAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastAttemptAt, opts...).ToFunc()
+}
+
+// ByActiveQueryRequestedAt orders the results by the active_query_requested_at field.
+func ByActiveQueryRequestedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldActiveQueryRequestedAt, opts...).ToFunc()
 }
 
 // ByLastProviderStatus orders the results by the last_provider_status field.

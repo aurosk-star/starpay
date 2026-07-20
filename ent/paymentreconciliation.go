@@ -34,6 +34,8 @@ type PaymentReconciliation struct {
 	NextAttemptAt *time.Time `json:"next_attempt_at,omitempty"`
 	// LastAttemptAt holds the value of the "last_attempt_at" field.
 	LastAttemptAt *time.Time `json:"last_attempt_at,omitempty"`
+	// ActiveQueryRequestedAt holds the value of the "active_query_requested_at" field.
+	ActiveQueryRequestedAt *time.Time `json:"active_query_requested_at,omitempty"`
 	// LastProviderStatus holds the value of the "last_provider_status" field.
 	LastProviderStatus string `json:"last_provider_status,omitempty"`
 	// LastError holds the value of the "last_error" field.
@@ -60,7 +62,7 @@ func (*PaymentReconciliation) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case paymentreconciliation.FieldGatewayOrderNo, paymentreconciliation.FieldChannel, paymentreconciliation.FieldStatus, paymentreconciliation.FieldLastProviderStatus, paymentreconciliation.FieldLastError:
 			values[i] = new(sql.NullString)
-		case paymentreconciliation.FieldNextAttemptAt, paymentreconciliation.FieldLastAttemptAt, paymentreconciliation.FieldResolvedAt, paymentreconciliation.FieldCreatedAt, paymentreconciliation.FieldUpdatedAt:
+		case paymentreconciliation.FieldNextAttemptAt, paymentreconciliation.FieldLastAttemptAt, paymentreconciliation.FieldActiveQueryRequestedAt, paymentreconciliation.FieldResolvedAt, paymentreconciliation.FieldCreatedAt, paymentreconciliation.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -132,6 +134,13 @@ func (_m *PaymentReconciliation) assignValues(columns []string, values []any) er
 			} else if value.Valid {
 				_m.LastAttemptAt = new(time.Time)
 				*_m.LastAttemptAt = value.Time
+			}
+		case paymentreconciliation.FieldActiveQueryRequestedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field active_query_requested_at", values[i])
+			} else if value.Valid {
+				_m.ActiveQueryRequestedAt = new(time.Time)
+				*_m.ActiveQueryRequestedAt = value.Time
 			}
 		case paymentreconciliation.FieldLastProviderStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -233,6 +242,11 @@ func (_m *PaymentReconciliation) String() string {
 	builder.WriteString(", ")
 	if v := _m.LastAttemptAt; v != nil {
 		builder.WriteString("last_attempt_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.ActiveQueryRequestedAt; v != nil {
+		builder.WriteString("active_query_requested_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")

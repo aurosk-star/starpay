@@ -190,6 +190,7 @@ var (
 		{Name: "attempt_count", Type: field.TypeInt, Default: 0},
 		{Name: "next_attempt_at", Type: field.TypeTime, Nullable: true},
 		{Name: "last_attempt_at", Type: field.TypeTime, Nullable: true},
+		{Name: "active_query_requested_at", Type: field.TypeTime, Nullable: true},
 		{Name: "last_provider_status", Type: field.TypeString, Nullable: true},
 		{Name: "last_error", Type: field.TypeString, Nullable: true},
 		{Name: "provider_snapshot", Type: field.TypeJSON, Nullable: true},
@@ -226,7 +227,7 @@ var (
 			{
 				Name:    "paymentreconciliation_updated_at",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentReconciliationsColumns[14]},
+				Columns: []*schema.Column{PaymentReconciliationsColumns[15]},
 			},
 		},
 	}

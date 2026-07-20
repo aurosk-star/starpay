@@ -1,6 +1,7 @@
 package orderstest
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,10 +11,94 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3"
 
+	"payment-gateway/ent"
 	"payment-gateway/ent/enttest"
 	orderhandler "payment-gateway/internal/domain/orders/handler"
 	ordersvc "payment-gateway/internal/domain/orders/service"
 )
+
+type fakeCheckoutReconciliationScheduler struct {
+	requestedOrderID int
+}
+
+func (s *fakeCheckoutReconciliationScheduler) EnsureForOrder(context.Context, *ent.PaymentOrder) (*ent.PaymentReconciliation, error) {
+	return nil, nil
+}
+
+func (s *fakeCheckoutReconciliationScheduler) RequestForOrder(_ context.Context, order *ent.PaymentOrder) (*ent.PaymentReconciliation, error) {
+	s.requestedOrderID = order.ID
+	return nil, nil
+}
+
+func TestCheckoutHandlerGetOrderRequestsReconciliation(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_request_reconciliation?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+	createEnabledApp(t, client, "snsgo")
+	service := ordersvc.New(client)
+	created, err := service.CreateOrderWithCheckoutToken(t.Context(), ordersvc.ManageOrderInput{
+		AppID: "snsgo", MerchantOrderNo: "biz_reconcile", Subject: "Pro", Amount: 9900, Currency: "CNY",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrderWithCheckoutToken() error = %v", err)
+	}
+	if _, err := client.PaymentOrder.UpdateOneID(created.Order.ID).SetProviderOrderNo("provider_reconcile").Save(t.Context()); err != nil {
+		t.Fatalf("set provider order no error = %v", err)
+	}
+	scheduler := &fakeCheckoutReconciliationScheduler{}
+	handler := orderhandler.NewCheckout(service, orderhandler.WithReconciliationScheduler(scheduler))
+	router := gin.New()
+	router.GET("/orders/:gateway_order_no", handler.GetOrder)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/orders/"+created.Order.GatewayOrderNo, nil)
+	request.Header.Set("X-Checkout-Token", created.CheckoutToken)
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response["code"] != "ok" || response["error"] != nil {
+		t.Fatalf("response = %#v, want global ok shape", response)
+	}
+	if scheduler.requestedOrderID != created.Order.ID {
+		t.Fatalf("requested order id = %d, want %d", scheduler.requestedOrderID, created.Order.ID)
+	}
+}
+
+func TestCheckoutHandlerGetOrderSkipsReconciliationBeforePaymentStarts(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	client := enttest.Open(t, dialect.SQLite, "file:checkout_skip_reconciliation?mode=memory&cache=shared&_fk=1")
+	defer client.Close()
+	createEnabledApp(t, client, "snsgo")
+	service := ordersvc.New(client)
+	created, err := service.CreateOrderWithCheckoutToken(t.Context(), ordersvc.ManageOrderInput{
+		AppID: "snsgo", MerchantOrderNo: "biz_skip_reconcile", Subject: "Pro", Amount: 9900, Currency: "CNY",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrderWithCheckoutToken() error = %v", err)
+	}
+	scheduler := &fakeCheckoutReconciliationScheduler{}
+	handler := orderhandler.NewCheckout(service, orderhandler.WithReconciliationScheduler(scheduler))
+	router := gin.New()
+	router.GET("/orders/:gateway_order_no", handler.GetOrder)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/orders/"+created.Order.GatewayOrderNo, nil)
+	request.Header.Set("X-Checkout-Token", created.CheckoutToken)
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if scheduler.requestedOrderID != 0 {
+		t.Fatalf("requested order id = %d, want no request", scheduler.requestedOrderID)
+	}
+}
 
 func TestCheckoutHandlerReturnsPublicOrderView(t *testing.T) {
 	gin.SetMode(gin.ReleaseMode)

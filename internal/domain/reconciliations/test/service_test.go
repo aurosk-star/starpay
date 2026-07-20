@@ -25,6 +25,175 @@ type fakePaymentGateway struct {
 	closeCalls int
 }
 
+type fakeReconciliationEnqueuer struct {
+	ids []int
+	err error
+}
+
+func (e *fakeReconciliationEnqueuer) EnqueuePaymentReconciliation(_ context.Context, id int) error {
+	e.ids = append(e.ids, id)
+	return e.err
+}
+
+func TestRequestForOrderEnqueuesImmediateReconciliation(t *testing.T) {
+	now := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	client, orderService, order, _ := seedPendingBoundOrder(t, "reconciliation_request", now.Add(time.Hour))
+	defer client.Close()
+	enqueuer := &fakeReconciliationEnqueuer{}
+	service := reconciliationsvc.New(client,
+		reconciliationsvc.WithOrderService(orderService),
+		reconciliationsvc.WithNow(func() time.Time { return now }),
+		reconciliationsvc.WithEnqueuer(enqueuer),
+	)
+
+	item, err := service.RequestForOrder(t.Context(), order)
+	if err != nil {
+		t.Fatalf("RequestForOrder() error = %v", err)
+	}
+	if item == nil || item.Status != "pending" || item.NextAttemptAt == nil || item.NextAttemptAt.After(now) {
+		t.Fatalf("item = %#v, want pending item due immediately", item)
+	}
+	if len(enqueuer.ids) != 1 || enqueuer.ids[0] != item.ID {
+		t.Fatalf("enqueued ids = %#v, want [%d]", enqueuer.ids, item.ID)
+	}
+	item, err = service.RequestForOrder(t.Context(), order)
+	if err != nil {
+		t.Fatalf("second RequestForOrder() error = %v", err)
+	}
+	if item.AttemptCount != 0 || len(enqueuer.ids) != 1 {
+		t.Fatalf("second request item=%#v enqueued=%#v, want unchanged item and one enqueue", item, enqueuer.ids)
+	}
+}
+
+func TestRequestForOrderPreservesAttemptCount(t *testing.T) {
+	now := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	client, orderService, order, _ := seedPendingBoundOrder(t, "reconciliation_request_attempts", now.Add(time.Hour))
+	defer client.Close()
+	enqueuer := &fakeReconciliationEnqueuer{}
+	service := reconciliationsvc.New(client,
+		reconciliationsvc.WithOrderService(orderService),
+		reconciliationsvc.WithNow(func() time.Time { return now }),
+		reconciliationsvc.WithEnqueuer(enqueuer),
+	)
+	item, err := service.EnsureForOrder(t.Context(), order)
+	if err != nil {
+		t.Fatalf("EnsureForOrder() error = %v", err)
+	}
+	item, err = client.PaymentReconciliation.UpdateOneID(item.ID).SetAttemptCount(3).Save(t.Context())
+	if err != nil {
+		t.Fatalf("set attempt count error = %v", err)
+	}
+	requested, err := service.RequestForOrder(t.Context(), order)
+	if err != nil {
+		t.Fatalf("RequestForOrder() error = %v", err)
+	}
+	if requested.AttemptCount != 3 {
+		t.Fatalf("attempt count = %d, want 3", requested.AttemptCount)
+	}
+}
+
+func TestRequestForOrderDoesNotBypassRetryBackoff(t *testing.T) {
+	now := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	client, orderService, order, account := seedPendingBoundOrder(t, "reconciliation_request_backoff", now.Add(time.Hour))
+	defer client.Close()
+	enqueuer := &fakeReconciliationEnqueuer{}
+	gateway := &fakePaymentGateway{result: &paymentsvc.NotifyResult{
+		Channel: "alipay", ChannelAccountID: account.ID, GatewayOrderNo: order.GatewayOrderNo,
+		Status: "pending", Amount: order.Amount, Currency: order.Currency,
+	}}
+	service := reconciliationsvc.New(client,
+		reconciliationsvc.WithOrderService(orderService),
+		reconciliationsvc.WithPaymentGateway(gateway),
+		reconciliationsvc.WithNow(func() time.Time { return now }),
+		reconciliationsvc.WithEnqueuer(enqueuer),
+	)
+	item, err := service.RequestForOrder(t.Context(), order)
+	if err != nil {
+		t.Fatalf("first RequestForOrder() error = %v", err)
+	}
+	if _, err := service.Process(t.Context(), item.ID); err != nil {
+		t.Fatalf("Process() error = %v", err)
+	}
+	item, err = service.RequestForOrder(t.Context(), order)
+	if err != nil {
+		t.Fatalf("second RequestForOrder() error = %v", err)
+	}
+	if item.AttemptCount != 1 || len(enqueuer.ids) != 1 {
+		t.Fatalf("item=%#v enqueued=%#v, want preserved backoff and one enqueue", item, enqueuer.ids)
+	}
+}
+
+func TestRequestForOrderEnqueuesAlreadyDueReconciliation(t *testing.T) {
+	now := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	client, orderService, order, _ := seedPendingBoundOrder(t, "reconciliation_request_due", now.Add(time.Hour))
+	defer client.Close()
+	enqueuer := &fakeReconciliationEnqueuer{}
+	service := reconciliationsvc.New(client,
+		reconciliationsvc.WithOrderService(orderService),
+		reconciliationsvc.WithNow(func() time.Time { return now }),
+		reconciliationsvc.WithEnqueuer(enqueuer),
+	)
+	item, err := service.EnsureForOrder(t.Context(), order)
+	if err != nil {
+		t.Fatalf("EnsureForOrder() error = %v", err)
+	}
+	if _, err := client.PaymentReconciliation.UpdateOneID(item.ID).SetNextAttemptAt(now.Add(-time.Minute)).Save(t.Context()); err != nil {
+		t.Fatalf("set due time error = %v", err)
+	}
+	item, err = service.RequestForOrder(t.Context(), order)
+	if err != nil {
+		t.Fatalf("RequestForOrder() error = %v", err)
+	}
+	if len(enqueuer.ids) != 1 || enqueuer.ids[0] != item.ID {
+		t.Fatalf("enqueued ids = %#v, want [%d]", enqueuer.ids, item.ID)
+	}
+}
+
+func TestRequestForOrderRetriesEnqueueFailure(t *testing.T) {
+	now := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	client, orderService, order, _ := seedPendingBoundOrder(t, "reconciliation_request_enqueue_retry", now.Add(time.Hour))
+	defer client.Close()
+	enqueuer := &fakeReconciliationEnqueuer{err: context.DeadlineExceeded}
+	service := reconciliationsvc.New(client,
+		reconciliationsvc.WithOrderService(orderService),
+		reconciliationsvc.WithNow(func() time.Time { return now }),
+		reconciliationsvc.WithEnqueuer(enqueuer),
+	)
+	if _, err := service.RequestForOrder(t.Context(), order); err == nil {
+		t.Fatal("first RequestForOrder() error = nil, want enqueue error")
+	}
+	enqueuer.err = nil
+	if _, err := service.RequestForOrder(t.Context(), order); err != nil {
+		t.Fatalf("second RequestForOrder() error = %v", err)
+	}
+	if len(enqueuer.ids) != 2 {
+		t.Fatalf("enqueue calls = %#v, want two attempts", enqueuer.ids)
+	}
+}
+
+func TestRequestForOrderSkipsTerminalOrder(t *testing.T) {
+	now := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	client, orderService, order, _ := seedPendingBoundOrder(t, "reconciliation_request_terminal", now.Add(time.Hour))
+	defer client.Close()
+	order, err := orderService.MarkPaid(t.Context(), order.ID, "trade_terminal")
+	if err != nil {
+		t.Fatalf("MarkPaid() error = %v", err)
+	}
+	enqueuer := &fakeReconciliationEnqueuer{}
+	service := reconciliationsvc.New(client,
+		reconciliationsvc.WithOrderService(orderService),
+		reconciliationsvc.WithNow(func() time.Time { return now }),
+		reconciliationsvc.WithEnqueuer(enqueuer),
+	)
+	item, err := service.RequestForOrder(t.Context(), order)
+	if err != nil {
+		t.Fatalf("RequestForOrder() error = %v", err)
+	}
+	if item != nil || len(enqueuer.ids) != 0 {
+		t.Fatalf("item=%#v enqueued=%#v, want no-op", item, enqueuer.ids)
+	}
+}
+
 func (g *fakePaymentGateway) QueryPayment(ctx context.Context, input paymentsvc.QueryPaymentInput) (*paymentsvc.NotifyResult, error) {
 	return g.result, g.err
 }

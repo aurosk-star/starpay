@@ -176,6 +176,39 @@ func (r Repository) ResetForRetry(ctx context.Context, id int, now time.Time) (*
 	return r.FindByID(ctx, id)
 }
 
+func (r Repository) RequestActiveQuery(ctx context.Context, id int, now time.Time) (*ent.PaymentReconciliation, bool, error) {
+	affected, err := r.client.PaymentReconciliation.Update().
+		Where(
+			paymentreconciliation.ID(id),
+			paymentreconciliation.Status("pending"),
+			paymentreconciliation.ActiveQueryRequestedAtIsNil(),
+		).
+		SetActiveQueryRequestedAt(now).
+		SetNextAttemptAt(now).
+		Save(ctx)
+	if err != nil || affected == 0 {
+		if err != nil {
+			return nil, false, err
+		}
+		item, findErr := r.FindByID(ctx, id)
+		return item, false, findErr
+	}
+	item, err := r.FindByID(ctx, id)
+	return item, true, err
+}
+
+func (r Repository) ReleaseActiveQueryRequest(ctx context.Context, id int, requestedAt time.Time) error {
+	_, err := r.client.PaymentReconciliation.Update().
+		Where(
+			paymentreconciliation.ID(id),
+			paymentreconciliation.Status("pending"),
+			paymentreconciliation.ActiveQueryRequestedAtEQ(requestedAt),
+		).
+		ClearActiveQueryRequestedAt().
+		Save(ctx)
+	return err
+}
+
 func (r Repository) ListEligibleOrders(ctx context.Context, limit int) ([]*ent.PaymentOrder, error) {
 	if limit < 1 {
 		limit = 100

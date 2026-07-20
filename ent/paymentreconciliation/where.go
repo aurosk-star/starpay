@@ -94,6 +94,11 @@ func LastAttemptAt(v time.Time) predicate.PaymentReconciliation {
 	return predicate.PaymentReconciliation(sql.FieldEQ(FieldLastAttemptAt, v))
 }
 
+// ActiveQueryRequestedAt applies equality check predicate on the "active_query_requested_at" field. It's identical to ActiveQueryRequestedAtEQ.
+func ActiveQueryRequestedAt(v time.Time) predicate.PaymentReconciliation {
+	return predicate.PaymentReconciliation(sql.FieldEQ(FieldActiveQueryRequestedAt, v))
+}
+
 // LastProviderStatus applies equality check predicate on the "last_provider_status" field. It's identical to LastProviderStatusEQ.
 func LastProviderStatus(v string) predicate.PaymentReconciliation {
 	return predicate.PaymentReconciliation(sql.FieldEQ(FieldLastProviderStatus, v))
@@ -532,6 +537,56 @@ func LastAttemptAtIsNil() predicate.PaymentReconciliation {
 // LastAttemptAtNotNil applies the NotNil predicate on the "last_attempt_at" field.
 func LastAttemptAtNotNil() predicate.PaymentReconciliation {
 	return predicate.PaymentReconciliation(sql.FieldNotNull(FieldLastAttemptAt))
+}
+
+// ActiveQueryRequestedAtEQ applies the EQ predicate on the "active_query_requested_at" field.
+func ActiveQueryRequestedAtEQ(v time.Time) predicate.PaymentReconciliation {
+	return predicate.PaymentReconciliation(sql.FieldEQ(FieldActiveQueryRequestedAt, v))
+}
+
+// ActiveQueryRequestedAtNEQ applies the NEQ predicate on the "active_query_requested_at" field.
+func ActiveQueryRequestedAtNEQ(v time.Time) predicate.PaymentReconciliation {
+	return predicate.PaymentReconciliation(sql.FieldNEQ(FieldActiveQueryRequestedAt, v))
+}
+
+// ActiveQueryRequestedAtIn applies the In predicate on the "active_query_requested_at" field.
+func ActiveQueryRequestedAtIn(vs ...time.Time) predicate.PaymentReconciliation {
+	return predicate.PaymentReconciliation(sql.FieldIn(FieldActiveQueryRequestedAt, vs...))
+}
+
+// ActiveQueryRequestedAtNotIn applies the NotIn predicate on the "active_query_requested_at" field.
+func ActiveQueryRequestedAtNotIn(vs ...time.Time) predicate.PaymentReconciliation {
+	return predicate.PaymentReconciliation(sql.FieldNotIn(FieldActiveQueryRequestedAt, vs...))
+}
+
+// ActiveQueryRequestedAtGT applies the GT predicate on the "active_query_requested_at" field.
+func ActiveQueryRequestedAtGT(v time.Time) predicate.PaymentReconciliation {
+	return predicate.PaymentReconciliation(sql.FieldGT(FieldActiveQueryRequestedAt, v))
+}
+
+// ActiveQueryRequestedAtGTE applies the GTE predicate on the "active_query_requested_at" field.
+func ActiveQueryRequestedAtGTE(v time.Time) predicate.PaymentReconciliation {
+	return predicate.PaymentReconciliation(sql.FieldGTE(FieldActiveQueryRequestedAt, v))
+}
+
+// ActiveQueryRequestedAtLT applies the LT predicate on the "active_query_requested_at" field.
+func ActiveQueryRequestedAtLT(v time.Time) predicate.PaymentReconciliation {
+	return predicate.PaymentReconciliation(sql.FieldLT(FieldActiveQueryRequestedAt, v))
+}
+
+// ActiveQueryRequestedAtLTE applies the LTE predicate on the "active_query_requested_at" field.
+func ActiveQueryRequestedAtLTE(v time.Time) predicate.PaymentReconciliation {
+	return predicate.PaymentReconciliation(sql.FieldLTE(FieldActiveQueryRequestedAt, v))
+}
+
+// ActiveQueryRequestedAtIsNil applies the IsNil predicate on the "active_query_requested_at" field.
+func ActiveQueryRequestedAtIsNil() predicate.PaymentReconciliation {
+	return predicate.PaymentReconciliation(sql.FieldIsNull(FieldActiveQueryRequestedAt))
+}
+
+// ActiveQueryRequestedAtNotNil applies the NotNil predicate on the "active_query_requested_at" field.
+func ActiveQueryRequestedAtNotNil() predicate.PaymentReconciliation {
+	return predicate.PaymentReconciliation(sql.FieldNotNull(FieldActiveQueryRequestedAt))
 }
 
 // LastProviderStatusEQ applies the EQ predicate on the "last_provider_status" field.

@@ -1,6 +1,6 @@
 services:
   api:
-    image: ${PAYMENT_GATEWAY_IMAGE:-zxabugx/payment-gateway:v0.0.1-beta}
+    image: ${PAYMENT_GATEWAY_IMAGE:-zxabugx/payment-gateway:latest}
     build:
       context: .
       dockerfile: Dockerfile

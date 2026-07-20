@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -30,6 +31,7 @@ type CheckoutHandler struct {
 
 type ReconciliationScheduler interface {
 	EnsureForOrder(context.Context, *ent.PaymentOrder) (*ent.PaymentReconciliation, error)
+	RequestForOrder(context.Context, *ent.PaymentOrder) (*ent.PaymentReconciliation, error)
 }
 
 type CheckoutOption func(*CheckoutHandler)
@@ -97,6 +99,11 @@ func (h CheckoutHandler) GetOrder(ctx *gin.Context) {
 	order, ok := h.authorizeCheckout(ctx)
 	if !ok {
 		return
+	}
+	if h.reconciliations != nil && strings.TrimSpace(order.ProviderOrderNo) != "" {
+		if _, err := h.reconciliations.RequestForOrder(ctx.Request.Context(), order); err != nil {
+			slog.Warn("request payment reconciliation", "order_id", order.ID, "error", err)
+		}
 	}
 	httpx.JSONOK(ctx, http.StatusOK, gin.H{
 		"title": order.Subject,

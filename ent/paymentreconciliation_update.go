@@ -173,6 +173,26 @@ func (_u *PaymentReconciliationUpdate) ClearLastAttemptAt() *PaymentReconciliati
 	return _u
 }
 
+// SetActiveQueryRequestedAt sets the "active_query_requested_at" field.
+func (_u *PaymentReconciliationUpdate) SetActiveQueryRequestedAt(v time.Time) *PaymentReconciliationUpdate {
+	_u.mutation.SetActiveQueryRequestedAt(v)
+	return _u
+}
+
+// SetNillableActiveQueryRequestedAt sets the "active_query_requested_at" field if the given value is not nil.
+func (_u *PaymentReconciliationUpdate) SetNillableActiveQueryRequestedAt(v *time.Time) *PaymentReconciliationUpdate {
+	if v != nil {
+		_u.SetActiveQueryRequestedAt(*v)
+	}
+	return _u
+}
+
+// ClearActiveQueryRequestedAt clears the value of the "active_query_requested_at" field.
+func (_u *PaymentReconciliationUpdate) ClearActiveQueryRequestedAt() *PaymentReconciliationUpdate {
+	_u.mutation.ClearActiveQueryRequestedAt()
+	return _u
+}
+
 // SetLastProviderStatus sets the "last_provider_status" field.
 func (_u *PaymentReconciliationUpdate) SetLastProviderStatus(v string) *PaymentReconciliationUpdate {
 	_u.mutation.SetLastProviderStatus(v)
@@ -339,6 +359,12 @@ func (_u *PaymentReconciliationUpdate) sqlSave(ctx context.Context) (_node int, 
 	}
 	if _u.mutation.LastAttemptAtCleared() {
 		_spec.ClearField(paymentreconciliation.FieldLastAttemptAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.ActiveQueryRequestedAt(); ok {
+		_spec.SetField(paymentreconciliation.FieldActiveQueryRequestedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ActiveQueryRequestedAtCleared() {
+		_spec.ClearField(paymentreconciliation.FieldActiveQueryRequestedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.LastProviderStatus(); ok {
 		_spec.SetField(paymentreconciliation.FieldLastProviderStatus, field.TypeString, value)
@@ -529,6 +555,26 @@ func (_u *PaymentReconciliationUpdateOne) SetNillableLastAttemptAt(v *time.Time)
 // ClearLastAttemptAt clears the value of the "last_attempt_at" field.
 func (_u *PaymentReconciliationUpdateOne) ClearLastAttemptAt() *PaymentReconciliationUpdateOne {
 	_u.mutation.ClearLastAttemptAt()
+	return _u
+}
+
+// SetActiveQueryRequestedAt sets the "active_query_requested_at" field.
+func (_u *PaymentReconciliationUpdateOne) SetActiveQueryRequestedAt(v time.Time) *PaymentReconciliationUpdateOne {
+	_u.mutation.SetActiveQueryRequestedAt(v)
+	return _u
+}
+
+// SetNillableActiveQueryRequestedAt sets the "active_query_requested_at" field if the given value is not nil.
+func (_u *PaymentReconciliationUpdateOne) SetNillableActiveQueryRequestedAt(v *time.Time) *PaymentReconciliationUpdateOne {
+	if v != nil {
+		_u.SetActiveQueryRequestedAt(*v)
+	}
+	return _u
+}
+
+// ClearActiveQueryRequestedAt clears the value of the "active_query_requested_at" field.
+func (_u *PaymentReconciliationUpdateOne) ClearActiveQueryRequestedAt() *PaymentReconciliationUpdateOne {
+	_u.mutation.ClearActiveQueryRequestedAt()
 	return _u
 }
 
@@ -728,6 +774,12 @@ func (_u *PaymentReconciliationUpdateOne) sqlSave(ctx context.Context) (_node *P
 	}
 	if _u.mutation.LastAttemptAtCleared() {
 		_spec.ClearField(paymentreconciliation.FieldLastAttemptAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.ActiveQueryRequestedAt(); ok {
+		_spec.SetField(paymentreconciliation.FieldActiveQueryRequestedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ActiveQueryRequestedAtCleared() {
+		_spec.ClearField(paymentreconciliation.FieldActiveQueryRequestedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.LastProviderStatus(); ok {
 		_spec.SetField(paymentreconciliation.FieldLastProviderStatus, field.TypeString, value)
