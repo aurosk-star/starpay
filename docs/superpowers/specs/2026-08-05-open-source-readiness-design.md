@@ -1,207 +1,114 @@
-# Open Source Readiness Design
+# 开源就绪设计
 
-## Objective
+## 目标
 
-Prepare the payment gateway for its first public source release under the
-Apache License 2.0. The release must have a clean security baseline, automated
-continuous integration, clear contribution and vulnerability-reporting paths,
-and no knowingly redistributed third-party material without compatible terms.
+以 Apache License 2.0 协议完成支付网关的首次源码公开发布准备。首次公开发布必须具备干净的安全基线、自动化持续集成、清晰的贡献与漏洞报告渠道，并确保不会在缺少兼容授权条款的情况下重新分发已知第三方材料。
 
-The public gateway repository will be separate from the existing public
-`zmoyi/starpay-go` SDK repository. The gateway uses Apache-2.0; the SDK keeps
-its existing MIT license.
+公开的支付网关仓库与现有公开的 `zmoyi/starpay-go` SDK 仓库保持独立。支付网关采用 Apache-2.0 协议，SDK 继续使用现有 MIT 协议。
 
-## Current Baseline
+## 当前基线
 
-The repository currently has a clean working tree and passes backend tests,
-`go vet`, SDK tests, frontend tests, TypeScript checks, frontend lint and build,
-and deployment-script tests.
+仓库当前工作区干净，后端测试、`go vet`、SDK 测试、前端测试、TypeScript 检查、前端 lint 和构建，以及部署脚本测试均可通过。
 
-The open-source blockers found during the readiness audit are:
+开源就绪审计发现以下阻断项：
 
-- The repository root has no license or community health files.
-- The repository has no GitHub Actions workflows.
-- `govulncheck` reports nine reachable vulnerabilities from the Go toolchain
-  and dependency graph.
-- `bun audit` reports sixteen frontend dependency vulnerabilities, including
-  seven high-severity findings.
-- The repository tracks 111 third-party files under `.agents/skills/` without
-  accompanying license files.
-- Public-facing documentation still contains a private Codeup clone URL, a
-  personal container namespace, public-SDK `GOPRIVATE` guidance, and a generic
-  Rsbuild frontend README.
-- Two tests contain test-only PEM private-key fixtures that are expected to
-  trigger generic secret scanners.
+- 仓库根目录没有许可证和社区健康文件。
+- 仓库没有 GitHub Actions 工作流。
+- `govulncheck` 从 Go 工具链和依赖图中报告 9 个可达漏洞。
+- `bun audit` 报告 16 个前端依赖漏洞，其中 7 个为高危漏洞。
+- 仓库在 `.agents/skills/` 下跟踪了 111 个第三方文件，但没有附带对应许可证文件。
+- 面向公众的文档仍包含私有 Codeup 克隆地址、个人容器命名空间、针对已公开 SDK 的 `GOPRIVATE` 配置，以及通用的 Rsbuild 前端 README。
+- 两个测试文件包含仅供测试使用的 PEM 私钥夹具，预计会触发通用密钥扫描器。
 
-## Chosen Approach
+## 选定方案
 
-Use attack-surface reduction before dependency upgrades. Remove tooling that
-does not participate in application runtime or reproducible builds, upgrade
-the remaining direct and transitive dependencies to fixed versions, and use
-automated security gates to prevent regressions.
+先收缩攻击面，再升级依赖。删除不参与应用运行或可重复构建的工具，升级其余直接依赖和传递依赖到已修复版本，并通过自动化安全门禁防止漏洞回归。
 
-Do not suppress a real vulnerability merely to obtain a green check. A scanner
-exception is allowed only for a verified non-secret test fixture or a proven
-false positive. Every exception must be exact-path scoped, include a reason in
-version control, and continue to leave production credentials and reachable
-vulnerabilities unignored.
+不得仅为获得绿色检查结果而压制真实漏洞。只有经确认不属于真实密钥的测试夹具，或已证实的误报，才允许配置扫描例外。每条例外必须精确限定到文件路径，在版本控制中写明原因，并且不能忽略生产凭据或可达漏洞。
 
-## Licensing and Third-Party Material
+## 许可证与第三方材料
 
-Add the unmodified Apache License 2.0 text as the root `LICENSE`. Add `NOTICE`
-identifying the project as Starpay and the copyright holder as "Starpay
-contributors". Add `THIRD_PARTY_NOTICES.md` containing dependencies or bundled
-assets whose licenses require attribution.
+在根目录添加未经修改的 Apache License 2.0 正文，文件名为 `LICENSE`。添加 `NOTICE`，项目名称使用 Starpay，版权主体写为“Starpay contributors”。添加 `THIRD_PARTY_NOTICES.md`，列出许可证要求署名的依赖或随附资源。
 
-Do not add SPDX headers to generated Ent files or mechanically modify every
-source file. Repository-level licensing is sufficient, avoids generated-code
-churn, and preserves upstream notices where present.
+不对 Ent 生成代码添加 SPDX 文件头，也不机械修改所有源文件。仓库级许可证已经足够，可以避免生成代码产生无意义变更，同时保留现有上游声明。
 
-Remove the vendored `.agents/skills/` directory and `skills-lock.json` from the
-public source tree. They are development-environment material rather than
-payment-gateway source. Keep `AGENTS.md` because it documents repository-local
-engineering rules and does not bundle third-party skill implementations.
+从公开源码树中删除 vendored `.agents/skills/` 目录和 `skills-lock.json`。这些内容属于开发环境材料，不属于支付网关源代码。保留 `AGENTS.md`，因为它记录的是仓库自身工程规范，没有打包第三方 skill 实现。
 
-Retain `docs/superpowers/specs/` and `docs/superpowers/plans/` because they are
-project-specific engineering records. Before release, scan them for private
-URLs, credentials, personal data, and obsolete operational instructions.
+保留 `docs/superpowers/specs/` 和 `docs/superpowers/plans/`，因为它们属于项目自身的工程记录。发布前扫描其中的私有地址、凭据、个人数据和过时运维说明。
 
-## Backend Vulnerability Remediation
+## 后端漏洞修复
 
-Set the supported toolchain to Go 1.26.5 by adding `toolchain go1.26.5` to the
-root and SDK modules. Pin the Docker builder image to `golang:1.26.5` instead
-of using `golang:latest`.
+在根模块和 SDK 模块中添加 `toolchain go1.26.5`，将受支持工具链固定为 Go 1.26.5。Docker 构建阶段使用 `golang:1.26.5`，不再使用 `golang:latest`。
 
-Upgrade `golang.org/x/text` to at least v0.39.0 and
-`github.com/quic-go/quic-go` to at least v0.59.1. Prefer upgrading their direct
-parents when that yields the fixed transitive version. Run `go mod tidy` after
-the upgrades and retain only dependencies required by the build and tools.
+将 `golang.org/x/text` 升级到至少 v0.39.0，将 `github.com/quic-go/quic-go` 升级到至少 v0.59.1。如果升级直接父依赖可以获得已修复的传递依赖版本，应优先升级父依赖。升级完成后运行 `go mod tidy`，只保留构建和工具链实际需要的依赖。
 
-The backend security gate is `govulncheck ./...` with zero reachable
-vulnerabilities. Findings in imported but unreachable symbols remain visible
-in logs and must be reviewed, but the release is blocked by any reachable
-finding.
+后端安全门禁为 `govulncheck ./...`，要求可达漏洞数量为 0。已导入但不可达的符号漏洞仍需保留在日志中并进行审查，但只有可达漏洞会阻断发布。
 
-## Frontend Vulnerability Remediation
+## 前端漏洞修复
 
-Remove the `shadcn` CLI package from `web/package.json`. The generated shadcn/ui
-components are source files and neither runtime nor normal builds require the
-CLI. When maintainers need to generate another component, documentation will
-use an explicitly pinned one-off CLI version that has passed an audit at that
-time.
+从 `web/package.json` 删除 `shadcn` CLI 包。已生成的 shadcn/ui 组件本身就是源码文件，应用运行和常规构建都不依赖该 CLI。维护者以后需要生成新组件时，文档应要求使用当时已通过安全审计的固定版本一次性 CLI。
 
-Upgrade Tailwind/PostCSS and other remaining direct dependencies to versions
-whose transitive graphs contain no known advisories. Regenerate `web/bun.lock`
-with the repository's Bun version. Prefer upstream fixed versions; do not use
-an override when a fixed parent release exists. A temporary override is
-acceptable only when it selects a semver-compatible security fix, includes an
-explanatory comment supported by the package format, and has a tracked removal
-condition.
+升级 Tailwind/PostCSS 以及其他剩余直接依赖，使其传递依赖图不再包含已知安全通告。使用仓库规定的 Bun 版本重新生成 `web/bun.lock`。优先采用上游已修复版本；当父依赖已有修复版本时，不得使用 override。只有当 override 选择的是语义化版本兼容的安全修复版本、包格式支持写入解释性注释，并且已记录明确移除条件时，才允许临时使用 override。
 
-The initial public-release gate is a zero-finding `bun audit`, including
-development dependencies. This protects both the shipped frontend and the
-maintainer build environment.
+首次公开发布要求 `bun audit` 检查结果为 0，并且包含开发依赖。这同时保护交付的前端产物和维护者的构建环境。
 
-## Secrets and Configuration Safety
+## 密钥与配置安全
 
-Keep `.env` and `.env.production` excluded from both Git and Docker build
-contexts. Replace the fixed application-secret encryption key in
-`.env.production.example` with a non-runnable replacement marker. Production
-startup must reject the documented development JWT secret, the documented
-development application-encryption key, and unreplaced `CHANGE_ME` values.
+继续确保 `.env` 和 `.env.production` 同时被 Git 和 Docker 构建上下文排除。将 `.env.production.example` 中固定的应用密钥加密 Key 改为不可直接运行的替换标记。生产环境启动时必须拒绝文档中的开发 JWT 密钥、开发应用密钥加密 Key，以及尚未替换的 `CHANGE_ME` 值。
 
-Retain the PEM fixtures only if the payment-provider tests require parseable
-keys. Mark them as test-only and add exact file-and-rule exceptions to the
-secret scanner. The exceptions must not match other private keys or other
-paths.
+只有在支付渠道测试确实需要可解析密钥时才保留 PEM 夹具。将其明确标记为仅供测试使用，并为密钥扫描器添加精确到文件和规则的例外。例外不能匹配其他私钥或其他路径。
 
-Run gitleaks against the full Git history before the first public push. Any
-real credential found in any commit is rotated first and removed from history
-second. If the existing author email should not become public, rewrite it to a
-GitHub noreply address before the first gateway push.
+首次公开推送前，使用 gitleaks 扫描完整 Git 历史。任何提交中发现真实凭据时，必须先轮换凭据，再从历史中移除。如果不希望现有作者邮箱公开，应在首次推送支付网关前将其重写为 GitHub noreply 邮箱。
 
-## Continuous Integration Design
+## 持续集成设计
 
-Create `.github/workflows/ci.yml` for pull requests and pushes to `main`. It
-runs independent backend, SDK, frontend, and repository-safety jobs with
-least-privilege read-only permissions:
+创建 `.github/workflows/ci.yml`，在 Pull Request 和推送到 `main` 时运行。工作流采用最小权限的只读权限，分别运行后端、SDK、前端和仓库安全任务：
 
-- Backend: Go 1.26.5, module download, `go test ./...`, `go vet
-  ./...`, and `govulncheck ./...`.
-- SDK: `go test -count=1 ./...` and `go vet ./...` from `sdk/go`.
-- Frontend: Bun 1.3.13, frozen install, Node tests, TypeScript check,
-  oxlint, production build, and `bun audit`.
-- Deployment tooling: `bash scripts/deploy_test.sh`.
-- Repository safety: full-history gitleaks scan with only the reviewed test-key
-  exceptions.
+- 后端：使用 Go 1.26.5，下载模块，运行 `go test ./...`、`go vet ./...` 和 `govulncheck ./...`。
+- SDK：在 `sdk/go` 中运行 `go test -count=1 ./...` 和 `go vet ./...`。
+- 前端：使用 Bun 1.3.13，冻结安装依赖，运行 Node 测试、TypeScript 检查、oxlint、生产构建和 `bun audit`。
+- 部署工具：运行 `bash scripts/deploy_test.sh`。
+- 仓库安全：扫描完整历史的 gitleaks，只允许经过审查的测试密钥例外。
 
-Create `.github/workflows/security.yml` for weekly scheduled scans, manual
-dispatch, pushes to `main`, and pull requests where the scanner supports them.
-It runs CodeQL for Go and JavaScript/TypeScript, builds the application image,
-scans it with Trivy, and produces an SPDX or CycloneDX SBOM. High and critical
-container findings block the workflow. Scanner action versions are pinned to
-immutable commit SHAs, with Dependabot responsible for proposing updates.
+创建 `.github/workflows/security.yml`，支持每周定时运行、手动触发、推送到 `main`，并在扫描器支持时对 Pull Request 运行。工作流使用 CodeQL 分析 Go 和 JavaScript/TypeScript，构建应用镜像，使用 Trivy 扫描镜像，并生成 SPDX 或 CycloneDX SBOM。容器存在高危或严重漏洞时阻断工作流。所有扫描 Action 固定到不可变提交 SHA，由 Dependabot 负责提出升级。
 
-Create `.github/dependabot.yml` with weekly update groups for Go modules, the
-frontend package ecosystem, GitHub Actions, and Docker base images. PostgreSQL
-and Redis remain on `latest` in Compose by existing project decision; the
-public deployment guide explicitly documents that policy and its operational
-trade-off.
+创建 `.github/dependabot.yml`，为 Go 模块、前端包生态、GitHub Actions 和 Docker 基础镜像配置每周分组更新。按照项目现有决定，Compose 中的 PostgreSQL 和 Redis 继续使用 `latest`；公开部署文档必须明确说明该策略及其运维取舍。
 
-CI workflows do not publish images, create releases, or mutate repository
-settings. Release automation and GitHub branch-protection configuration are
-separate follow-up work after the open-source readiness changes merge.
+CI 工作流不发布镜像、不创建 Release，也不修改仓库设置。发布自动化和 GitHub 分支保护配置属于开源就绪变更合并后的独立后续工作。
 
-## Community and Public Documentation
+## 社区与公开文档
 
-Add:
+新增：
 
-- `SECURITY.md` with supported versions, a private reporting route, expected
-  acknowledgement and remediation timelines, and a request not to open public
-  issues for unpatched vulnerabilities.
-- `CONTRIBUTING.md` with local setup, required verification, architecture
-  boundaries, commit guidance, and a Developer Certificate of Origin sign-off
-  requirement.
-- `CODE_OF_CONDUCT.md` using Contributor Covenant 2.1.
-- `.github/PULL_REQUEST_TEMPLATE.md` and focused bug, feature, and security
-  issue configuration.
-- A root changelog describing the first public release baseline.
+- `SECURITY.md`：包含受支持版本、私密报告渠道、预期确认和修复时限，并要求不要为尚未修复的漏洞创建公开 Issue。
+- `CONTRIBUTING.md`：包含本地环境配置、必需验证命令、架构边界、提交规范，以及 Developer Certificate of Origin 签署要求。
+- `CODE_OF_CONDUCT.md`：采用 Contributor Covenant 2.1。
+- `.github/PULL_REQUEST_TEMPLATE.md`，以及聚焦明确的缺陷、功能建议和安全报告 Issue 配置。
+- 根目录变更日志，记录首次公开发布的基线。
 
-Update the root README with the Apache-2.0 license, build/security status
-badges, maturity statement, supported Go/Bun versions, five-minute quickstart,
-screenshots or a visual verification note, security warning, and links to the
-security and contribution policies.
+更新根 README，增加 Apache-2.0 许可证、构建和安全状态徽章、成熟度声明、支持的 Go/Bun 版本、五分钟快速启动、截图或视觉验证说明、安全警告，以及指向安全政策和贡献指南的链接。
 
-Replace the generic `web/README.md` with frontend-specific development and
-verification instructions. Replace the private Codeup URL in the production
-deployment guide with `https://github.com/zmoyi/starpay`, remove `GOPRIVATE`
-instructions for the public SDK, and replace personal container namespace
-defaults with `ghcr.io/zmoyi/starpay` while retaining the existing environment
-variable override.
+将通用的 `web/README.md` 替换为前端专用开发和验证说明。把生产部署文档中的私有 Codeup 地址替换为 `https://github.com/zmoyi/starpay`，删除公开 SDK 的 `GOPRIVATE` 配置说明，并将个人容器命名空间默认值替换为 `ghcr.io/zmoyi/starpay`，同时保留现有环境变量覆盖能力。
 
-## Verification and Release Gate
+## 验证与发布门禁
 
-The readiness change is complete only when all of the following are true from
-a clean checkout:
+只有在全新检出环境中满足以下所有条件，开源就绪变更才算完成：
 
 ```text
-go test ./...                          passes
-go vet ./...                           passes
-govulncheck ./...                      reports 0 reachable vulnerabilities
-cd sdk/go && go test -count=1 ./...    passes
-cd sdk/go && go vet ./...              passes
-cd web && node --test test/*.test.mts  passes
-cd web && bun run typecheck            passes
-cd web && bun run lint                 passes
-cd web && bun run build                passes
-cd web && bun audit                    reports 0 vulnerabilities
-bash scripts/deploy_test.sh             passes
-gitleaks full-history scan              reports 0 unallowlisted secrets
-Trivy application-image scan           reports 0 high or critical findings
-git status --short                      produces no output
+go test ./...                          通过
+go vet ./...                           通过
+govulncheck ./...                      报告 0 个可达漏洞
+cd sdk/go && go test -count=1 ./...    通过
+cd sdk/go && go vet ./...              通过
+cd web && node --test test/*.test.mts  通过
+cd web && bun run typecheck            通过
+cd web && bun run lint                 通过
+cd web && bun run build                通过
+cd web && bun audit                    报告 0 个漏洞
+bash scripts/deploy_test.sh             通过
+gitleaks 完整历史扫描                   报告 0 个未放行密钥
+Trivy 应用镜像扫描                      报告 0 个高危或严重漏洞
+git status --short                     无输出
 ```
 
-The same commands must pass in GitHub Actions. The repository is not made
-public and no release is tagged as part of this implementation; those are
-explicit owner actions after review of the clean CI results and the final Git
-history.
+相同命令必须在 GitHub Actions 中通过。本次实施不负责将仓库设为公开，也不创建发布标签；这些操作由仓库所有者在审查干净的 CI 结果和最终 Git 历史后明确执行。
