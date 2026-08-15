@@ -34,3 +34,7 @@ internal/platform/webui/dist/
 
 # Local Git worktrees
 .worktrees/
+
+# Local agent skill installations
+.agents/
+skills-lock.json
