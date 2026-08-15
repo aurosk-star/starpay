@@ -15,7 +15,7 @@ fail() {
 # shellcheck source=/dev/null
 source "$deploy_script"
 
-[[ "$default_image" == "ghcr.io/zmoyi/starpay:latest" ]] || fail "default image is not the public GHCR image"
+[[ "$default_image" == "ghcr.io/aurosk-star/starpay:latest" ]] || fail "default image is not the organization GHCR image"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -60,10 +60,10 @@ fi
 
 compose_output=$(
   PAYMENT_GATEWAY_ENV_FILE="$generated_env" \
-    PAYMENT_GATEWAY_IMAGE="ghcr.io/zmoyi/starpay:test" \
+    PAYMENT_GATEWAY_IMAGE="ghcr.io/aurosk-star/starpay:test" \
     docker compose --env-file "$generated_env" -f "$repo_root/docker-compose.prod.yml" config
 )
-[[ "$compose_output" == *"image: ghcr.io/zmoyi/starpay:test"* ]] || fail "Compose did not use PAYMENT_GATEWAY_IMAGE"
+[[ "$compose_output" == *"image: ghcr.io/aurosk-star/starpay:test"* ]] || fail "Compose did not use PAYMENT_GATEWAY_IMAGE"
 [[ "$compose_output" == *"APP_NAME: payment-gateway"* ]] || fail "Compose did not load PAYMENT_GATEWAY_ENV_FILE"
 
 help_output=$(bash "$deploy_script" --help)

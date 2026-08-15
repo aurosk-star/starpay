@@ -1,7 +1,7 @@
 # Starpay
 
-[![CI](https://github.com/zmoyi/starpay/actions/workflows/ci.yml/badge.svg)](https://github.com/zmoyi/starpay/actions/workflows/ci.yml)
-[![Security](https://github.com/zmoyi/starpay/actions/workflows/security.yml/badge.svg)](https://github.com/zmoyi/starpay/actions/workflows/security.yml)
+[![CI](https://github.com/aurosk-star/starpay/actions/workflows/ci.yml/badge.svg)](https://github.com/aurosk-star/starpay/actions/workflows/ci.yml)
+[![Security](https://github.com/aurosk-star/starpay/actions/workflows/security.yml/badge.svg)](https://github.com/aurosk-star/starpay/actions/workflows/security.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 统一支付网关，提供接入应用管理、支付订单、收银台、支付通道适配、通道路由、平台异步通知入口、业务 Webhook 投递和后台管理控制台。
