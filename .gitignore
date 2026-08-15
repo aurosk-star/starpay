@@ -31,3 +31,6 @@ docker-data/
 backups/
 .claude/
 internal/platform/webui/dist/
+
+# Local Git worktrees
+.worktrees/
