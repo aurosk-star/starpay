@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+const (
+	defaultJWTSecret              = "local-development-secret-change-me"
+	defaultAppSecretEncryptionKey = "development-only-key-32-bytes!!!"
+)
+
 type Config struct {
 	App       AppConfig
 	HTTP      HTTPConfig
@@ -65,7 +70,7 @@ type RateLimitConfig struct {
 
 func Load() (Config, error) {
 	loadDotEnv(".env")
-	return Config{
+	cfg := Config{
 		App: AppConfig{
 			Name: env("APP_NAME", "payment-gateway"),
 			Env:  env("APP_ENV", "local"),
@@ -80,13 +85,13 @@ func Load() (Config, error) {
 			DB:       0,
 		},
 		Auth: AuthConfig{
-			JWTSecret:              env("JWT_SECRET", "local-development-secret-change-me"),
+			JWTSecret:              env("JWT_SECRET", defaultJWTSecret),
 			AccessTokenTTL:         durationEnv("ACCESS_TOKEN_TTL", 12*time.Hour),
 			RefreshTokenTTL:        durationEnv("REFRESH_TOKEN_TTL", 7*24*time.Hour),
 			RefreshCookieName:      env("REFRESH_COOKIE_NAME", "pg_refresh_token"),
 			RefreshCookieSecure:    boolEnv("REFRESH_COOKIE_SECURE", false),
 			RefreshCookieSameSite:  env("REFRESH_COOKIE_SAME_SITE", "lax"),
-			AppSecretEncryptionKey: env("APP_SECRET_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef"),
+			AppSecretEncryptionKey: env("APP_SECRET_ENCRYPTION_KEY", defaultAppSecretEncryptionKey),
 		},
 		Orders: OrdersConfig{
 			DefaultTTL:              durationEnv("ORDER_DEFAULT_TTL", 15*time.Minute),
@@ -99,7 +104,38 @@ func Load() (Config, error) {
 			OpenAPILimit:   intEnv("OPEN_API_RATE_LIMIT", 120),
 			OpenAPIWindow:  durationEnv("OPEN_API_RATE_LIMIT_WINDOW", time.Minute),
 		},
-	}, nil
+	}
+	if err := validateProductionSecrets(cfg); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
+}
+
+func validateProductionSecrets(cfg Config) error {
+	if !strings.EqualFold(cfg.App.Env, "production") {
+		return nil
+	}
+	if cfg.Auth.JWTSecret == defaultJWTSecret {
+		return fmt.Errorf("JWT_SECRET must not use the development default in production")
+	}
+	if cfg.Auth.AppSecretEncryptionKey == defaultAppSecretEncryptionKey {
+		return fmt.Errorf("APP_SECRET_ENCRYPTION_KEY must not use the development default in production")
+	}
+	values := []struct {
+		name  string
+		value string
+	}{
+		{name: "JWT_SECRET", value: cfg.Auth.JWTSecret},
+		{name: "APP_SECRET_ENCRYPTION_KEY", value: cfg.Auth.AppSecretEncryptionKey},
+		{name: "DATABASE_URL", value: cfg.Database.DSN},
+		{name: "REDIS_PASSWORD", value: cfg.Redis.Password},
+	}
+	for _, item := range values {
+		if strings.Contains(strings.ToUpper(item.value), "CHANGE_ME") {
+			return fmt.Errorf("%s contains an unreplaced CHANGE_ME value", item.name)
+		}
+	}
+	return nil
 }
 
 func loadDotEnv(path string) {

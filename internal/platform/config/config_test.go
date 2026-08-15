@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -45,7 +46,7 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Redis.Addr != "localhost:6379" {
 		t.Fatalf("Redis.Addr = %q, want localhost:6379", cfg.Redis.Addr)
 	}
-	if cfg.Auth.AppSecretEncryptionKey != "0123456789abcdef0123456789abcdef" {
+	if cfg.Auth.AppSecretEncryptionKey != defaultAppSecretEncryptionKey {
 		t.Fatalf("Auth.AppSecretEncryptionKey = %q, want default key", cfg.Auth.AppSecretEncryptionKey)
 	}
 	if cfg.Orders.DefaultTTL != 15*time.Minute {
@@ -216,6 +217,79 @@ REDIS_ADDR=localhost:16380
 	}
 }
 
+func TestLoadRejectsUnsafeProductionSecrets(t *testing.T) {
+	tests := []struct {
+		name              string
+		jwtSecret         string
+		encryptionKey     string
+		databasePassword  string
+		redisPassword     string
+		wantErrorVariable string
+	}{
+		{
+			name:              "development jwt secret",
+			jwtSecret:         defaultJWTSecret,
+			encryptionKey:     strings.Repeat("k", 32),
+			databasePassword:  strings.Repeat("d", 24),
+			redisPassword:     strings.Repeat("r", 24),
+			wantErrorVariable: "JWT_SECRET",
+		},
+		{
+			name:              "development application encryption key",
+			jwtSecret:         strings.Repeat("j", 48),
+			encryptionKey:     defaultAppSecretEncryptionKey,
+			databasePassword:  strings.Repeat("d", 24),
+			redisPassword:     strings.Repeat("r", 24),
+			wantErrorVariable: "APP_SECRET_ENCRYPTION_KEY",
+		},
+		{
+			name:              "database placeholder",
+			jwtSecret:         strings.Repeat("j", 48),
+			encryptionKey:     strings.Repeat("k", 32),
+			databasePassword:  "CHANGE_ME_DATABASE_PASSWORD",
+			redisPassword:     strings.Repeat("r", 24),
+			wantErrorVariable: "DATABASE_URL",
+		},
+		{
+			name:              "redis placeholder",
+			jwtSecret:         strings.Repeat("j", 48),
+			encryptionKey:     strings.Repeat("k", 32),
+			databasePassword:  strings.Repeat("d", 24),
+			redisPassword:     "CHANGE_ME_REDIS_PASSWORD",
+			wantErrorVariable: "REDIS_PASSWORD",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clearConfigEnv(t)
+			t.Setenv("APP_ENV", "production")
+			t.Setenv("JWT_SECRET", tt.jwtSecret)
+			t.Setenv("APP_SECRET_ENCRYPTION_KEY", tt.encryptionKey)
+			t.Setenv("DB_PASSWORD", tt.databasePassword)
+			t.Setenv("REDIS_PASSWORD", tt.redisPassword)
+
+			_, err := Load()
+			if err == nil || !strings.Contains(err.Error(), tt.wantErrorVariable) {
+				t.Fatalf("Load() error = %v, want variable %s", err, tt.wantErrorVariable)
+			}
+		})
+	}
+}
+
+func TestLoadAcceptsIndependentProductionSecrets(t *testing.T) {
+	clearConfigEnv(t)
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("JWT_SECRET", strings.Repeat("j", 48))
+	t.Setenv("APP_SECRET_ENCRYPTION_KEY", strings.Repeat("k", 32))
+	t.Setenv("DB_PASSWORD", strings.Repeat("d", 24))
+	t.Setenv("REDIS_PASSWORD", strings.Repeat("r", 24))
+
+	if _, err := Load(); err != nil {
+		t.Fatalf("Load() error = %v, want nil", err)
+	}
+}
+
 func clearConfigEnv(t *testing.T) {
 	t.Helper()
 	for _, key := range []string{
@@ -231,6 +305,8 @@ func clearConfigEnv(t *testing.T) {
 		"DB_PASSWORD",
 		"DB_SSLMODE",
 		"REDIS_ADDR",
+		"REDIS_PASSWORD",
+		"JWT_SECRET",
 		"APP_SECRET_ENCRYPTION_KEY",
 		"ORDER_DEFAULT_TTL",
 		"ORDER_EXPIRE_SCAN_INTERVAL",

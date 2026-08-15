@@ -98,6 +98,14 @@ validate_env() {
     fail "replace all CHANGE_ME values in $env_file"
     return 1
   fi
+  if [[ $(read_env_value "$env_file" JWT_SECRET) == "local-development-secret-change-me" ]]; then
+    fail "JWT_SECRET must not use the development default"
+    return 1
+  fi
+  if [[ $(read_env_value "$env_file" APP_SECRET_ENCRYPTION_KEY) == "development-only-key-32-bytes!!!" ]]; then
+    fail "APP_SECRET_ENCRYPTION_KEY must not use the development default"
+    return 1
+  fi
 
   local required key value
   required=(APP_ENV POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD REDIS_PASSWORD JWT_SECRET APP_SECRET_ENCRYPTION_KEY)

@@ -42,6 +42,20 @@ if validate_env "$invalid_env" >/dev/null 2>&1; then
   fail "placeholder environment unexpectedly validated"
 fi
 
+weak_jwt_env="$tmp_dir/.env.weak-jwt"
+cp "$generated_env" "$weak_jwt_env"
+printf '\nJWT_SECRET=local-development-secret-change-me\n' >>"$weak_jwt_env"
+if validate_env "$weak_jwt_env" >/dev/null 2>&1; then
+  fail "development JWT secret unexpectedly validated"
+fi
+
+weak_encryption_env="$tmp_dir/.env.weak-encryption"
+cp "$generated_env" "$weak_encryption_env"
+printf '\nAPP_SECRET_ENCRYPTION_KEY=development-only-key-32-bytes!!!\n' >>"$weak_encryption_env"
+if validate_env "$weak_encryption_env" >/dev/null 2>&1; then
+  fail "development application encryption key unexpectedly validated"
+fi
+
 compose_output=$(
   PAYMENT_GATEWAY_ENV_FILE="$generated_env" \
     PAYMENT_GATEWAY_IMAGE="zxabugx/payment-gateway:test" \
