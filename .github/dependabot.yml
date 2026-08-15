@@ -21,6 +21,10 @@ updates:
     groups:
       frontend-packages:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -35,3 +39,8 @@ updates:
     groups:
       docker-images:
         patterns: ["*"]
+    ignore:
+      - dependency-name: golang
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
