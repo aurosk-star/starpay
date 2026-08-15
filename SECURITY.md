@@ -14,7 +14,7 @@ Starpay 是支付基础设施。请勿在公开 Issue、Discussion、Pull Reques
 
 ## 私密报告漏洞
 
-请通过 [GitHub Private Vulnerability Reporting](https://github.com/zmoyi/starpay/security/advisories/new) 提交报告。请不要为未修复漏洞创建公开 Issue。
+请通过 [GitHub Private Vulnerability Reporting](https://github.com/aurosk-star/starpay/security/advisories/new) 提交报告。请不要为未修复漏洞创建公开 Issue。
 
 报告应至少包含：
 

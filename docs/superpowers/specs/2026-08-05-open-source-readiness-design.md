@@ -88,7 +88,7 @@ CI 工作流不发布镜像、不创建 Release，也不修改仓库设置。发
 
 更新根 README，增加 Apache-2.0 许可证、构建和安全状态徽章、成熟度声明、支持的 Go/Bun 版本、五分钟快速启动、截图或视觉验证说明、安全警告，以及指向安全政策和贡献指南的链接。
 
-将通用的 `web/README.md` 替换为前端专用开发和验证说明。把生产部署文档中的私有 Codeup 地址替换为 `https://github.com/zmoyi/starpay`，删除公开 SDK 的 `GOPRIVATE` 配置说明，并将个人容器命名空间默认值替换为 `ghcr.io/zmoyi/starpay`，同时保留现有环境变量覆盖能力。
+将通用的 `web/README.md` 替换为前端专用开发和验证说明。把生产部署文档中的私有 Codeup 地址替换为 `https://github.com/aurosk-star/starpay`，删除公开 SDK 的 `GOPRIVATE` 配置说明，并将个人容器命名空间默认值替换为 `ghcr.io/aurosk-star/starpay`，同时保留现有环境变量覆盖能力。
 
 ## 验证与发布门禁
 

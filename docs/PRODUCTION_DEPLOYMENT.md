@@ -34,7 +34,7 @@ nginx -v
 ```bash
 mkdir -p /opt/starpay
 cd /opt/starpay
-git clone https://github.com/zmoyi/starpay.git
+git clone https://github.com/aurosk-star/starpay.git
 cd starpay
 ```
 
@@ -52,7 +52,7 @@ cd /opt/starpay/starpay
 默认镜像为：
 
 ```text
-ghcr.io/zmoyi/starpay:latest
+ghcr.io/aurosk-star/starpay:latest
 ```
 
 首次执行且 `.env.production` 不存在时，脚本基于模板生成配置，并把文件权限设为 `600`。密钥不会打印到终端。部署完成后检查：
@@ -66,7 +66,7 @@ curl http://127.0.0.1:8080/healthz
 
 ```bash
 ./scripts/deploy.sh install \
-  --image ghcr.io/zmoyi/starpay:latest \
+  --image ghcr.io/aurosk-star/starpay:latest \
   --env-file /etc/starpay/payment-gateway.env
 ```
 

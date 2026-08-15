@@ -827,7 +827,7 @@ git commit -m "Add scheduled security and dependency scans"
 
 - [ ] **步骤 1：编写安全政策**
 
-`SECURITY.md` 必须明确：`main` 和最新 Release 受支持；通过 `https://github.com/zmoyi/starpay/security/advisories/new` 私密报告；3 个工作日内确认、7 个工作日内完成初步分级、严重漏洞目标 30 天内修复；未修复漏洞不得提交公开 Issue；报告需包含受影响版本、复现步骤、影响和建议缓解措施。
+`SECURITY.md` 必须明确：`main` 和最新 Release 受支持；通过 `https://github.com/aurosk-star/starpay/security/advisories/new` 私密报告；3 个工作日内确认、7 个工作日内完成初步分级、严重漏洞目标 30 天内修复；未修复漏洞不得提交公开 Issue；报告需包含受影响版本、复现步骤、影响和建议缓解措施。
 
 - [ ] **步骤 2：编写贡献指南和 DCO 要求**
 
@@ -850,7 +850,7 @@ All commits must include a `Signed-off-by` trailer created with `git commit -s`.
 
 - [ ] **步骤 3：添加 Contributor Covenant 2.1**
 
-使用 `apply_patch` 添加 Contributor Covenant 2.1 官方英文全文到 `CODE_OF_CONDUCT.md`。执行方式写为：通过 `https://github.com/zmoyi/starpay/security/advisories/new` 私密联系维护者；不得把行为事件细节写入公开 Issue。
+使用 `apply_patch` 添加 Contributor Covenant 2.1 官方英文全文到 `CODE_OF_CONDUCT.md`。执行方式写为：通过 `https://github.com/aurosk-star/starpay/security/advisories/new` 私密联系维护者；不得把行为事件细节写入公开 Issue。
 
 - [ ] **步骤 4：添加 PR、Issue 和所有者配置**
 
@@ -868,7 +868,7 @@ Issue 配置必须关闭空白 Issue，并提供安全报告外链：
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/zmoyi/starpay/security/advisories/new
+    url: https://github.com/aurosk-star/starpay/security/advisories/new
     about: Report vulnerabilities privately. Do not open a public issue.
 ```
 
@@ -920,7 +920,7 @@ git commit -m "Add open source community health files"
 
 **接口：**
 
-- 输入：公开仓库地址 `https://github.com/zmoyi/starpay` 和镜像地址 `ghcr.io/zmoyi/starpay`。
+- 输入：公开仓库地址 `https://github.com/aurosk-star/starpay` 和镜像地址 `ghcr.io/aurosk-star/starpay`。
 - 输出：不再引用私有 Codeup、个人 Docker Hub 命名空间或公开 SDK 的 `GOPRIVATE`；README 能指导全新用户完成验证。
 
 - [ ] **步骤 1：先更新部署脚本测试的公开镜像预期**
@@ -928,19 +928,19 @@ git commit -m "Add open source community health files"
 在 `scripts/deploy_test.sh` 中先增加默认镜像断言：
 
 ```bash
-[[ "$default_image" == "ghcr.io/zmoyi/starpay:latest" ]] || fail "default image is not the public GHCR image"
+[[ "$default_image" == "ghcr.io/aurosk-star/starpay:latest" ]] || fail "default image is not the public GHCR image"
 ```
 
 并将测试镜像和断言改为：
 
 ```bash
-PAYMENT_GATEWAY_IMAGE="ghcr.io/zmoyi/starpay:test"
+PAYMENT_GATEWAY_IMAGE="ghcr.io/aurosk-star/starpay:test"
 ```
 
 以及：
 
 ```bash
-[[ "$compose_output" == *"image: ghcr.io/zmoyi/starpay:test"* ]] || fail "Compose did not use PAYMENT_GATEWAY_IMAGE"
+[[ "$compose_output" == *"image: ghcr.io/aurosk-star/starpay:test"* ]] || fail "Compose did not use PAYMENT_GATEWAY_IMAGE"
 ```
 
 - [ ] **步骤 2：运行部署测试确认失败**
@@ -956,7 +956,7 @@ bash scripts/deploy_test.sh
 把 `docker-compose.prod.yml`、`scripts/deploy.sh` 和帮助文本中的 `zxabugx/payment-gateway:latest` 替换为：
 
 ```text
-ghcr.io/zmoyi/starpay:latest
+ghcr.io/aurosk-star/starpay:latest
 ```
 
 保留 `PAYMENT_GATEWAY_IMAGE` 覆盖能力。
@@ -974,13 +974,13 @@ ghcr.io/zmoyi/starpay:latest
 从 `sdk/go/README.md` 和 `docs/PAYMENT_GATEWAY_INTEGRATION.md` 删除 `GOPRIVATE=github.com/zmoyi/*` 及“私有仓库”说明。把 `docs/PRODUCTION_DEPLOYMENT.md` 的克隆命令改为：
 
 ```bash
-git clone https://github.com/zmoyi/starpay.git
+git clone https://github.com/aurosk-star/starpay.git
 cd starpay
 ```
 
-部署示例统一使用 `ghcr.io/zmoyi/starpay:latest`。保留 PostgreSQL/Redis `latest` 的项目决策，并明确升级前必须备份和检查发行说明。
+部署示例统一使用 `ghcr.io/aurosk-star/starpay:latest`。保留 PostgreSQL/Redis `latest` 的项目决策，并明确升级前必须备份和检查发行说明。
 
-把 `docs/superpowers/specs/2026-07-14-embedded-web-ui-image-design.md` 中历史测试镜像地址统一改为 `ghcr.io/zmoyi/starpay:v0.0.1-beta`，保留该文档对 beta 可变标签的历史说明。
+把 `docs/superpowers/specs/2026-07-14-embedded-web-ui-image-design.md` 中历史测试镜像地址统一改为 `ghcr.io/aurosk-star/starpay:v0.0.1-beta`，保留该文档对 beta 可变标签的历史说明。
 
 - [ ] **步骤 7：验证不再包含私有或个人命名空间**
 
