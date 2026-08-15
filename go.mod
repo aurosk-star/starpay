@@ -41,7 +41,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
-	github.com/go-pay/crypto v0.0.1
+	github.com/go-pay/crypto v0.0.2
 	github.com/go-pay/gopay v1.5.122
 	github.com/go-pay/util v0.0.4 // indirect
 	github.com/go-pay/xlog v0.0.3 // indirect
