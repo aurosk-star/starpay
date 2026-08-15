@@ -230,7 +230,7 @@ func TestNotifyHandlerMarksOrderPaidAndReturnsWechatSuccess(t *testing.T) {
 			"mch_id":                   "mch_1",
 			"api_v3_key":               testWechatAPIV3Key,
 			"serial_no":                "merchant-serial",
-			"private_key":              testWechatMerchantPrivateKey,
+			"private_key":              "test-private-key-not-used-by-notify-parser",
 			"wechat_pay_public_key":    publicKeyPEM,
 			"wechat_pay_public_key_id": "platform-serial-1",
 			"mode":                     "native",
@@ -273,10 +273,6 @@ func TestNotifyHandlerMarksOrderPaidAndReturnsWechatSuccess(t *testing.T) {
 }
 
 const testWechatAPIV3Key = "12345678901234567890123456789012"
-
-const testWechatMerchantPrivateKey = `-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQD
------END PRIVATE KEY-----`
 
 type signedWechatNotify struct {
 	header map[string][]string

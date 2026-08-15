@@ -385,9 +385,7 @@ func account(config map[string]any) *ent.ChannelAccount {
 		"mch_id":     "mch_1",
 		"api_v3_key": testAPIV3Key,
 		"serial_no":  "serial",
-		"private_key": "-----BEGIN PRIVATE KEY-----\n" +
-			"MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQD\n" +
-			"-----END PRIVATE KEY-----",
+		"private_key": "test-private-key-not-used-by-notify-parser",
 	}
 	for key, value := range config {
 		values[key] = value

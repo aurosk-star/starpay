@@ -1,0 +1,9 @@
+56551597be0526b42c6d471f23e8a1ac8bff1fa0:internal/domain/payments/test/notify_handler_test.go:private-key:203
+f65147db9ccab05f58bca3caec35138f3da9d8c1:internal/domain/payments/provider/wechat/wechat_test.go:private-key:218
+68fb0a742f12cac3e833d2b6065c1fa34466bc7d:.env.production.example:generic-api-key:43
+4c4d34238b22356346bb3e6fdc7ec85c8f9a3867:internal/domain/webhooks/service/service.go:generic-api-key:83
+69e1f68bdb623ff925ea979585b40a67368bcdf0:.env.example:generic-api-key:40
+69e1f68bdb623ff925ea979585b40a67368bcdf0:internal/domain/apps/service/service.go:generic-api-key:39
+69e1f68bdb623ff925ea979585b40a67368bcdf0:internal/domain/apps/test/service_test.go:generic-api-key:16
+69e1f68bdb623ff925ea979585b40a67368bcdf0:internal/platform/config/config.go:generic-api-key:72
+69e1f68bdb623ff925ea979585b40a67368bcdf0:internal/platform/httpx/test/app_auth_middleware_test.go:generic-api-key:24

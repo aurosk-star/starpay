@@ -1,4 +1,4 @@
-.PHONY: dev test sdk-test web-test deploy-test verify tidy ent-up db-up db-down compose-up compose-down compose-logs web-dev web-build web-typecheck
+.PHONY: dev test sdk-test web-test deploy-test security verify tidy ent-up db-up db-down compose-up compose-down compose-logs web-dev web-build web-typecheck
 
 dev:
 	go run ./cmd/server
@@ -16,7 +16,12 @@ web-test:
 deploy-test:
 	bash scripts/deploy_test.sh
 
-verify: test web-test deploy-test web-typecheck web-build
+security:
+	go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
+	cd web && bun audit
+
+verify: test web-test deploy-test web-typecheck web-build security
+	go vet ./...
 	cd sdk/go && go vet ./...
 	cd web && bun run lint
 
