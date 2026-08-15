@@ -8,7 +8,7 @@ RUN bun install --frozen-lockfile
 COPY web/ ./
 RUN bun run build
 
-FROM golang:1.26.6 AS go-builder
+FROM golang:1.26.6-alpine3.23 AS go-builder
 
 WORKDIR /src
 
