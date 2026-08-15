@@ -34,25 +34,25 @@ nginx -v
 ```bash
 mkdir -p /opt/starpay
 cd /opt/starpay
-git clone git@codeup.aliyun.com:h-star/pay-gateway.git
-cd pay-gateway
+git clone https://github.com/zmoyi/starpay.git
+cd starpay
 ```
 
-如果服务器不能直接访问私有仓库，先配置部署密钥或通过 CI/CD 上传代码包。
+也可以在可信 CI/CD 中构建并部署经过验证的提交或 Release。
 
 ## 3. 首次部署
 
-部署脚本会自动生成生产密钥、拉取 Docker Hub 镜像并启动 API、PostgreSQL 和 Redis：
+部署脚本会自动生成生产密钥、拉取 GHCR 镜像并启动 API、PostgreSQL 和 Redis：
 
 ```bash
-cd /opt/starpay/pay-gateway
+cd /opt/starpay/starpay
 ./scripts/deploy.sh install
 ```
 
 默认镜像为：
 
 ```text
-zxabugx/payment-gateway:v0.0.1-beta
+ghcr.io/zmoyi/starpay:latest
 ```
 
 首次执行且 `.env.production` 不存在时，脚本基于模板生成配置，并把文件权限设为 `600`。密钥不会打印到终端。部署完成后检查：
@@ -66,7 +66,7 @@ curl http://127.0.0.1:8080/healthz
 
 ```bash
 ./scripts/deploy.sh install \
-  --image zxabugx/payment-gateway:v0.0.1-beta \
+  --image ghcr.io/zmoyi/starpay:latest \
   --env-file /etc/starpay/payment-gateway.env
 ```
 
@@ -122,6 +122,8 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d --bui
 ```
 
 `postgres:latest` 当前可能是 PostgreSQL 18+。该版本官方镜像要求把数据卷挂载到 `/var/lib/postgresql`，项目的生产 Compose 已按该路径配置。不要改回旧路径 `/var/lib/postgresql/data`，否则会出现 `in 18+, these Docker images are configured to store database data...` 的启动错误。
+
+项目决定在 Compose 中继续使用 `postgres:latest` 和 `redis:latest`。重新拉取或升级这两个镜像前，必须备份数据、阅读 PostgreSQL 和 Redis 上游发行说明，并先在非生产环境验证升级与回滚流程。
 
 查看状态：
 
@@ -236,7 +238,7 @@ PayPal、支付宝等支付完成后会先回到网关收银台结果页，再�
 更新脚本会先把 PostgreSQL 备份到 `backups/`，只拉取新的 API 镜像，不会自动升级已经运行的 PostgreSQL 和 Redis：
 
 ```bash
-cd /opt/starpay/pay-gateway
+cd /opt/starpay/starpay
 git pull --ff-only
 ./scripts/deploy.sh update
 ```

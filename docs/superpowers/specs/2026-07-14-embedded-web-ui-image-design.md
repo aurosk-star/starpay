@@ -74,11 +74,11 @@ Verification must include:
 go test ./...
 make web-build
 go test -tags webui ./internal/platform/webui ./internal/platform/http
-docker build --platform linux/amd64 -t zxabugx/payment-gateway:v0.0.1-beta .
+docker build --platform linux/amd64 -t ghcr.io/zmoyi/starpay:v0.0.1-beta .
 ```
 
 The built image must report `linux/amd64`, run as the non-root `app` user, and contain no standalone frontend directory in the final layer. A configured container smoke test must verify `/`, a frontend route, `/healthz`, and an unknown `/v1/*` path.
 
 ## Publishing
 
-After verification, replace the existing beta image at `zxabugx/payment-gateway:v0.0.1-beta` and verify the Docker Hub manifest digest. This mutable replacement is acceptable only because the requested tag is explicitly a beta tag.
+After verification, replace the existing beta image at `ghcr.io/zmoyi/starpay:v0.0.1-beta` and verify the GHCR manifest digest. This mutable replacement is acceptable only because the requested tag is explicitly a beta tag.

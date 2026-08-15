@@ -1,6 +1,13 @@
-# Payment Gateway
+# Starpay
+
+[![CI](https://github.com/zmoyi/starpay/actions/workflows/ci.yml/badge.svg)](https://github.com/zmoyi/starpay/actions/workflows/ci.yml)
+[![Security](https://github.com/zmoyi/starpay/actions/workflows/security.yml/badge.svg)](https://github.com/zmoyi/starpay/actions/workflows/security.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 统一支付网关，提供接入应用管理、支付订单、收银台、支付通道适配、通道路由、平台异步通知入口、业务 Webhook 投递和后台管理控制台。
+
+> [!WARNING]
+> 项目处于 pre-1.0 阶段，接口和部署方式可能发生不兼容调整。支付系统上线前必须结合自身业务、监管要求和威胁模型完成独立安全评审；请勿把本项目的扫描结果视为生产安全保证。
 
 ## 功能概览
 
@@ -17,12 +24,12 @@
 
 ## 技术栈
 
-- Go + Gin：HTTP API
+- Go 1.26.6 + Gin：HTTP API
 - Ent：数据库模型和查询
 - PostgreSQL：主数据存储
 - Redis：缓存、队列和异步协调
 - Casbin：后台 RBAC
-- React + Rsbuild + TanStack Router：管理后台和收银台前端
+- Bun 1.3.13 + React + Rsbuild + TanStack Router：管理后台和收银台前端
 - shadcn/ui + Tailwind CSS：前端组件和样式
 - Docker Compose：本地依赖和容器化运行
 
@@ -46,7 +53,9 @@
 
 每个业务域按 `handler/`、`router/`、`service/`、`repository/`、`test/` 分层组织。
 
-## 本地开发
+## 五分钟启动
+
+需要 Go 1.26.6、Bun 1.3.13、Docker 和 Docker Compose v2。
 
 准备环境文件：
 
@@ -76,7 +85,7 @@ curl http://localhost:8080/healthz
 
 ```bash
 cd web
-bun install
+bun install --frozen-lockfile
 bun run dev
 ```
 
@@ -84,6 +93,12 @@ bun run dev
 
 ```bash
 make web-dev
+```
+
+提交变更前运行完整本地门禁：
+
+```bash
+make verify
 ```
 
 ## 常用命令
@@ -245,6 +260,17 @@ make web-typecheck # TypeScript 类型检查
 
 生产环境必须替换 `JWT_SECRET` 和 `APP_SECRET_ENCRYPTION_KEY`，并妥善保管支付通道密钥、证书和应用密钥。
 
+## 安全
+
+不要在公开 Issue 或 PR 中提交未修复漏洞、真实凭据或支付数据。请按照 [SECURITY.md](SECURITY.md) 使用 GitHub Private Vulnerability Reporting 私密报告。
+
+生产部署前请至少完成：
+
+- 独立代码、架构和配置安全评审；
+- `make verify`、容器构建和镜像漏洞扫描；
+- 密钥管理、备份恢复、网络隔离和最小权限检查；
+- 支付通道沙箱与故障恢复演练。
+
 ## 测试
 
 后端：
@@ -266,3 +292,14 @@ make web-build
 ```
 
 重点覆盖范围包括：应用密钥、订单幂等、签名认证、支付通道回调、Webhook 重试、通道路由、货币限制和收银台支付模式选择。
+
+界面变更还应运行 `make web-dev`，人工检查管理后台、收银台以及按 `d` 键进行的深浅色切换。
+
+## 开源协作
+
+- 许可证：[Apache License 2.0](LICENSE)
+- 贡献：[CONTRIBUTING.md](CONTRIBUTING.md)
+- 行为准则：[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- 安全政策：[SECURITY.md](SECURITY.md)
+- 变更记录：[CHANGELOG.md](CHANGELOG.md)
+- Go SDK：独立使用 [MIT License](sdk/go/LICENSE)

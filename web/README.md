@@ -1,36 +1,37 @@
-# Rsbuild project
+# Starpay Web
 
-## Setup
+Starpay 的 React 管理后台和收银台，使用 Bun 1.3.13、Rsbuild、Tailwind CSS 和 shadcn/ui 源码组件。
 
-Install the dependencies:
-
-```bash
-npm install
-```
-
-## Get started
-
-Start the dev server, and the app will be available at [http://localhost:3000](http://localhost:3000).
+## 安装
 
 ```bash
-npm run dev
+bun install --frozen-lockfile
 ```
 
-Build the app for production:
+锁文件是构建输入的一部分，不要在 CI 或发布构建中省略 `--frozen-lockfile`。
+
+## 开发
 
 ```bash
-npm run build
+bun run dev
 ```
 
-Preview the production build locally:
+默认开发地址由 Rsbuild 输出。后端需单独运行，开发代理配置见 `rsbuild.config.ts`。
+
+## 验证
 
 ```bash
-npm run preview
+node --test test/*.test.mts
+bun run typecheck
+bun run lint
+bun run build
+bun audit
 ```
 
-## Learn more
+界面变更还需人工检查管理后台、收银台和深浅色切换。
 
-To learn more about Rsbuild, check out the following resources:
+## shadcn/ui 约束
 
-- [Rsbuild documentation](https://rsbuild.rs) - explore Rsbuild features and APIs.
-- [Rsbuild GitHub repository](https://github.com/web-infra-dev/rsbuild) - your feedback and contributions are welcome!
+`src/components/ui/` 中的 shadcn/ui 组件和 `src/styles/shadcn.css` 都是仓库源码，运行和构建不依赖 `shadcn` CLI。
+
+确需新增或更新组件时，只能在独立分支中一次性使用经过审计且固定精确版本的 CLI。生成后应审查差异、运行全部验证，并确保 CLI 没有写入 `package.json` 或锁文件。

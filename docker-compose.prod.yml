@@ -1,6 +1,6 @@
 services:
   api:
-    image: ${PAYMENT_GATEWAY_IMAGE:-zxabugx/payment-gateway:latest}
+    image: ${PAYMENT_GATEWAY_IMAGE:-ghcr.io/zmoyi/starpay:latest}
     build:
       context: .
       dockerfile: Dockerfile

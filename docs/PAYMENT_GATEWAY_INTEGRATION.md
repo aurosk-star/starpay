@@ -541,12 +541,6 @@ GET  /v1/open/refunds/by-merchant/:merchant_refund_no
 go get github.com/zmoyi/starpay-go
 ```
 
-私有仓库环境需要配置：
-
-```bash
-go env -w GOPRIVATE=github.com/zmoyi/*
-```
-
 SDK 文档见：
 
 ```text

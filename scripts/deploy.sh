@@ -6,7 +6,7 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd "$script_dir/.." && pwd)
 default_env_file="$repo_root/.env.production"
 default_compose_file="$repo_root/docker-compose.prod.yml"
-default_image="zxabugx/payment-gateway:latest"
+default_image="ghcr.io/zmoyi/starpay:latest"
 
 log() {
   printf '[deploy] %s\n' "$*"
@@ -29,7 +29,7 @@ Modes:
 
 Options:
   --env-file PATH Use a production environment file at PATH.
-  --image IMAGE   Deploy IMAGE (default: zxabugx/payment-gateway:latest).
+  --image IMAGE   Deploy IMAGE (default: ghcr.io/zmoyi/starpay:latest).
   --skip-backup   Skip the PostgreSQL backup during update.
   -h, --help      Show this help.
 EOF
