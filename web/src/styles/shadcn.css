@@ -24,7 +24,6 @@
     }
   }
 }
-
 /* Custom variants */
 @custom-variant data-open {
   &:where([data-state="open"]),
@@ -628,4 +627,3 @@
     -webkit-text-fill-color: currentColor;
   }
 }
-

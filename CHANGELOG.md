@@ -24,4 +24,4 @@
 - 生产环境拒绝开发默认密钥和未替换的占位值。
 - 后端 `govulncheck`、前端 `bun audit`、完整历史密钥扫描和镜像高危漏洞扫描成为发布门禁。
 
-[Unreleased]: https://github.com/zmoyi/starpay/compare/HEAD...HEAD
+[Unreleased]: https://github.com/zmoyi/starpay/commits/main
