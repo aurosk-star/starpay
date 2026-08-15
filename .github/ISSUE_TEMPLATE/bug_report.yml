@@ -1,0 +1,53 @@
+name: 缺陷报告
+description: 报告可重复的软件缺陷；安全漏洞请使用私密报告入口
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。提交前请搜索现有 Issue。不要粘贴支付密钥、应用密钥、个人数据或生产凭据。
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 请提供 Release、镜像标签或 Git 提交。
+      placeholder: v0.x.y 或 commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: 部署方式
+      options:
+        - Docker Compose
+        - 从源码运行
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请提供可重复的最小步骤和必要的无敏感配置。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志
+      description: 可选。粘贴前必须删除凭据、支付密钥、签名、令牌和个人数据。
+      render: shell
