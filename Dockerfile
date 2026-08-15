@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.13 AS web-builder
+FROM oven/bun:1.3.14 AS web-builder
 
 WORKDIR /src/web
 
@@ -19,7 +19,7 @@ COPY . .
 COPY --from=web-builder /src/web/dist ./internal/platform/webui/dist
 RUN CGO_ENABLED=0 GOOS=linux go build -tags webui -trimpath -ldflags="-s -w" -o /out/payment-gateway ./cmd/server
 
-FROM alpine:3.23
+FROM alpine:3.24
 
 RUN addgroup -S app && adduser -S app -G app
 
