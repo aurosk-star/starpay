@@ -7,5 +7,6 @@ Starpay uses third-party open-source software. The complete dependency inventory
 - Roboto Variable Font - Copyright 2011 The Roboto Project Authors; licensed under the SIL Open Font License 1.1. Source: https://github.com/googlefonts/roboto-classic
 - Lucide icons - Copyright Lucide Contributors; licensed under the ISC License. Source: https://github.com/lucide-icons/lucide
 - Radix UI primitives - Copyright WorkOS; licensed under the MIT License. Source: https://github.com/radix-ui/primitives
+- shadcn UI styles and components - Copyright 2023 shadcn; licensed under the MIT License. Source: https://github.com/shadcn-ui/ui
 
 Each dependency remains subject to its own upstream license and copyright notices. Release maintainers must review the generated SBOM before distributing a container image.
