@@ -7,6 +7,7 @@ repo_root=$(cd "$script_dir/.." && pwd)
 default_env_file="$repo_root/.env.production"
 default_compose_file="$repo_root/docker-compose.prod.yml"
 default_image="ghcr.io/aurosk-star/starpay:latest"
+default_state_file="$repo_root/.tmp/last-deployment"
 default_keep_backups=7
 
 if [[ -t 1 && -z ${NO_COLOR:-} ]]; then
@@ -127,6 +128,13 @@ set_env_value() {
   fi
   chmod 600 "$temporary"
   mv "$temporary" "$env_file"
+}
+
+read_deployment_record_value() {
+  local state_file=$1
+  local key=$2
+  [[ -f "$state_file" ]] || return 0
+  read_env_value "$state_file" "$key"
 }
 
 generate_env() {
@@ -290,6 +298,10 @@ run_wizard() {
   mode="$DEPLOYMENT_STATE"
   success "$DEPLOYMENT_REASON"
 
+  local last_image
+  last_image=$(read_deployment_record_value "${DEPLOY_STATE_FILE:-$default_state_file}" image)
+  [[ -n "$last_image" ]] && image="$last_image"
+
   local default_port default_bind
   default_port=$(read_env_value "$env_file" HTTP_PORT 2>/dev/null || true)
   [[ -n "$default_port" ]] || default_port=8080
@@ -315,7 +327,7 @@ run_wizard() {
   printf '\n1) 拉取 GHCR 预构建镜像（推荐）\n2) 使用当前源码本地构建\n'
   ask_choice "部署来源" "1" "1 2" source_choice
   if [[ "$source_choice" == "1" ]]; then
-    ask "镜像" "$default_image" image
+    ask "镜像" "$image" image
   else
     build_mode="local"
   fi
@@ -517,7 +529,7 @@ write_deployment_record() {
   local image=$3
   local image_id=$4
   local backup_path=${5:-}
-  local state_file=${DEPLOY_STATE_FILE:-"$repo_root/.tmp/last-deployment"}
+  local state_file=${DEPLOY_STATE_FILE:-$default_state_file}
   local state_dir
   state_dir=$(dirname "$state_file")
   mkdir -p "$state_dir"

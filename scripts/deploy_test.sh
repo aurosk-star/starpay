@@ -185,6 +185,8 @@ DEPLOY_STATE_FILE="$deployment_state" \
 [[ $(stat -c '%a' "$deployment_state") == "600" ]] || fail "deployment record mode is not 600"
 rg -q '^image_id=sha256:new$' "$deployment_state" || fail "deployment record is missing image ID"
 rg -q '^git_commit=[0-9a-f]+$' "$deployment_state" || fail "deployment record is missing Git commit"
+[[ $(read_deployment_record_value "$deployment_state" image) == "test:new" ]] \
+  || fail "last deployed image could not be read for wizard defaults"
 for secret in \
   "$(read_env_value "$generated_env" POSTGRES_PASSWORD)" \
   "$(read_env_value "$generated_env" REDIS_PASSWORD)" \
