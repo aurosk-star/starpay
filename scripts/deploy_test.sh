@@ -26,7 +26,7 @@ generated_env="$tmp_dir/.env.production"
 generate_env "$repo_root/.env.production.example" "$generated_env"
 [[ -f "$generated_env" ]] || fail "environment file was not generated"
 [[ $(stat -c '%a' "$generated_env") == "600" ]] || fail "environment file mode is not 600"
-if rg -q '^[[:space:]]*[^#].*CHANGE_ME_' "$generated_env"; then
+if grep -Eq '^[[:space:]]*[^#].*CHANGE_ME_' "$generated_env"; then
   fail "generated environment still contains placeholders"
 fi
 validate_env "$generated_env" || fail "generated environment did not validate"
@@ -135,7 +135,7 @@ backup_path=$(
 [[ $(stat -c '%a' "$backup_path") == "600" ]] || fail "backup mode is not 600"
 [[ $(find "$test_backup_dir" -maxdepth 1 -name 'payment-gateway-*.dump' | wc -l) -eq 2 ]] \
   || fail "backup retention was not applied after backup"
-rg -q 'pg_restore --list' "$fake_docker_log" || fail "backup archive was not verified"
+grep -Eq 'pg_restore --list' "$fake_docker_log" || fail "backup archive was not verified"
 
 corrupt_backup_dir="$tmp_dir/corrupt-backups"
 mkdir -p "$corrupt_backup_dir"
@@ -146,7 +146,7 @@ if PATH="$fake_bin:$PATH" \
   backup_database "$generated_env" "$repo_root/docker-compose.prod.yml" test:image 2 >/dev/null 2>&1; then
   fail "corrupt backup unexpectedly succeeded validation"
 fi
-if find "$corrupt_backup_dir" -maxdepth 1 -name 'payment-gateway-*.dump' | rg -q .; then
+if find "$corrupt_backup_dir" -maxdepth 1 -name 'payment-gateway-*.dump' | grep -q .; then
   fail "corrupt backup was promoted to a final dump"
 fi
 
@@ -179,15 +179,15 @@ if PATH="$fake_bin:$PATH" \
   deploy update "$generated_env" "$repo_root/docker-compose.prod.yml" test:new true image 2 >/dev/null 2>&1; then
   fail "failed deployment unexpectedly succeeded after rollback"
 fi
-rg -q 'PAYMENT_GATEWAY_IMAGE=sha256:old .*up -d --no-deps --force-recreate --no-build api' "$rollback_log" \
+grep -Eq 'PAYMENT_GATEWAY_IMAGE=sha256:old .*up -d --no-deps --force-recreate --no-build api' "$rollback_log" \
   || fail "failed deployment did not recreate API with the previous image"
 
 deployment_state="$tmp_dir/last-deployment"
 DEPLOY_STATE_FILE="$deployment_state" \
   write_deployment_record update image test:new sha256:new "$backup_path"
 [[ $(stat -c '%a' "$deployment_state") == "600" ]] || fail "deployment record mode is not 600"
-rg -q '^image_id=sha256:new$' "$deployment_state" || fail "deployment record is missing image ID"
-rg -q '^git_commit=[0-9a-f]+$' "$deployment_state" || fail "deployment record is missing Git commit"
+grep -Eq '^image_id=sha256:new$' "$deployment_state" || fail "deployment record is missing image ID"
+grep -Eq '^git_commit=[0-9a-f]+$' "$deployment_state" || fail "deployment record is missing Git commit"
 [[ $(read_deployment_record_value "$deployment_state" image) == "test:new" ]] \
   || fail "last deployed image could not be read for wizard defaults"
 for secret in \
@@ -195,7 +195,7 @@ for secret in \
   "$(read_env_value "$generated_env" REDIS_PASSWORD)" \
   "$(read_env_value "$generated_env" JWT_SECRET)" \
   "$(read_env_value "$generated_env" APP_SECRET_ENCRYPTION_KEY)"; do
-  if rg -F -q "$secret" "$deployment_state"; then
+  if grep -Fq "$secret" "$deployment_state"; then
     fail "deployment record contains a production secret"
   fi
 done
