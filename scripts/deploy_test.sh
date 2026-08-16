@@ -37,6 +37,36 @@ case ${#encryption_key} in
   *) fail "application encryption key has invalid length" ;;
 esac
 
+original_jwt=$(read_env_value "$generated_env" JWT_SECRET)
+set_env_value "$generated_env" HTTP_PORT 9090
+[[ $(read_env_value "$generated_env" HTTP_PORT) == "9090" ]] || fail "HTTP_PORT was not updated"
+[[ $(read_env_value "$generated_env" JWT_SECRET) == "$original_jwt" ]] || fail "updating HTTP_PORT changed JWT_SECRET"
+set_env_value "$generated_env" HTTP_PORT 8080
+
+fake_bin="$tmp_dir/bin"
+mkdir -p "$fake_bin"
+cat >"$fake_bin/docker" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$*" == *"ps -aq"* && "$*" == *"payment-gateway-api"* ]]; then
+  printf '%s' "${FAKE_API_CONTAINER_ID:-}"
+fi
+EOF
+chmod +x "$fake_bin/docker"
+
+missing_env="$tmp_dir/.env.missing"
+PATH="$fake_bin:$PATH" FAKE_API_CONTAINER_ID="" \
+  detect_deployment_state "$missing_env" "$repo_root/docker-compose.prod.yml" "test:image"
+[[ "$DEPLOYMENT_STATE" == "install" ]] || fail "missing deployment was not detected as install"
+
+PATH="$fake_bin:$PATH" FAKE_API_CONTAINER_ID="" \
+  detect_deployment_state "$generated_env" "$repo_root/docker-compose.prod.yml" "test:image"
+[[ "$DEPLOYMENT_STATE" == "update" ]] || fail "existing environment was not detected as update"
+
+if PATH="$fake_bin:$PATH" FAKE_API_CONTAINER_ID="api-container" \
+  detect_deployment_state "$missing_env" "$repo_root/docker-compose.prod.yml" "test:image" >/dev/null 2>&1; then
+  fail "running API without an environment file unexpectedly passed deployment detection"
+fi
+
 invalid_env="$tmp_dir/.env.invalid"
 cp "$generated_env" "$invalid_env"
 printf '\nJWT_SECRET=CHANGE_ME_INVALID\n' >>"$invalid_env"
@@ -68,8 +98,20 @@ compose_output=$(
 
 help_output=$(bash "$deploy_script" --help)
 [[ "$help_output" == *"install"* && "$help_output" == *"update"* ]] || fail "help does not describe install and update"
+[[ "$help_output" == *"--local-build"* && "$help_output" == *"--keep-backups"* ]] || fail "help does not describe new deployment options"
 if bash "$deploy_script" invalid-mode >/dev/null 2>&1; then
   fail "invalid deployment mode unexpectedly succeeded"
 fi
+
+conflict_output=$(bash "$deploy_script" update --image test:one --local-build 2>&1 || true)
+[[ "$conflict_output" == *"--local-build cannot be used with --image"* ]] \
+  || fail "conflicting deployment sources were not rejected clearly"
+
+retention_output=$(bash "$deploy_script" update --keep-backups 0 2>&1 || true)
+[[ "$retention_output" == *"--keep-backups must be an integer greater than or equal to 1"* ]] \
+  || fail "invalid backup retention was not rejected clearly"
+
+wizard_output=$(printf '8080\n1\n1\n7\nn\n' | DEPLOY_INPUT_FD=/dev/stdin bash "$deploy_script" 2>&1 || true)
+[[ "$wizard_output" == *"部署已取消"* ]] || fail "zero-argument invocation did not enter the deployment wizard"
 
 printf 'deploy script tests passed\n'
