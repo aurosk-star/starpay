@@ -291,7 +291,7 @@ run_wizard() {
   local build_mode="image"
   local skip_backup="false"
   local keep_backups=$default_keep_backups
-  local mode port bind_choice source_choice backup_choice
+  local mode port bind_choice source_choice
 
   print_wizard_banner
   detect_deployment_state "$env_file" "$compose_file" "$image"
@@ -439,6 +439,8 @@ backup_database() {
     return 1
   fi
   log "backing up PostgreSQL to $backup_file" >&2
+  # Variables are intentionally expanded by the shell inside the PostgreSQL container.
+  # shellcheck disable=SC2016
   if ! "${compose[@]}" exec -T postgres sh -c 'exec pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' >"$temporary"; then
     rm -f "$temporary"
     fail "PostgreSQL backup failed"

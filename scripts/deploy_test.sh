@@ -15,6 +15,8 @@ fail() {
 # shellcheck source=/dev/null
 source "$deploy_script"
 
+# The sourced deployment script defines this variable.
+# shellcheck disable=SC2154
 [[ "$default_image" == "ghcr.io/aurosk-star/starpay:latest" ]] || fail "default image is not the organization GHCR image"
 
 tmp_dir=$(mktemp -d)
@@ -97,6 +99,7 @@ EOF
 chmod +x "$fake_bin/curl"
 
 missing_env="$tmp_dir/.env.missing"
+DEPLOYMENT_STATE=""
 PATH="$fake_bin:$PATH" FAKE_API_CONTAINER_ID="" \
   detect_deployment_state "$missing_env" "$repo_root/docker-compose.prod.yml" "test:image"
 [[ "$DEPLOYMENT_STATE" == "install" ]] || fail "missing deployment was not detected as install"
