@@ -448,6 +448,20 @@ backup_database() {
   printf '%s\n' "$backup_file"
 }
 
+current_api_image_id() {
+  local env_file=$1
+  local compose_file=$2
+  local image=$3
+  local -a compose=(docker compose --env-file "$env_file" -f "$compose_file")
+  export PAYMENT_GATEWAY_ENV_FILE="$env_file"
+  export PAYMENT_GATEWAY_IMAGE="$image"
+
+  local container_id
+  container_id=$("${compose[@]}" ps -q api 2>/dev/null || true)
+  [[ -n "$container_id" ]] || return 0
+  docker inspect --format '{{.Image}}' "$container_id" 2>/dev/null || true
+}
+
 wait_for_health() {
   local env_file=$1
   local compose_file=$2
@@ -461,16 +475,96 @@ wait_for_health() {
   export PAYMENT_GATEWAY_IMAGE="$image"
 
   log "waiting for $health_url"
-  local attempt
-  for attempt in $(seq 1 90); do
-    if curl --fail --silent --show-error --max-time 3 "$health_url" >/dev/null 2>&1; then
+  local attempts=${DEPLOY_HEALTH_ATTEMPTS:-90}
+  local interval=${DEPLOY_HEALTH_INTERVAL:-1}
+  local attempt response
+  for ((attempt = 1; attempt <= attempts; attempt++)); do
+    response=$(curl --fail --silent --show-error --max-time 3 "$health_url" 2>/dev/null || true)
+    if [[ "$response" == *'"status":"ok"'* ]]; then
       log "health check passed"
       return 0
     fi
-    sleep 1
+    sleep "$interval"
   done
   "${compose[@]}" logs --tail=100 api >&2 || true
   fail "health check failed: $health_url"
+}
+
+rollback_api() {
+  local env_file=$1
+  local compose_file=$2
+  local old_image_id=$3
+  [[ -n "$old_image_id" ]] || fail "previous API image ID is unavailable" || return 1
+
+  local -a compose=(docker compose --env-file "$env_file" -f "$compose_file")
+  export PAYMENT_GATEWAY_ENV_FILE="$env_file"
+  export PAYMENT_GATEWAY_IMAGE="$old_image_id"
+  warn "new deployment failed; restoring API image $old_image_id"
+  if ! "${compose[@]}" up -d --no-deps --force-recreate --no-build api; then
+    fail "API rollback could not recreate the previous container"
+    return 1
+  fi
+  if ! wait_for_health "$env_file" "$compose_file" "$old_image_id"; then
+    fail "API rollback completed but the previous version is unhealthy"
+    return 1
+  fi
+  success "previous API version restored"
+}
+
+write_deployment_record() {
+  local mode=$1
+  local build_mode=$2
+  local image=$3
+  local image_id=$4
+  local backup_path=${5:-}
+  local state_file=${DEPLOY_STATE_FILE:-"$repo_root/.tmp/last-deployment"}
+  local state_dir
+  state_dir=$(dirname "$state_file")
+  mkdir -p "$state_dir"
+
+  local git_commit="unknown"
+  git_commit=$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || printf 'unknown')
+  image=${image//$'\n'/}
+  image=${image//$'\r'/}
+  image_id=${image_id//$'\n'/}
+  image_id=${image_id//$'\r'/}
+  backup_path=${backup_path//$'\n'/}
+  backup_path=${backup_path//$'\r'/}
+
+  local temporary="$state_file.tmp.$$"
+  umask 077
+  {
+    printf 'deployed_at=%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    printf 'mode=%s\n' "$mode"
+    printf 'build_mode=%s\n' "$build_mode"
+    printf 'image=%s\n' "$image"
+    printf 'image_id=%s\n' "$image_id"
+    printf 'git_commit=%s\n' "$git_commit"
+    printf 'backup=%s\n' "$backup_path"
+  } >"$temporary"
+  chmod 600 "$temporary"
+  mv "$temporary" "$state_file"
+}
+
+handle_deployment_failure() {
+  local mode=$1
+  local env_file=$2
+  local compose_file=$3
+  local image=$4
+  local old_image_id=$5
+  local -a compose=(docker compose --env-file "$env_file" -f "$compose_file")
+  export PAYMENT_GATEWAY_ENV_FILE="$env_file"
+  export PAYMENT_GATEWAY_IMAGE="$image"
+
+  if [[ "$mode" == "update" && -n "$old_image_id" ]]; then
+    rollback_api "$env_file" "$compose_file" "$old_image_id" || true
+  elif [[ "$mode" == "install" ]]; then
+    warn "first deployment failed; stopping the unhealthy API container"
+    "${compose[@]}" stop api >/dev/null 2>&1 || true
+  else
+    warn "previous API image is unavailable; automatic rollback was skipped"
+  fi
+  fail "deployment failed; inspect: docker compose --env-file $env_file -f $compose_file logs api"
 }
 
 deploy() {
@@ -499,6 +593,9 @@ deploy() {
   export PAYMENT_GATEWAY_IMAGE="$image"
   "${compose[@]}" config --quiet
 
+  local old_image_id=""
+  old_image_id=$(current_api_image_id "$env_file" "$compose_file" "$image")
+
   local backup_path=""
   if [[ "$mode" == "update" && "$skip_backup" != "true" ]]; then
     backup_path=$(backup_database "$env_file" "$compose_file" "$image" "$keep_backups")
@@ -520,9 +617,20 @@ deploy() {
   fi
 
   log "starting production services with $image"
-  "${compose[@]}" up -d --no-build --remove-orphans
-  wait_for_health "$env_file" "$compose_file" "$image"
+  if ! "${compose[@]}" up -d --no-build --remove-orphans; then
+    handle_deployment_failure "$mode" "$env_file" "$compose_file" "$image" "$old_image_id" || true
+    return 1
+  fi
+  if ! wait_for_health "$env_file" "$compose_file" "$image"; then
+    handle_deployment_failure "$mode" "$env_file" "$compose_file" "$image" "$old_image_id" || true
+    return 1
+  fi
   "${compose[@]}" ps
+
+  local new_image_id="unknown"
+  new_image_id=$(current_api_image_id "$env_file" "$compose_file" "$image")
+  [[ -n "$new_image_id" ]] || new_image_id="unknown"
+  write_deployment_record "$mode" "$build_mode" "$image" "$new_image_id" "$backup_path"
 
   local port
   port=$(read_env_value "$env_file" HTTP_PORT)

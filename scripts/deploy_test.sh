@@ -48,10 +48,14 @@ mkdir -p "$fake_bin"
 cat >"$fake_bin/docker" <<'EOF'
 #!/usr/bin/env bash
 if [[ -n ${FAKE_DOCKER_LOG:-} ]]; then
-  printf '%s\n' "$*" >>"$FAKE_DOCKER_LOG"
+  printf 'PAYMENT_GATEWAY_IMAGE=%s %s\n' "${PAYMENT_GATEWAY_IMAGE:-}" "$*" >>"$FAKE_DOCKER_LOG"
 fi
 if [[ "$*" == *"ps -aq"* && "$*" == *"payment-gateway-api"* ]]; then
   printf '%s' "${FAKE_API_CONTAINER_ID:-}"
+elif [[ "$*" == *"compose"* && "$*" == *"ps -q api"* ]]; then
+  printf '%s\n' "${FAKE_API_CONTAINER_ID:-api-container}"
+elif [[ "$*" == *"inspect"* && "$*" == *"api-container"* ]]; then
+  printf '%s\n' "${FAKE_API_IMAGE_ID:-sha256:old}"
 elif [[ "$*" == *"ps -q postgres"* ]]; then
   printf 'postgres-container\n'
 elif [[ "$*" == *"pg_dump"* ]]; then
@@ -65,6 +69,32 @@ elif [[ "$*" == *"pg_restore --list"* ]]; then
 fi
 EOF
 chmod +x "$fake_bin/docker"
+cat >"$fake_bin/curl" <<'EOF'
+#!/usr/bin/env bash
+case ${FAKE_CURL_MODE:-success} in
+  success)
+    printf '{"code":"ok","data":{"status":"ok"},"error":null,"message":"ok"}\n'
+    ;;
+  invalid)
+    printf '{"code":"ok","data":{"status":"starting"},"error":null,"message":"ok"}\n'
+    ;;
+  fail-once)
+    count=0
+    if [[ -f ${FAKE_CURL_COUNT_FILE:?} ]]; then
+      count=$(<"$FAKE_CURL_COUNT_FILE")
+    fi
+    count=$((count + 1))
+    printf '%s\n' "$count" >"$FAKE_CURL_COUNT_FILE"
+    if ((count == 1)); then
+      printf '{"code":"ok","data":{"status":"starting"},"error":null,"message":"ok"}\n'
+    else
+      printf '{"code":"ok","data":{"status":"ok"},"error":null,"message":"ok"}\n'
+    fi
+    ;;
+  *) exit 1 ;;
+esac
+EOF
+chmod +x "$fake_bin/curl"
 
 missing_env="$tmp_dir/.env.missing"
 PATH="$fake_bin:$PATH" FAKE_API_CONTAINER_ID="" \
@@ -116,6 +146,54 @@ fi
 if find "$corrupt_backup_dir" -maxdepth 1 -name 'payment-gateway-*.dump' | rg -q .; then
   fail "corrupt backup was promoted to a final dump"
 fi
+
+current_image=$(
+  PATH="$fake_bin:$PATH" \
+    FAKE_API_CONTAINER_ID="api-container" \
+    FAKE_API_IMAGE_ID="sha256:old" \
+    current_api_image_id "$generated_env" "$repo_root/docker-compose.prod.yml" test:image
+)
+[[ "$current_image" == "sha256:old" ]] || fail "current API image ID was not detected"
+
+if PATH="$fake_bin:$PATH" \
+  FAKE_CURL_MODE=invalid \
+  DEPLOY_HEALTH_ATTEMPTS=1 \
+  DEPLOY_HEALTH_INTERVAL=0 \
+  wait_for_health "$generated_env" "$repo_root/docker-compose.prod.yml" test:image >/dev/null 2>&1; then
+  fail "invalid health response unexpectedly passed"
+fi
+
+rollback_log="$tmp_dir/rollback-docker.log"
+curl_count_file="$tmp_dir/curl-count"
+if PATH="$fake_bin:$PATH" \
+  FAKE_DOCKER_LOG="$rollback_log" \
+  FAKE_API_CONTAINER_ID="api-container" \
+  FAKE_API_IMAGE_ID="sha256:old" \
+  FAKE_CURL_MODE=fail-once \
+  FAKE_CURL_COUNT_FILE="$curl_count_file" \
+  DEPLOY_HEALTH_ATTEMPTS=1 \
+  DEPLOY_HEALTH_INTERVAL=0 \
+  deploy update "$generated_env" "$repo_root/docker-compose.prod.yml" test:new true image 2 >/dev/null 2>&1; then
+  fail "failed deployment unexpectedly succeeded after rollback"
+fi
+rg -q 'PAYMENT_GATEWAY_IMAGE=sha256:old .*up -d --no-deps --force-recreate --no-build api' "$rollback_log" \
+  || fail "failed deployment did not recreate API with the previous image"
+
+deployment_state="$tmp_dir/last-deployment"
+DEPLOY_STATE_FILE="$deployment_state" \
+  write_deployment_record update image test:new sha256:new "$backup_path"
+[[ $(stat -c '%a' "$deployment_state") == "600" ]] || fail "deployment record mode is not 600"
+rg -q '^image_id=sha256:new$' "$deployment_state" || fail "deployment record is missing image ID"
+rg -q '^git_commit=[0-9a-f]+$' "$deployment_state" || fail "deployment record is missing Git commit"
+for secret in \
+  "$(read_env_value "$generated_env" POSTGRES_PASSWORD)" \
+  "$(read_env_value "$generated_env" REDIS_PASSWORD)" \
+  "$(read_env_value "$generated_env" JWT_SECRET)" \
+  "$(read_env_value "$generated_env" APP_SECRET_ENCRYPTION_KEY)"; do
+  if rg -F -q "$secret" "$deployment_state"; then
+    fail "deployment record contains a production secret"
+  fi
+done
 
 invalid_env="$tmp_dir/.env.invalid"
 cp "$generated_env" "$invalid_env"
