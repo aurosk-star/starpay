@@ -47,8 +47,21 @@ fake_bin="$tmp_dir/bin"
 mkdir -p "$fake_bin"
 cat >"$fake_bin/docker" <<'EOF'
 #!/usr/bin/env bash
+if [[ -n ${FAKE_DOCKER_LOG:-} ]]; then
+  printf '%s\n' "$*" >>"$FAKE_DOCKER_LOG"
+fi
 if [[ "$*" == *"ps -aq"* && "$*" == *"payment-gateway-api"* ]]; then
   printf '%s' "${FAKE_API_CONTAINER_ID:-}"
+elif [[ "$*" == *"ps -q postgres"* ]]; then
+  printf 'postgres-container\n'
+elif [[ "$*" == *"pg_dump"* ]]; then
+  printf 'fake-postgres-custom-archive\n'
+elif [[ "$*" == *"pg_restore --list"* ]]; then
+  cat >/dev/null
+  if [[ ${FAKE_PG_RESTORE_FAIL:-0} == "1" ]]; then
+    exit 1
+  fi
+  printf 'archive contents\n'
 fi
 EOF
 chmod +x "$fake_bin/docker"
@@ -65,6 +78,43 @@ PATH="$fake_bin:$PATH" FAKE_API_CONTAINER_ID="" \
 if PATH="$fake_bin:$PATH" FAKE_API_CONTAINER_ID="api-container" \
   detect_deployment_state "$missing_env" "$repo_root/docker-compose.prod.yml" "test:image" >/dev/null 2>&1; then
   fail "running API without an environment file unexpectedly passed deployment detection"
+fi
+
+test_backup_dir="$tmp_dir/backups"
+mkdir -p "$test_backup_dir"
+printf 'old-1\n' >"$test_backup_dir/payment-gateway-20260101-000001.dump"
+printf 'old-2\n' >"$test_backup_dir/payment-gateway-20260101-000002.dump"
+printf 'old-3\n' >"$test_backup_dir/payment-gateway-20260101-000003.dump"
+printf 'keep me\n' >"$test_backup_dir/unrelated.dump"
+prune_database_backups "$test_backup_dir" 2
+[[ $(find "$test_backup_dir" -maxdepth 1 -name 'payment-gateway-*.dump' | wc -l) -eq 2 ]] \
+  || fail "backup retention did not keep exactly two script backups"
+[[ -f "$test_backup_dir/unrelated.dump" ]] || fail "backup retention deleted an unrelated file"
+
+fake_docker_log="$tmp_dir/docker.log"
+backup_path=$(
+  PATH="$fake_bin:$PATH" \
+    FAKE_DOCKER_LOG="$fake_docker_log" \
+    DEPLOY_BACKUP_DIR="$test_backup_dir" \
+    backup_database "$generated_env" "$repo_root/docker-compose.prod.yml" test:image 2 2>/dev/null
+)
+[[ -s "$backup_path" ]] || fail "verified backup was not created"
+[[ $(stat -c '%a' "$backup_path") == "600" ]] || fail "backup mode is not 600"
+[[ $(find "$test_backup_dir" -maxdepth 1 -name 'payment-gateway-*.dump' | wc -l) -eq 2 ]] \
+  || fail "backup retention was not applied after backup"
+rg -q 'pg_restore --list' "$fake_docker_log" || fail "backup archive was not verified"
+
+corrupt_backup_dir="$tmp_dir/corrupt-backups"
+mkdir -p "$corrupt_backup_dir"
+if PATH="$fake_bin:$PATH" \
+  FAKE_DOCKER_LOG="$fake_docker_log" \
+  FAKE_PG_RESTORE_FAIL=1 \
+  DEPLOY_BACKUP_DIR="$corrupt_backup_dir" \
+  backup_database "$generated_env" "$repo_root/docker-compose.prod.yml" test:image 2 >/dev/null 2>&1; then
+  fail "corrupt backup unexpectedly succeeded validation"
+fi
+if find "$corrupt_backup_dir" -maxdepth 1 -name 'payment-gateway-*.dump' | rg -q .; then
+  fail "corrupt backup was promoted to a final dump"
 fi
 
 invalid_env="$tmp_dir/.env.invalid"

@@ -372,15 +372,51 @@ require_commands() {
   docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is required" || return 1
 }
 
+prune_database_backups() {
+  local backup_dir=$1
+  local keep_backups=$2
+  [[ -d "$backup_dir" ]] || return 0
+  if ! [[ "$keep_backups" =~ ^[0-9]+$ ]] || ((keep_backups < 1)); then
+    fail "backup retention must be an integer greater than or equal to 1"
+    return 1
+  fi
+
+  local resolved_dir
+  resolved_dir=$(cd "$backup_dir" && pwd -P)
+  local -a backups=()
+  mapfile -t backups < <(
+    find "$resolved_dir" -maxdepth 1 -type f -name 'payment-gateway-*.dump' -printf '%f\n' \
+      | LC_ALL=C sort -r
+  )
+
+  local index backup_path
+  for ((index = keep_backups; index < ${#backups[@]}; index++)); do
+    backup_path="$resolved_dir/${backups[$index]}"
+    if [[ "$backup_path" != "$resolved_dir"/payment-gateway-*.dump ]]; then
+      fail "refusing to remove unexpected backup path: $backup_path"
+      return 1
+    fi
+    rm -f -- "$backup_path"
+  done
+}
+
+validate_database_backup() {
+  local backup_file=$1
+  shift
+  local -a compose=("$@")
+  "${compose[@]}" exec -T postgres pg_restore --list <"$backup_file" >/dev/null
+}
+
 backup_database() {
   local env_file=$1
   local compose_file=$2
   local image=$3
-  local backup_dir="$repo_root/backups"
+  local keep_backups=${4:-$default_keep_backups}
+  local backup_dir=${DEPLOY_BACKUP_DIR:-"$repo_root/backups"}
   local timestamp backup_file temporary
   timestamp=$(date '+%Y%m%d-%H%M%S')
   backup_file="$backup_dir/payment-gateway-$timestamp.dump"
-  temporary="$backup_file.tmp"
+  temporary="$backup_file.tmp.$$"
   mkdir -p "$backup_dir"
 
   local -a compose=(docker compose --env-file "$env_file" -f "$compose_file")
@@ -390,7 +426,7 @@ backup_database() {
     fail "PostgreSQL is not running; use install for the first deployment"
     return 1
   fi
-  log "backing up PostgreSQL to $backup_file"
+  log "backing up PostgreSQL to $backup_file" >&2
   if ! "${compose[@]}" exec -T postgres sh -c 'exec pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' >"$temporary"; then
     rm -f "$temporary"
     fail "PostgreSQL backup failed"
@@ -401,8 +437,15 @@ backup_database() {
     fail "PostgreSQL backup is empty"
     return 1
   fi
+  if ! validate_database_backup "$temporary" "${compose[@]}"; then
+    rm -f -- "$temporary"
+    fail "PostgreSQL backup validation failed"
+    return 1
+  fi
   mv "$temporary" "$backup_file"
   chmod 600 "$backup_file"
+  prune_database_backups "$backup_dir" "$keep_backups"
+  printf '%s\n' "$backup_file"
 }
 
 wait_for_health() {
@@ -456,8 +499,9 @@ deploy() {
   export PAYMENT_GATEWAY_IMAGE="$image"
   "${compose[@]}" config --quiet
 
+  local backup_path=""
   if [[ "$mode" == "update" && "$skip_backup" != "true" ]]; then
-    backup_database "$env_file" "$compose_file" "$image"
+    backup_path=$(backup_database "$env_file" "$compose_file" "$image" "$keep_backups")
   fi
 
   if [[ "$build_mode" == "local" ]]; then
