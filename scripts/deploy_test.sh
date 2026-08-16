@@ -223,6 +223,7 @@ compose_output=$(
 )
 [[ "$compose_output" == *"image: ghcr.io/aurosk-star/starpay:test"* ]] || fail "Compose did not use PAYMENT_GATEWAY_IMAGE"
 [[ "$compose_output" == *"APP_NAME: payment-gateway"* ]] || fail "Compose did not load PAYMENT_GATEWAY_ENV_FILE"
+[[ "$compose_output" == *"http://127.0.0.1:8080/healthz"* ]] || fail "Compose API healthcheck is missing"
 
 help_output=$(bash "$deploy_script" --help)
 [[ "$help_output" == *"install"* && "$help_output" == *"update"* ]] || fail "help does not describe install and update"

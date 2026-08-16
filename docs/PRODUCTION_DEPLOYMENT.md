@@ -42,10 +42,16 @@ cd starpay
 
 ## 3. 首次部署
 
-部署脚本会自动生成生产密钥、拉取 GHCR 镜像并启动 API、PostgreSQL 和 Redis：
+人工部署推荐直接启动交互向导。向导会识别首次部署或已有部署，引导设置端口、监听范围、镜像来源和备份策略；已有密钥只会沿用，不会显示到终端：
 
 ```bash
 cd /opt/starpay/starpay
+./scripts/deploy.sh
+```
+
+CI 或无人值守安装仍可使用非交互命令：
+
+```bash
 ./scripts/deploy.sh install
 ```
 
@@ -66,9 +72,17 @@ curl http://127.0.0.1:8080/healthz
 
 ```bash
 ./scripts/deploy.sh install \
-  --image ghcr.io/aurosk-star/starpay:latest \
+  --image ghcr.io/aurosk-star/starpay:v0.2.0 \
   --env-file /etc/starpay/payment-gateway.env
 ```
+
+也可以从当前检出的源码构建：
+
+```bash
+./scripts/deploy.sh install --local-build
+```
+
+`--local-build` 与显式 `--image` 不能同时使用。生产环境推荐使用 Release 版本标签或镜像 digest，避免 `latest` 在不同时间指向不同内容。
 
 ## 4. 手动配置生产环境变量
 
@@ -235,12 +249,20 @@ PayPal、支付宝等支付完成后会先回到网关收银台结果页，再�
 
 ## 9. 发布更新流程
 
-更新脚本会先把 PostgreSQL 备份到 `backups/`，只拉取新的 API 镜像，不会自动升级已经运行的 PostgreSQL 和 Redis：
+更新脚本会先把 PostgreSQL 备份到 `backups/`，校验备份归档可由 `pg_restore` 读取，然后只拉取新的 API 镜像，不会自动升级已经运行的 PostgreSQL 和 Redis。默认保留最近 7 份脚本备份：
 
 ```bash
 cd /opt/starpay/starpay
 git pull --ff-only
-./scripts/deploy.sh update
+./scripts/deploy.sh update \
+  --image ghcr.io/aurosk-star/starpay:v0.2.0 \
+  --keep-backups 7
+```
+
+使用当前源码构建更新：
+
+```bash
+./scripts/deploy.sh update --local-build --keep-backups 7
 ```
 
 紧急情况下可以跳过备份，但不建议作为日常发布方式：
@@ -251,20 +273,33 @@ git pull --ff-only
 
 前端和后端位于同一个镜像，无需单独发布静态文件或重载 Nginx。
 
-如果 Ent schema 有变更，后端启动时会自动执行当前项目内置的迁移逻辑。生产数据库仍建议在更新前做备份。
+部署前会记录当前 API 镜像 ID。新容器重建失败或 `/healthz` 未返回正常业务状态时，脚本会仅用旧镜像重建 API，并再次执行健康检查。即使应用回滚成功，原发布命令仍返回失败，便于 CI 和运维系统识别本次发布没有完成。
+
+最后一次成功部署的不敏感元数据记录在 `.tmp/last-deployment`，包括时间、部署来源、镜像引用、实际镜像 ID、Git 提交和备份路径，不包含密码或应用密钥。
+
+如果 Ent schema 有变更，后端启动时会自动执行当前项目内置的迁移逻辑。自动回滚只恢复 API 镜像，不会自动恢复数据库，避免覆盖发布过程中产生的新数据。因此生产迁移必须保持向后兼容；不兼容迁移需要根据发布前备份制定人工恢复方案。
 
 ## 10. 数据备份
 
-PostgreSQL 备份：
+`deploy.sh update` 创建的是 PostgreSQL 自定义格式归档：
 
-```bash
-docker exec payment-gateway-postgres pg_dump -U payment payment_gateway > backup-$(date +%F).sql
+```text
+backups/payment-gateway-YYYYMMDD-HHMMSS.dump
 ```
 
-恢复：
+归档生成后会在 PostgreSQL 容器内执行 `pg_restore --list` 校验，校验失败不会启动新版本。`--keep-backups N` 只清理符合上述名称的旧归档，不会删除目录中的其他文件。生产环境仍应把备份复制到异地存储，并定期演练恢复。
+
+手工创建同格式备份：
 
 ```bash
-cat backup-2026-07-02.sql | docker exec -i payment-gateway-postgres psql -U payment payment_gateway
+docker exec payment-gateway-postgres pg_dump -U payment -Fc payment_gateway > backup-$(date +%F).dump
+```
+
+恢复前应停止 API 写入，并先在非生产数据库验证归档。示例：
+
+```bash
+docker exec -i payment-gateway-postgres pg_restore \
+  -U payment --clean --if-exists -d payment_gateway < backup-2026-07-02.dump
 ```
 
 Redis 主要用于队列、缓存和幂等控制，生产建议保留 `redis_data` volume，并根据业务要求配置额外备份。
