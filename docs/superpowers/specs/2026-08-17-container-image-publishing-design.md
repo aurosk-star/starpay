@@ -45,7 +45,7 @@
 - Bun 和 Go 构建阶段固定在 Runner 原生平台执行，Go 使用 BuildKit 的 `TARGETOS`/`TARGETARCH` 交叉编译，避免在 QEMU 中执行完整工具链。
 - 启用 GitHub Actions 缓存以减少重复构建时间。
 - 生成 OCI provenance 和 SBOM attestation。
-- 工作流只授予 `contents: read`、`packages: write`、`attestations: write` 和 `id-token: write`。
+- 工作流只授予 `contents: read`、`packages: write`、`attestations: write`、`artifact-metadata: write` 和 `id-token: write`。
 - PR 构建不接触发布凭据，也不执行 registry login 或 push。
 
 现有 Security 工作流继续负责 Trivy 漏洞门禁；发布工作流不重复运行另一套扫描。
@@ -59,7 +59,7 @@ Docker Hub 凭据保存为 GitHub Actions repository secrets：
 
 令牌只通过标准输入提交给 GitHub，不写入命令参数、仓库文件、提交、部署记录或 Actions 日志。GitHub 登录使用当前仓库的 `GITHUB_TOKEN`，无需额外 PAT。
 
-首次发布后，由具备组织包管理权限且拥有 `write:packages` scope 的用户令牌将 GHCR 的 `starpay` 包可见性设置为 public，并保留与 `aurosk-star/starpay` 仓库的关联。仓库级 `GITHUB_TOKEN` 可以发布镜像，但不能修改组织包可见性，因此发布工作流不调用该管理 API。Docker Hub 仓库保持 public。
+首次发布后，由组织管理员先在组织 Packages 设置中允许创建 Public packages，再从 `starpay` 包设置页的 Danger Zone 将可见性改为 public，并保留与 `aurosk-star/starpay` 仓库的关联。GitHub REST 与 GraphQL 均未提供修改包可见性的接口，因此发布工作流不尝试自动执行该网页管理操作。Docker Hub 仓库保持 public。
 
 由于本次令牌曾通过聊天提供，发布验证完成后应在 Docker Hub 轮换令牌，并同步更新 `DOCKERHUB_TOKEN` Secret。
 

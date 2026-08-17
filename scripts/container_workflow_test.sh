@@ -26,6 +26,7 @@ require_text "$workflow" 'tags: ["v*.*.*"]'
 require_text "$workflow" "workflow_dispatch:"
 require_text "$workflow" "packages: write"
 require_text "$workflow" "attestations: write"
+require_text "$workflow" "artifact-metadata: write"
 require_text "$workflow" "id-token: write"
 require_text "$workflow" "ghcr.io/aurosk-star/starpay"
 require_text "$workflow" "docker.io/zxabugx/payment-gateway"

@@ -66,6 +66,7 @@ require_text "$workflow" 'tags: ["v*.*.*"]'
 require_text "$workflow" "workflow_dispatch:"
 require_text "$workflow" "packages: write"
 require_text "$workflow" "attestations: write"
+require_text "$workflow" "artifact-metadata: write"
 require_text "$workflow" "id-token: write"
 require_text "$workflow" "ghcr.io/aurosk-star/starpay"
 require_text "$workflow" "docker.io/zxabugx/payment-gateway"
@@ -189,6 +190,7 @@ permissions:
   contents: read
   packages: write
   attestations: write
+  artifact-metadata: write
   id-token: write
 
 concurrency:
@@ -405,14 +407,11 @@ gh run watch --repo aurosk-star/starpay "$publish_run_id" --interval 20 --exit-s
 
 Expected: build, push, attestation, and manifest verification succeed.
 
-- [ ] **Step 2: Make the new GHCR package public with a user token**
+- [ ] **Step 2: Make the new GHCR package public in GitHub settings**
 
-```bash
-gh auth refresh -h github.com -s read:packages -s write:packages
-gh api --method PATCH /orgs/aurosk-star/packages/container/starpay -f visibility=public
-```
+Open `https://github.com/organizations/aurosk-star/settings/packages`, enable `Public` under `Package Creation`, and save. Then open `https://github.com/orgs/aurosk-star/packages/container/starpay/settings`; under `Danger Zone`, choose `Change visibility`, select `Public`, type `starpay`, and confirm the irreversible visibility change.
 
-Expected: the PATCH response contains `"visibility":"public"`. This is a one-time package administration action; the repository `GITHUB_TOKEN` cannot perform it.
+Expected: the package page shows `Public`, and `gh api /orgs/aurosk-star/packages/container/starpay --jq .visibility` prints `public`. GitHub REST and GraphQL do not expose a package-visibility mutation, so this one-time action must use the settings page.
 
 - [ ] **Step 3: Verify public manifests and platforms**
 
