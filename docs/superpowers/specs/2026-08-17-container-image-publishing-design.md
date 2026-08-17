@@ -42,6 +42,7 @@
 
 - 使用 Docker 官方 Actions，并将所有第三方 Actions 固定到完整 commit SHA。
 - 使用 Buildx 构建 `linux/amd64` 与 `linux/arm64` 镜像。
+- Bun 和 Go 构建阶段固定在 Runner 原生平台执行，Go 使用 BuildKit 的 `TARGETOS`/`TARGETARCH` 交叉编译，避免在 QEMU 中执行完整工具链。
 - 启用 GitHub Actions 缓存以减少重复构建时间。
 - 生成 OCI provenance 和 SBOM attestation。
 - 工作流只授予 `contents: read`、`packages: write`、`attestations: write` 和 `id-token: write`。

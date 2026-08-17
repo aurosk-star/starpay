@@ -27,6 +27,7 @@
 - Create: `scripts/container_workflow_test.sh`
 - Create: `.github/workflows/publish-image.yml`
 - Modify: `.github/workflows/ci.yml`
+- Modify: `Dockerfile`
 
 **Interfaces:**
 - Consumes: root `Dockerfile`; repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`; built-in `github.token`.
@@ -44,6 +45,7 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 workflow="$repo_root/.github/workflows/publish-image.yml"
 ci_workflow="$repo_root/.github/workflows/ci.yml"
+dockerfile="$repo_root/Dockerfile"
 
 fail() {
   printf '[container-workflow-test] FAIL: %s\n' "$*" >&2
@@ -79,6 +81,15 @@ require_text "$workflow" "provenance: mode=max"
 require_text "$workflow" "sbom: true"
 require_text "$workflow" "push: \${{ github.event_name != 'pull_request' }}"
 require_text "$ci_workflow" "bash scripts/container_workflow_test.sh"
+require_text "$dockerfile" 'FROM --platform=$BUILDPLATFORM oven/bun:'
+require_text "$dockerfile" 'FROM --platform=$BUILDPLATFORM golang:'
+require_text "$dockerfile" 'ARG TARGETOS'
+require_text "$dockerfile" 'ARG TARGETARCH'
+require_text "$dockerfile" 'CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build'
+require_text "$dockerfile" 'USER 65532:65532'
+if grep -Eq '^[[:space:]]*RUN[[:space:]]+(addgroup|adduser)' "$dockerfile"; then
+  fail "final image user creation must not require target-platform execution"
+fi
 
 while IFS= read -r action; do
   [[ "$action" =~ @[0-9a-f]{40}([[:space:]]|$) ]] \
@@ -100,7 +111,7 @@ Run:
 bash scripts/container_workflow_test.sh
 ```
 
-Expected: exit 1 with `missing .../.github/workflows/publish-image.yml`.
+Expected: exit 1 because the publishing workflow and native cross-compilation declarations do not exist yet.
 
 - [ ] **Step 3: Add the CI invocation and minimal publishing workflow**
 
@@ -108,6 +119,45 @@ Add this step to the `deployment` job in `.github/workflows/ci.yml` after the de
 
 ```yaml
       - run: bash scripts/container_workflow_test.sh
+```
+
+Update the Dockerfile builders to execute on the Runner's native platform and cross-compile Go for the requested target:
+
+```dockerfile
+FROM --platform=$BUILDPLATFORM oven/bun:1.3.14 AS web-builder
+
+WORKDIR /src/web
+
+COPY web/package.json web/bun.lock ./
+RUN bun install --frozen-lockfile
+
+COPY web/ ./
+RUN bun run build
+
+FROM --platform=$BUILDPLATFORM golang:1.26.6-alpine3.23 AS go-builder
+
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+COPY --from=web-builder /src/web/dist ./internal/platform/webui/dist
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -tags webui -trimpath -ldflags="-s -w" -o /out/payment-gateway ./cmd/server
+
+FROM alpine:3.24
+
+WORKDIR /app
+COPY --from=go-builder /out/payment-gateway /app/payment-gateway
+COPY LICENSE NOTICE THIRD_PARTY_NOTICES.md /licenses/
+
+USER 65532:65532
+EXPOSE 8080
+
+ENTRYPOINT ["/app/payment-gateway"]
 ```
 
 Create `.github/workflows/publish-image.yml`:
@@ -222,6 +272,7 @@ Run:
 bash -n scripts/container_workflow_test.sh
 bash scripts/container_workflow_test.sh
 bash scripts/deploy_test.sh
+docker buildx build --platform linux/amd64,linux/arm64 --output type=cacheonly .
 ```
 
 Expected: all commands exit 0 and both test scripts print `PASS`.
@@ -242,7 +293,7 @@ Expected: actionlint and `git diff --check` produce no errors; `make verify` exi
 - [ ] **Step 6: Commit**
 
 ```bash
-git add .github/workflows/publish-image.yml .github/workflows/ci.yml scripts/container_workflow_test.sh
+git add .github/workflows/publish-image.yml .github/workflows/ci.yml Dockerfile scripts/container_workflow_test.sh
 git commit -m "Publish images to GHCR and Docker Hub"
 ```
 

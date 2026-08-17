@@ -5,6 +5,7 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 workflow="$repo_root/.github/workflows/publish-image.yml"
 ci_workflow="$repo_root/.github/workflows/ci.yml"
+dockerfile="$repo_root/Dockerfile"
 
 fail() {
   printf '[container-workflow-test] FAIL: %s\n' "$*" >&2
@@ -40,6 +41,15 @@ require_text "$workflow" "provenance: mode=max"
 require_text "$workflow" "sbom: true"
 require_text "$workflow" "push: \${{ github.event_name != 'pull_request' }}"
 require_text "$ci_workflow" "bash scripts/container_workflow_test.sh"
+require_text "$dockerfile" 'FROM --platform=$BUILDPLATFORM oven/bun:'
+require_text "$dockerfile" 'FROM --platform=$BUILDPLATFORM golang:'
+require_text "$dockerfile" 'ARG TARGETOS'
+require_text "$dockerfile" 'ARG TARGETARCH'
+require_text "$dockerfile" 'CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build'
+require_text "$dockerfile" 'USER 65532:65532'
+if grep -Eq '^[[:space:]]*RUN[[:space:]]+(addgroup|adduser)' "$dockerfile"; then
+  fail "final image user creation must not require target-platform execution"
+fi
 
 while IFS= read -r action; do
   [[ "$action" =~ @[0-9a-f]{40}([[:space:]]|$) ]] \
