@@ -59,7 +59,7 @@ Docker Hub 凭据保存为 GitHub Actions repository secrets：
 
 令牌只通过标准输入提交给 GitHub，不写入命令参数、仓库文件、提交、部署记录或 Actions 日志。GitHub 登录使用当前仓库的 `GITHUB_TOKEN`，无需额外 PAT。
 
-首次发布后，工作流使用仅限当前仓库、具有 `packages: write` 权限的 `GITHUB_TOKEN` 将 GHCR 的 `starpay` 包可见性设置为 public，并保留与 `aurosk-star/starpay` 仓库的关联。Docker Hub 仓库保持 public，不依赖个人 GitHub PAT 管理 GHCR 可见性。
+首次发布后，由具备组织包管理权限且拥有 `write:packages` scope 的用户令牌将 GHCR 的 `starpay` 包可见性设置为 public，并保留与 `aurosk-star/starpay` 仓库的关联。仓库级 `GITHUB_TOKEN` 可以发布镜像，但不能修改组织包可见性，因此发布工作流不调用该管理 API。Docker Hub 仓库保持 public。
 
 由于本次令牌曾通过聊天提供，发布验证完成后应在 Docker Hub 轮换令牌，并同步更新 `DOCKERHUB_TOKEN` Secret。
 

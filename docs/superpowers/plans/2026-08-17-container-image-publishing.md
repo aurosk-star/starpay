@@ -80,10 +80,6 @@ require_text "$workflow" "platforms: linux/amd64,linux/arm64"
 require_text "$workflow" "provenance: mode=max"
 require_text "$workflow" "sbom: true"
 require_text "$workflow" "push: \${{ github.event_name != 'pull_request' }}"
-require_text "$workflow" "name: Make GHCR package public"
-require_text "$workflow" 'GH_TOKEN: ${{ github.token }}'
-require_text "$workflow" "/orgs/aurosk-star/packages/container/starpay"
-require_text "$workflow" "visibility=public"
 require_text "$ci_workflow" "bash scripts/container_workflow_test.sh"
 require_text "$dockerfile" 'FROM --platform=$BUILDPLATFORM oven/bun:'
 require_text "$dockerfile" 'FROM --platform=$BUILDPLATFORM golang:'
@@ -102,6 +98,10 @@ done < <(sed -nE 's/^[[:space:]]*-[[:space:]]*uses:[[:space:]]*(.+)$/\1/p' "$wor
 
 if grep -REn 'dckr_pat_[A-Za-z0-9_-]+' "$repo_root/.github"; then
   fail "Docker Hub token literal found in .github"
+fi
+
+if grep -Fq '/orgs/aurosk-star/packages/container/starpay' "$workflow"; then
+  fail "GITHUB_TOKEN cannot manage organization package visibility"
 fi
 
 printf '[container-workflow-test] PASS\n'
@@ -250,15 +250,6 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: mode=max
           sbom: true
-
-      - name: Make GHCR package public
-        if: github.event_name != 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh api --method PATCH
-          /orgs/aurosk-star/packages/container/starpay
-          -f visibility=public
 
       - name: Attest GHCR image
         if: github.event_name != 'pull_request'
@@ -414,13 +405,14 @@ gh run watch --repo aurosk-star/starpay "$publish_run_id" --interval 20 --exit-s
 
 Expected: build, push, attestation, and manifest verification succeed.
 
-- [ ] **Step 2: Verify the workflow made the GHCR package public**
+- [ ] **Step 2: Make the new GHCR package public with a user token**
 
 ```bash
-docker buildx imagetools inspect ghcr.io/aurosk-star/starpay:latest
+gh auth refresh -h github.com -s read:packages -s write:packages
+gh api --method PATCH /orgs/aurosk-star/packages/container/starpay -f visibility=public
 ```
 
-Expected: anonymous inspection succeeds. The publishing workflow's `Make GHCR package public` step uses the repository-scoped `GITHUB_TOKEN`; no personal GitHub package token is required.
+Expected: the PATCH response contains `"visibility":"public"`. This is a one-time package administration action; the repository `GITHUB_TOKEN` cannot perform it.
 
 - [ ] **Step 3: Verify public manifests and platforms**
 
