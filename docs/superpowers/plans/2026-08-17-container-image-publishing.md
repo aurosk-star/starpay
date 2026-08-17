@@ -231,7 +231,8 @@ Expected: all commands exit 0 and both test scripts print `PASS`.
 Run:
 
 ```bash
-docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.11
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/repo" -w /repo \
+  rhysd/actionlint:1.7.11 .github/workflows/*.yml
 git diff --check
 make verify
 ```
