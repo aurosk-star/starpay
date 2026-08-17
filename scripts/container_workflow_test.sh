@@ -40,10 +40,6 @@ require_text "$workflow" "platforms: linux/amd64,linux/arm64"
 require_text "$workflow" "provenance: mode=max"
 require_text "$workflow" "sbom: true"
 require_text "$workflow" "push: \${{ github.event_name != 'pull_request' }}"
-require_text "$workflow" "name: Make GHCR package public"
-require_text "$workflow" 'GH_TOKEN: ${{ github.token }}'
-require_text "$workflow" "/orgs/aurosk-star/packages/container/starpay"
-require_text "$workflow" "visibility=public"
 require_text "$ci_workflow" "bash scripts/container_workflow_test.sh"
 require_text "$dockerfile" 'FROM --platform=$BUILDPLATFORM oven/bun:'
 require_text "$dockerfile" 'FROM --platform=$BUILDPLATFORM golang:'
@@ -62,6 +58,10 @@ done < <(sed -nE 's/^[[:space:]]*-[[:space:]]*uses:[[:space:]]*(.+)$/\1/p' "$wor
 
 if grep -REn 'dckr_pat_[A-Za-z0-9_-]+' "$repo_root/.github"; then
   fail "Docker Hub token literal found in .github"
+fi
+
+if grep -Fq '/orgs/aurosk-star/packages/container/starpay' "$workflow"; then
+  fail "GITHUB_TOKEN cannot manage organization package visibility"
 fi
 
 printf '[container-workflow-test] PASS\n'
