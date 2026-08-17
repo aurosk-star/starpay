@@ -40,6 +40,10 @@ require_text "$workflow" "platforms: linux/amd64,linux/arm64"
 require_text "$workflow" "provenance: mode=max"
 require_text "$workflow" "sbom: true"
 require_text "$workflow" "push: \${{ github.event_name != 'pull_request' }}"
+require_text "$workflow" "name: Make GHCR package public"
+require_text "$workflow" 'GH_TOKEN: ${{ github.token }}'
+require_text "$workflow" "/orgs/aurosk-star/packages/container/starpay"
+require_text "$workflow" "visibility=public"
 require_text "$ci_workflow" "bash scripts/container_workflow_test.sh"
 require_text "$dockerfile" 'FROM --platform=$BUILDPLATFORM oven/bun:'
 require_text "$dockerfile" 'FROM --platform=$BUILDPLATFORM golang:'
