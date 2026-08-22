@@ -11,7 +11,7 @@ require (
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/lib/pq v1.12.3
-	github.com/mattn/go-sqlite3 v1.14.49
+	github.com/mattn/go-sqlite3 v1.14.50
 	github.com/redis/go-redis/v9 v9.22.0
 	golang.org/x/crypto v0.55.0
 )
@@ -41,7 +41,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
-	github.com/go-pay/crypto v0.0.2
+	github.com/go-pay/crypto v0.0.3
 	github.com/go-pay/gopay v1.5.122
 	github.com/go-pay/util v0.0.4 // indirect
 	github.com/go-pay/xlog v0.0.3 // indirect
