@@ -100,7 +100,9 @@ export function TestPayPage() {
     listApps(accessToken)
       .then((result) => {
         if (!alive) return;
-        const enabledApps = result.items.filter((app) => app.status === "enabled");
+        const enabledApps = result.items.filter(
+          (app) => app.status === "enabled",
+        );
         setApps(enabledApps);
         setForm((current) => {
           if (current.appId || enabledApps.length === 0) return current;
@@ -198,7 +200,9 @@ export function TestPayPage() {
         throw new Error(t("testPay.errors.missingPayUrl"));
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("testPay.errors.failed"));
+      toast.error(
+        err instanceof Error ? err.message : t("testPay.errors.failed"),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -304,7 +308,10 @@ export function TestPayPage() {
 
             <Separator />
 
-            <Field orientation="horizontal" className="justify-between rounded-lg border p-4">
+            <Field
+              orientation="horizontal"
+              className="justify-between rounded-lg border p-4"
+            >
               <div className="space-y-1">
                 <FieldLabel htmlFor="test_pay_specify_method">
                   {t("testPay.fields.specifyMethod")}
