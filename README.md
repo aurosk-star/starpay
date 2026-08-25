@@ -33,6 +33,7 @@
 - Casbin：后台 RBAC
 - Bun 1.3.13 + React + Rsbuild + TanStack Router：管理后台和收银台前端
 - shadcn/ui + Tailwind CSS：前端组件和样式
+- [shadcn-admin](https://github.com/satnaing/shadcn-admin) 风格的管理后台 shell、导航和数据表模式（MIT，归属与许可文本见 [`web/THIRD_PARTY_NOTICES.md`](web/THIRD_PARTY_NOTICES.md)）
 - Docker Compose：本地依赖和容器化运行
 
 ## 项目结构

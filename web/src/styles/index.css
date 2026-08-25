@@ -3,6 +3,11 @@
 @import "./shadcn.css";
 @import "@fontsource-variable/roboto";
 
+/*
+ * shadcn-admin design-token source of truth. Keep semantic colors, typography,
+ * radii, sidebar colors, and chart colors in this file; shadcn.css contains
+ * vendored utility recipes and must not redefine these values.
+ */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
