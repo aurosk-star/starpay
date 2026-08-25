@@ -24,8 +24,8 @@ export function NavUser({ user: userProp, onLogout }: NavUserProps) {
   const accessToken = useAuthStore((state) => state.accessToken);
   const clearSession = useAuthStore((state) => state.clearSession);
   const user = userProp === undefined ? storeUser : userProp;
-  const name = user?.display_name || user?.username || "admin";
-  const email = user?.email || "admin@example.com";
+  const name = user?.display_name || user?.username || t("common.admin");
+  const email = user?.email || t("common.adminEmail");
 
   function handleLogout() {
     if (onLogout) {

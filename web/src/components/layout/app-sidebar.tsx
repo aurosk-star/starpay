@@ -35,7 +35,7 @@ import type { AppSidebarProps } from "./types";
 
 export function AppSidebar({ data, pathname: pathnameProp }: AppSidebarProps) {
   const { t } = useTranslation();
-  const { open } = useSidebar();
+  const { open, setOpenMobile } = useSidebar();
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
@@ -106,7 +106,7 @@ export function AppSidebar({ data, pathname: pathnameProp }: AppSidebarProps) {
                           {open ? <span>{item.titleKey}</span> : null}
                         </>
                       ) : (
-                        <Link to={item.url}>
+                        <Link to={item.url} onClick={() => setOpenMobile(false)}>
                           <item.icon />
                           {open ? <span>{item.titleKey}</span> : null}
                         </Link>

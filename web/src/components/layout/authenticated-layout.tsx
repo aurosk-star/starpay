@@ -10,6 +10,7 @@ import {
 import { AppSidebar } from "./app-sidebar";
 import { Header } from "./header";
 import { Main } from "./main";
+import { SkipToMain } from "@/components/skip-to-main";
 
 export type AuthenticatedLayoutProps = {
   title?: ReactNode;
@@ -24,6 +25,7 @@ export function AuthenticatedLayout({
 }: AuthenticatedLayoutProps) {
   return (
     <SidebarProvider className="h-svh min-h-0 overflow-hidden">
+      <SkipToMain />
       <AppSidebar />
       <SidebarInset className="min-h-0">
         <Header title={title}>{headerActions}</Header>
