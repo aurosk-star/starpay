@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Bell, MoonStar, RefreshCw, SunMedium } from "lucide-react";
+import { Bell, RefreshCw } from "lucide-react";
 
-import { useTheme } from "@/components/theme-provider";
+import { LanguageSwitch } from "@/components/language-switch";
+import { ThemeSwitch } from "@/components/theme-switch";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,7 +21,6 @@ export type HeaderProps = {
 
 export function Header({ title, children }: HeaderProps) {
   const { t } = useTranslation();
-  const { theme, setTheme } = useTheme();
 
   return (
     <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-4 border-b bg-background/95 px-4 backdrop-blur transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-6">
@@ -42,14 +42,8 @@ export function Header({ title, children }: HeaderProps) {
       </div>
       <div className="flex items-center gap-2">
         {children}
-        <Button
-          variant="outline"
-          size="icon-sm"
-          aria-label={t("shell.toggleTheme")}
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        >
-          {theme === "dark" ? <SunMedium /> : <MoonStar />}
-        </Button>
+        <LanguageSwitch />
+        <ThemeSwitch label={t("shell.toggleTheme")} />
         <Button variant="outline" size="sm" className="hidden sm:inline-flex">
           <RefreshCw />
           {t("shell.sync")}
