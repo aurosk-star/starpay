@@ -1,4 +1,9 @@
-import { DataTable, type DataTableColumn } from "./data-table";
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableSlot,
+} from "./data-table";
+import type * as React from "react";
 
 export function createDataTable<TData>() {
   return function TypedDataTable<TValue>({
@@ -8,6 +13,10 @@ export function createDataTable<TData>() {
     loadingText,
     loading,
     pageSize,
+    toolbar,
+    pagination,
+    viewOptions,
+    emptyState,
   }: {
     columns: DataTableColumn<TData, TValue>[];
     data: TData[];
@@ -15,6 +24,14 @@ export function createDataTable<TData>() {
     loadingText?: string;
     loading?: boolean;
     pageSize?: number;
+    toolbar?: DataTableSlot<TData>;
+    pagination?: DataTableSlot<TData> | false;
+    viewOptions?: DataTableSlot<TData> | boolean;
+    emptyState?:
+      | React.ReactNode
+      | ((
+          table: import("@tanstack/react-table").Table<TData>,
+        ) => React.ReactNode);
   }) {
     return (
       <DataTable
@@ -24,6 +41,10 @@ export function createDataTable<TData>() {
         loadingText={loadingText}
         loading={loading}
         pageSize={pageSize}
+        toolbar={toolbar}
+        pagination={pagination}
+        viewOptions={viewOptions}
+        emptyState={emptyState}
       />
     );
   };
