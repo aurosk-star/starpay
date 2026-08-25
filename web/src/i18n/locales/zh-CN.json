@@ -24,6 +24,9 @@
     "view": "查看",
     "retry": "重试"
   },
+  "accessibility": {
+    "skipToMain": "跳转到主要内容"
+  },
   "nav": {
     "overview": "总览",
     "users": "用户管理",

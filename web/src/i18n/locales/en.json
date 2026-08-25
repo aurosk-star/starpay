@@ -24,6 +24,9 @@
     "view": "View",
     "retry": "Retry"
   },
+  "accessibility": {
+    "skipToMain": "Skip to main content"
+  },
   "nav": {
     "overview": "Overview",
     "users": "Users",
