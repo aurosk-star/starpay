@@ -14,7 +14,11 @@ export function LanguageSwitch() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon-sm" aria-label={t("language.label")}>
+        <Button
+          variant="outline"
+          size="icon-sm"
+          aria-label={t("language.label")}
+        >
           <Languages />
         </Button>
       </DropdownMenuTrigger>

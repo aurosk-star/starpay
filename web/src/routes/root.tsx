@@ -34,10 +34,7 @@ function ShellLayout() {
   }
 
   return (
-    <AuthenticatedLayout
-      title={pageTitle}
-      headerActions={<CommandMenu />}
-    />
+    <AuthenticatedLayout title={pageTitle} headerActions={<CommandMenu />} />
   );
 }
 
@@ -47,7 +44,9 @@ function NotFoundPage() {
     <AuthenticatedLayout title={t("errors.notFound.title")}>
       <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center">
         <p className="text-5xl font-semibold tracking-tight">404</p>
-        <p className="text-muted-foreground">{t("errors.notFound.description")}</p>
+        <p className="text-muted-foreground">
+          {t("errors.notFound.description")}
+        </p>
       </div>
     </AuthenticatedLayout>
   );

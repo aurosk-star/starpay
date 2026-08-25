@@ -106,7 +106,10 @@ export function AppSidebar({ data, pathname: pathnameProp }: AppSidebarProps) {
                           {open ? <span>{item.titleKey}</span> : null}
                         </>
                       ) : (
-                        <Link to={item.url} onClick={() => setOpenMobile(false)}>
+                        <Link
+                          to={item.url}
+                          onClick={() => setOpenMobile(false)}
+                        >
                           <item.icon />
                           {open ? <span>{item.titleKey}</span> : null}
                         </Link>

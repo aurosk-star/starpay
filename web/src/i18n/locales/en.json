@@ -22,9 +22,9 @@
     "all": "All",
     "loading": "Loading...",
     "view": "View",
-    "retry": "Retry"
-    ,"admin": "Administrator"
-    ,"adminEmail": "admin@example.com"
+    "retry": "Retry",
+    "admin": "Administrator",
+    "adminEmail": "admin@example.com"
   },
   "accessibility": {
     "skipToMain": "Skip to main content"

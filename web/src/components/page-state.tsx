@@ -8,7 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 type PageStateProps =
   | { kind: "loading"; message?: string }
   | { kind: "empty"; title?: string; description?: string }
-  | { kind: "error"; title?: string; description?: string; onRetry?: () => void };
+  | {
+      kind: "error";
+      title?: string;
+      description?: string;
+      onRetry?: () => void;
+    };
 
 export function PageState(props: PageStateProps) {
   const { t } = useTranslation();
@@ -27,8 +32,12 @@ export function PageState(props: PageStateProps) {
       <Card>
         <CardContent className="flex min-h-32 flex-col items-center justify-center gap-2 text-center">
           <Inbox className="size-6 text-muted-foreground" />
-          <p className="font-medium">{props.title ?? t("pageState.emptyTitle")}</p>
-          <p className="text-sm text-muted-foreground">{props.description ?? t("pageState.emptyDescription")}</p>
+          <p className="font-medium">
+            {props.title ?? t("pageState.emptyTitle")}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {props.description ?? t("pageState.emptyDescription")}
+          </p>
         </CardContent>
       </Card>
     );
@@ -39,7 +48,11 @@ export function PageState(props: PageStateProps) {
       <AlertTitle>{props.title ?? t("pageState.errorTitle")}</AlertTitle>
       <AlertDescription className="flex items-center justify-between gap-4">
         <span>{props.description ?? t("pageState.errorDescription")}</span>
-        {props.onRetry ? <Button variant="outline" size="sm" onClick={props.onRetry}>{t("common.retry")}</Button> : null}
+        {props.onRetry ? (
+          <Button variant="outline" size="sm" onClick={props.onRetry}>
+            {t("common.retry")}
+          </Button>
+        ) : null}
       </AlertDescription>
     </Alert>
   );

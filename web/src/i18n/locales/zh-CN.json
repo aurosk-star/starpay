@@ -22,9 +22,9 @@
     "all": "全部",
     "loading": "加载中...",
     "view": "查看",
-    "retry": "重试"
-    ,"admin": "管理员"
-    ,"adminEmail": "admin@example.com"
+    "retry": "重试",
+    "admin": "管理员",
+    "adminEmail": "admin@example.com"
   },
   "accessibility": {
     "skipToMain": "跳转到主要内容"
