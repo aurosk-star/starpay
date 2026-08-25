@@ -1,5 +1,6 @@
 import type { Table } from "@tanstack/react-table";
 import { Settings2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,11 +13,13 @@ import {
 
 export function DataTableViewOptions<TData>({
   table,
-  label = "列",
+  label,
 }: {
   table: Table<TData>;
   label?: string;
 }) {
+  const { t } = useTranslation();
+  const resolvedLabel = label ?? t("dataTable.columns");
   const columns = table
     .getAllColumns()
     .filter(
@@ -32,11 +35,11 @@ export function DataTableViewOptions<TData>({
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm">
             <Settings2 data-icon="inline-start" />
-            {label}
+            {resolvedLabel}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuLabel>{label}</DropdownMenuLabel>
+          <DropdownMenuLabel>{resolvedLabel}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {columns.map((column) => (
             <DropdownMenuCheckboxItem

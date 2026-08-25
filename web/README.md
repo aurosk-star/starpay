@@ -23,7 +23,7 @@ bun run dev
 ## 验证
 
 ```bash
-node --test test/*.test.mts
+bun test
 bun run typecheck
 bun run lint
 bun run build
@@ -42,7 +42,7 @@ bun audit
 
 - **Shell ownership**：`src/App.tsx` 负责主题、Toast 和认证会话启动；`src/routes/root.tsx` 根据路由和会话选择登录边界、公开收银台或 `AuthenticatedLayout`。认证后的侧边栏、顶栏、跳过链接和主内容容器由 `src/components/layout/` 统一维护。
 - **Navigation metadata**：`src/config/navigation.ts` 是导航的单一元数据源。侧边栏和命令菜单都从这里读取分组、标题 key、图标和 URL；新增后台入口先更新元数据，再在 i18n 资源中补齐标题。
-- **Page states and headings**：业务页使用共享的 `Main`、`PageState`（加载、错误、空态）和 `PageHeader`，保持标题、描述和操作区的响应式布局一致。不要在业务页重复实现 shell 或页面标题结构。
+- **Page states and headings**：业务页使用共享的 `Main`、`PageHeader`，并可使用 `PageState`（加载、错误、空态）保持标题、描述和操作区的响应式布局一致。不要在业务页重复实现 shell 或页面标题结构。
 - **Data tables**：列表页必须通过 `src/components/data-table/` 的 `createDataTable` 工厂和共享 `DataTable` 组件渲染。筛选工具栏、列显隐、排序、分页、空态和行操作应使用已有扩展点，不要手写重复的 `<table>` 标记。
 - **Authentication boundary**：后台 API 页面要求管理员会话；`App.tsx` 会先恢复 refresh cookie 或校验 access token，未认证时仅渲染登录/初始化界面。`/checkout/*` 是公开收银台路径，不挂载管理员 sidebar 或用户菜单，但仍使用共享主题 token。
 

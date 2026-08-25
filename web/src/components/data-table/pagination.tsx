@@ -1,4 +1,5 @@
 import type { Table } from "@tanstack/react-table";
+import { useTranslation } from "react-i18next";
 import {
   Pagination,
   PaginationContent,
@@ -21,9 +22,12 @@ export type DataTablePaginationProps<TData> = {
 export function DataTablePagination<TData>({
   table,
   pageSize,
-  previousLabel = "上一页",
-  nextLabel = "下一页",
+  previousLabel,
+  nextLabel,
 }: DataTablePaginationProps<TData>) {
+  const { t } = useTranslation();
+  const resolvedPreviousLabel = previousLabel ?? t("dataTable.previous");
+  const resolvedNextLabel = nextLabel ?? t("dataTable.next");
   const pageCount = table.getPageCount();
   const currentPage = table.getState().pagination.pageIndex + 1;
   const canPreviousPage = table.getCanPreviousPage();
@@ -52,7 +56,7 @@ export function DataTablePagination<TData>({
               if (canPreviousPage) table.previousPage();
             }}
           >
-            {previousLabel}
+            {resolvedPreviousLabel}
           </PaginationPrevious>
         </PaginationItem>
         {getPaginationItems(currentPage, pageCount).map((item, index) =>
@@ -86,7 +90,7 @@ export function DataTablePagination<TData>({
               if (canNextPage) table.nextPage();
             }}
           >
-            {nextLabel}
+            {resolvedNextLabel}
           </PaginationNext>
         </PaginationItem>
       </PaginationContent>

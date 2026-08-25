@@ -6,6 +6,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { CommandMenu } from "@/components/command-menu";
+import { ErrorPage } from "@/components/error-page";
 import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
 import { AuthScreen } from "@/features/auth/auth-screen";
 import { useAuthStore } from "@/features/auth/store";
@@ -40,6 +41,18 @@ function ShellLayout() {
 
 function NotFoundPage() {
   const { t } = useTranslation();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
+  if (pathname.startsWith("/checkout/")) {
+    return (
+      <main className="min-h-svh bg-background px-4 py-10 text-foreground">
+        <ErrorPage status="404" />
+      </main>
+    );
+  }
+  if (!accessToken) return <AuthScreen />;
   return (
     <AuthenticatedLayout title={t("errors.notFound.title")}>
       <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center">

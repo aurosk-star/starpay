@@ -52,6 +52,12 @@
     "errorTitle": "Unable to load this page",
     "errorDescription": "Please try again or contact an administrator."
   },
+  "dataTable": {
+    "columns": "Columns",
+    "filterPlaceholder": "Filter...",
+    "previous": "Previous",
+    "next": "Next"
+  },
   "errors": {
     "backHome": "Back to overview",
     "401": {

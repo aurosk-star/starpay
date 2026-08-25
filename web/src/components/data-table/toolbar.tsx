@@ -1,5 +1,6 @@
 import type { Table } from "@tanstack/react-table";
 import type * as React from "react";
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -16,9 +17,12 @@ export function DataTableToolbar<TData>({
   table,
   children,
   searchColumn,
-  searchPlaceholder = "筛选...",
+  searchPlaceholder,
   className,
 }: DataTableToolbarProps<TData>) {
+  const { t } = useTranslation();
+  const resolvedSearchPlaceholder =
+    searchPlaceholder ?? t("dataTable.filterPlaceholder");
   const searchValue = searchColumn
     ? String(table.getColumn(searchColumn)?.getFilterValue() ?? "")
     : "";
@@ -28,12 +32,12 @@ export function DataTableToolbar<TData>({
       {searchColumn && table.getColumn(searchColumn) ? (
         <Input
           value={searchValue}
-          placeholder={searchPlaceholder}
+          placeholder={resolvedSearchPlaceholder}
           onChange={(event) =>
             table.getColumn(searchColumn)?.setFilterValue(event.target.value)
           }
           className="h-8 w-full sm:w-56"
-          aria-label={searchPlaceholder}
+          aria-label={resolvedSearchPlaceholder}
         />
       ) : null}
       {children}

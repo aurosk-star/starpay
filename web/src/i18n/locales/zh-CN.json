@@ -52,6 +52,12 @@
     "errorTitle": "页面加载失败",
     "errorDescription": "请重试，或联系管理员。"
   },
+  "dataTable": {
+    "columns": "列",
+    "filterPlaceholder": "筛选...",
+    "previous": "上一页",
+    "next": "下一页"
+  },
   "errors": {
     "backHome": "返回总览",
     "401": { "title": "需要登录", "description": "请先登录后再访问此页面。" },

@@ -19,6 +19,7 @@ export function Main({
   return (
     <main
       id="main-content"
+      tabIndex={-1}
       className={cn(
         "min-w-0 px-3 py-4 sm:px-4 sm:py-5 md:px-6",
         fluid ? "w-full max-w-none" : "mx-auto w-full max-w-7xl",
