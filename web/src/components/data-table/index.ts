@@ -1,4 +1,10 @@
 export { DataTable } from "./data-table";
 export { createDataTable } from "./factory";
 export { DataTableRowActions } from "./row-actions";
+export { DataTableColumnHeader } from "./column-header";
+export { DataTablePagination, getPaginationItems } from "./pagination";
+export { DataTableToolbar } from "./toolbar";
+export { DataTableViewOptions } from "./view-options";
 export type { DataTableColumn } from "./factory";
+export type { DataTablePaginationProps } from "./pagination";
+export type { DataTableSlot } from "./data-table";

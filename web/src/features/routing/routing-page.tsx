@@ -9,6 +9,7 @@ import {
   DataTableRowActions,
   type DataTableColumn,
 } from "@/components/data-table";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,11 +22,7 @@ import {
 import { useAuthStore } from "@/features/auth/store";
 import { APIError } from "@/lib/api";
 
-import {
-  disableRoutingRule,
-  enableRoutingRule,
-  listRoutingRules,
-} from "./api";
+import { disableRoutingRule, enableRoutingRule, listRoutingRules } from "./api";
 import type { RoutingRule } from "./types";
 
 const RoutingDataTable = createDataTable<RoutingRule>();
@@ -85,7 +82,10 @@ export function RoutingPage() {
         header: t("routing.table.amount"),
         cell: ({ row }) => (
           <span className="font-mono text-xs">
-            {formatAmountRange(row.original.min_amount, row.original.max_amount)}
+            {formatAmountRange(
+              row.original.min_amount,
+              row.original.max_amount,
+            )}
           </span>
         ),
       },
@@ -160,7 +160,9 @@ export function RoutingPage() {
       const result = await listRoutingRules(accessToken);
       setRules(result.items);
     } catch (err) {
-      toast.error(err instanceof APIError ? err.message : t("routing.loadFailed"));
+      toast.error(
+        err instanceof APIError ? err.message : t("routing.loadFailed"),
+      );
     } finally {
       setLoading(false);
     }
@@ -190,28 +192,24 @@ export function RoutingPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("routing.title")}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t("routing.description")}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={load}>
-            <RefreshCw />
-            {t("common.refresh")}
-          </Button>
-          <Button asChild>
-            <Link to="/routing/new">
-              <Plus />
-              {t("routing.create")}
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={t("routing.title")}
+        description={t("routing.description")}
+        actions={
+          <>
+            <Button variant="outline" onClick={load}>
+              <RefreshCw />
+              {t("common.refresh")}
+            </Button>
+            <Button asChild>
+              <Link to="/routing/new">
+                <Plus />
+                {t("routing.create")}
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -224,7 +222,7 @@ export function RoutingPage() {
               {t("routing.loading")}
             </p>
           ) : rules.length > 0 ? (
-            <RoutingDataTable columns={columns} data={rules} />
+            <RoutingDataTable columns={columns} data={rules} viewOptions />
           ) : (
             <p className="text-sm text-muted-foreground">
               {t("routing.empty")}

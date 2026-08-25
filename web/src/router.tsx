@@ -24,6 +24,7 @@ import { refundsRoute } from "./routes/refunds";
 import { refundDetailRoute } from "./routes/refund-detail";
 import { reconciliationsRoute } from "./routes/reconciliations";
 import { reconciliationDetailRoute } from "./routes/reconciliation-detail";
+import { errorsRoute } from "./routes/errors";
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -38,6 +39,7 @@ const routeTree = rootRoute.addChildren([
   refundDetailRoute,
   reconciliationsRoute,
   reconciliationDetailRoute,
+  errorsRoute,
   testPayRoute,
   checkoutRoute,
   checkoutResultRoute,

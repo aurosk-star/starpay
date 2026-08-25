@@ -36,7 +36,10 @@ export function setCachedSiteName(siteName: string) {
   }
 }
 
-export function formatDocumentTitle(pageTitle: string | undefined, siteName: string) {
+export function formatDocumentTitle(
+  pageTitle: string | undefined,
+  siteName: string,
+) {
   const normalizedPageTitle = pageTitle?.trim();
   const normalizedSiteName = siteName.trim() || FALLBACK_SITE_NAME;
   return normalizedPageTitle

@@ -9,6 +9,7 @@ import {
   DataTableRowActions,
   type DataTableColumn,
 } from "@/components/data-table";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -211,24 +212,16 @@ export function WebhooksPage() {
 
   return (
     <div className="flex min-w-0 max-w-full flex-col gap-5">
-      <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("webhooks.title")}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t("webhooks.description")}
-          </p>
-        </div>
-        <Button
-          className="w-full md:w-auto"
-          variant="outline"
-          onClick={() => load()}
-        >
-          <RefreshCw />
-          {t("common.refresh")}
-        </Button>
-      </div>
+      <PageHeader
+        title={t("webhooks.title")}
+        description={t("webhooks.description")}
+        actions={
+          <Button variant="outline" onClick={() => load()}>
+            <RefreshCw />
+            {t("common.refresh")}
+          </Button>
+        }
+      />
       <Card className="min-w-0 max-w-full">
         <CardHeader>
           <CardTitle>{t("webhooks.filters")}</CardTitle>
@@ -382,6 +375,7 @@ export function WebhooksPage() {
             data={items}
             loading={loading}
             pageSize={20}
+            viewOptions
           />
         </CardContent>
       </Card>

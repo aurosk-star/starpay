@@ -7,7 +7,9 @@ import type {
 } from "./types";
 
 export function getPublicSiteConfig() {
-  return apiRequest<{ site_config: PublicSiteConfig }>("/v1/public/site-config");
+  return apiRequest<{ site_config: PublicSiteConfig }>(
+    "/v1/public/site-config",
+  );
 }
 
 export function getGatewayConfig(accessToken: string) {

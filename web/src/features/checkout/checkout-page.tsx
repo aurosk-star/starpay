@@ -10,6 +10,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { LanguageSwitch } from "@/components/language-switch";
+import { ThemeSwitch } from "@/components/theme-switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -382,7 +384,11 @@ export function CheckoutShell({
               {title ?? t("checkout.title")}
             </h1>
           </div>
-          <Badge variant="secondary">{t("checkout.secure")}</Badge>
+          <div className="flex items-center gap-2">
+            <LanguageSwitch />
+            <ThemeSwitch label={t("shell.toggleTheme")} />
+            <Badge variant="secondary">{t("checkout.secure")}</Badge>
+          </div>
         </header>
         {children}
       </div>

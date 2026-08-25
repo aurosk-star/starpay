@@ -9,6 +9,7 @@ import {
   DataTableRowActions,
   type DataTableColumn,
 } from "@/components/data-table";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -169,28 +170,24 @@ export function ChannelsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("channels.title")}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t("channels.description")}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={load}>
-            <RefreshCw />
-            {t("common.refresh")}
-          </Button>
-          <Button asChild>
-            <Link to="/channels/new">
-              <Plus />
-              {t("channels.create")}
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={t("channels.title")}
+        description={t("channels.description")}
+        actions={
+          <>
+            <Button variant="outline" onClick={load}>
+              <RefreshCw />
+              {t("common.refresh")}
+            </Button>
+            <Button asChild>
+              <Link to="/channels/new">
+                <Plus />
+                {t("channels.create")}
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -203,7 +200,7 @@ export function ChannelsPage() {
               {t("channels.loading")}
             </p>
           ) : channels.length > 0 ? (
-            <ChannelsDataTable columns={columns} data={channels} />
+            <ChannelsDataTable columns={columns} data={channels} viewOptions />
           ) : (
             <p className="text-sm text-muted-foreground">
               {t("channels.empty")}
