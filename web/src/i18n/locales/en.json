@@ -53,6 +53,23 @@
     "errorDescription": "Please try again or contact an administrator."
   },
   "errors": {
+    "backHome": "Back to overview",
+    "401": {
+      "title": "Sign-in required",
+      "description": "Sign in to access this page."
+    },
+    "403": {
+      "title": "Access denied",
+      "description": "Your account does not have permission to access this page."
+    },
+    "404": {
+      "title": "Page not found",
+      "description": "The page you requested does not exist."
+    },
+    "500": {
+      "title": "Something went wrong",
+      "description": "The console could not complete this request."
+    },
     "notFound": {
       "title": "Page not found",
       "description": "The page you requested does not exist."
