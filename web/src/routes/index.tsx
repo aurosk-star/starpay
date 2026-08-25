@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 
 import { createDataTable, type DataTableColumn } from "@/components/data-table";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -386,6 +387,23 @@ function HomePage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
+      <PageHeader
+        title={t("home.gatewayOverview")}
+        actions={
+          <>
+            <Button variant="outline" onClick={load} disabled={loading}>
+              <RefreshCw />
+              {t("common.refresh")}
+            </Button>
+            <Button asChild>
+              <Link to="/test-pay">
+                {t("home.testPayment.button")}
+                <ArrowUpRight />
+              </Link>
+            </Button>
+          </>
+        }
+      />
       <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="min-w-0 overflow-hidden">
           <CardHeader className="border-b">
@@ -632,6 +650,7 @@ function HomePage() {
               loadingText={t("webhooks.loading")}
               emptyText={t("home.empty.webhooks")}
               pageSize={20}
+              viewOptions
             />
           </CardContent>
         </Card>

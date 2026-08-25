@@ -25,6 +25,7 @@ import {
   DataTableRowActions,
   type DataTableColumn,
 } from "@/components/data-table";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -279,31 +280,26 @@ export function UsersPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <section className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">访问控制</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-            {t("users.title")}
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            {t("users.description")}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => void load()}
-            disabled={loading}
-          >
-            <RefreshCw data-icon="inline-start" />
-            {t("common.refresh")}
-          </Button>
-          <Button onClick={openCreate}>
-            <Plus data-icon="inline-start" />
-            {t("users.create")}
-          </Button>
-        </div>
-      </section>
+      <PageHeader
+        title={t("users.title")}
+        description={t("users.description")}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => void load()}
+              disabled={loading}
+            >
+              <RefreshCw data-icon="inline-start" />
+              {t("common.refresh")}
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus data-icon="inline-start" />
+              {t("users.create")}
+            </Button>
+          </>
+        }
+      />
 
       <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <CardPanel
@@ -317,6 +313,7 @@ export function UsersPage() {
             loading={loading}
             loadingText={t("users.loading")}
             emptyText={t("users.empty")}
+            viewOptions
           />
         </CardPanel>
 
