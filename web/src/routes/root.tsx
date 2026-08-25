@@ -59,7 +59,11 @@ function getPageTitle(
 ) {
   if (pathname === "/") return t("nav.overview");
   if (pathname === "/users") return t("users.title");
-  if (pathname === "/apps") return t("apps.title");
+  if (pathname === "/apps" || pathname.startsWith("/apps/")) {
+    return pathname.startsWith("/apps/")
+      ? t("apps.detailTitle")
+      : t("apps.title");
+  }
   if (pathname === "/orders") return t("orders.title");
   if (pathname.startsWith("/orders/")) return t("orders.detailTitle");
   if (pathname === "/webhooks") return t("webhooks.title");
