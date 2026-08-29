@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM oven/bun:1.3.14 AS web-builder
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.0 AS web-builder
 
 WORKDIR /src/web
 
@@ -8,7 +8,7 @@ RUN bun install --frozen-lockfile
 COPY web/ ./
 RUN bun run build
 
-FROM --platform=$BUILDPLATFORM golang:1.26.6-alpine3.23 AS go-builder
+FROM --platform=$BUILDPLATFORM golang:1.26.7-alpine3.23 AS go-builder
 
 ARG TARGETOS
 ARG TARGETARCH
