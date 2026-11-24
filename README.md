@@ -26,12 +26,12 @@
 
 ## 技术栈
 
-- Go 1.26.6 + Gin：HTTP API
+- Go 1.26.11 + Gin：HTTP API
 - Ent：数据库模型和查询
 - PostgreSQL：主数据存储
 - Redis：缓存、队列和异步协调
 - Casbin：后台 RBAC
-- Bun 1.3.13 + React + Rsbuild + TanStack Router：管理后台和收银台前端
+- Bun 1.3.14（`web-admin`）/ 1.3.13（`web`）+ React + Rsbuild + TanStack Router：管理后台和收银台前端
 - shadcn/ui + Tailwind CSS：前端组件和样式
 - 基于 [shadcn-admin](https://github.com/satnaing/shadcn-admin) 的独立管理后台（MIT，归属与许可文本见 [`web-admin/THIRD_PARTY_NOTICES.md`](web-admin/THIRD_PARTY_NOTICES.md)）
 - Docker Compose：本地依赖和容器化运行
@@ -59,7 +59,7 @@
 
 ## 五分钟启动
 
-需要 Go 1.26.6、Bun 1.3.13、Docker 和 Docker Compose v2。
+需要 Go 1.26.11、Bun 1.3.14、Docker 和 Docker Compose v2。
 
 准备环境文件：
 
@@ -115,8 +115,10 @@ make db-up         # 启动 PostgreSQL 和 Redis
 make db-down       # 停止 Docker Compose 服务
 make compose-up    # 构建并启动完整容器服务
 make compose-logs  # 查看 api 日志
-make web-build     # 构建前端
-make web-typecheck # TypeScript 类型检查
+make web-build     # 构建管理后台（web-admin）
+make web-typecheck # 管理后台 TypeScript 类型检查
+make web-legacy-build    # 构建旧版前端（web）
+make web-legacy-typecheck # 旧版前端 TypeScript 类型检查
 ```
 
 后端代码变更后，应构建最新二进制并重启正在运行的后端，避免旧进程继续提供服务。
@@ -240,9 +242,11 @@ make web-typecheck # TypeScript 类型检查
 
 - 管理后台：应用、订单、Webhook、通道、路由、配置、用户
 - 收银台：订单展示、支付方式选择、支付发起、结果页
-- i18n：翻译文件位于 `web/src/i18n/locales/`
+- i18n：管理后台翻译文件位于 `web-admin/src/i18n/locales/`，收银台翻译文件位于 `web/src/i18n/locales/`
 
-新文本应写入 `zh-CN.json` 和 `en.json`。
+新文本应同时写入对应的 `zh-CN.json` 和 `en.json`。
+
+默认命令（`make web-dev`、`make web-build`、`make web-typecheck`）作用于 `web-admin/`；需要调试旧版前端时使用 `make web-legacy-dev`、`make web-legacy-build`、`make web-legacy-typecheck`。
 
 ## 配置
 
@@ -283,21 +287,47 @@ make web-typecheck # TypeScript 类型检查
 make test
 ```
 
-前端类型检查：
+前端类型检查与构建（默认作用于 `web-admin/`）：
 
 ```bash
 make web-typecheck
+make web-build
 ```
 
-前端构建：
+旧版前端与 `web` 单元测试：
 
 ```bash
-make web-build
+make web-legacy-typecheck
+make web-legacy-build
+make web-test
 ```
 
 重点覆盖范围包括：应用密钥、订单幂等、签名认证、支付通道回调、Webhook 重试、通道路由、货币限制和收银台支付模式选择。
 
 界面变更还应运行 `make web-dev`，人工检查管理后台、收银台以及按 `d` 键进行的深浅色切换。
+
+## 近期变更
+
+### 管理后台迁移到 `web-admin/`
+
+- 新增独立的 shadcn-admin 风格管理后台；生产镜像和默认的 `make web-dev`、`make web-build`、`make web-typecheck` 均以 `web-admin/` 为目标
+- 旧版前端保留在 `web/`（收银台 + 迁移期回退版本），通过 `make web-legacy-dev`、`make web-legacy-build`、`make web-legacy-typecheck` 使用
+- `Dockerfile` 改为构建 `web-admin/dist` 并内嵌进 Go 二进制；`.dockerignore`、`.gitignore` 与镜像发布触发路径同步更新
+- 新增 `web-admin` CI job：`bun install --frozen-lockfile`、`bun run typecheck`、`bun run build`、`bun audit`
+
+### 依赖与安全基线
+
+- Go 工具链升级到 `1.26.11`，`golang.org/x/net`、`golang.org/x/crypto` 等依赖同步升级
+- 容器基础镜像更新为 `golang:1.26.11-alpine3.23` 与 `alpine:3.24.4`
+- 前端升级 axios、postcss、zod、`@tanstack/router-plugin`，并通过 `overrides` 收敛 seroval、browserslist、source-map-js 等传递依赖
+- `govulncheck`、`bun audit` 与镜像 Trivy HIGH/CRITICAL 扫描均无未修复告警
+- `frontend` CI 的单元测试改为 `bun test test/*.test.mts`，与本地 `make web-test` 保持一致
+
+### 测试现状
+
+- `web-admin` 的自动化测试暂未纳入 CI，CI 门禁为 typecheck、build 和依赖审计
+- `web-admin/src/**/*.test.tsx` 为 shadcn-admin 模板自带的 vitest 浏览器测试，相关依赖尚未引入，默认不执行
+- `web-admin/test/` 使用 `bun:test`：`auth-store.test.mts` 可直接运行，`api.test.mts` 需要浏览器 `window` 环境，待补齐测试环境后再纳入 CI
 
 ## 开源协作
 
