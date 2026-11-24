@@ -5,6 +5,13 @@ import { ArrowRight, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { ConfigDrawer } from "@/components/config-drawer";
+import { Header } from "@/components/layout/header";
+import { Main } from "@/components/layout/main";
+import { PageHeader } from "@/components/page-header";
+import { ProfileDropdown } from "@/components/profile-dropdown";
+import { Search } from "@/components/search";
+import { ThemeSwitch } from "@/components/theme-switch";
 import {
   Card,
   CardContent,
@@ -209,256 +216,281 @@ export function TestPayPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t("testPay.title")}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {t("testPay.description")}
-        </p>
-      </div>
+    <>
+      <Header fixed>
+        <Search className="me-auto" />
+        <ThemeSwitch />
+        <ConfigDrawer />
+        <ProfileDropdown />
+      </Header>
 
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("testPay.formTitle")}</CardTitle>
-            <CardDescription>{t("testPay.formDescription")}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            <FieldGroup className="grid gap-5 md:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="test_pay_app_id">
-                  {t("testPay.fields.appId")}
-                </FieldLabel>
-                <Select
-                  value={form.appId}
-                  onValueChange={(value) => update("appId", value)}
-                  disabled={loadingApps || apps.length === 0}
+      <Main fixed className="flex min-w-0 flex-1 flex-col gap-4 sm:gap-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
+          <PageHeader
+            title={t("testPay.title")}
+            description={t("testPay.description")}
+          />
+
+          <form onSubmit={handleSubmit}>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("testPay.formTitle")}</CardTitle>
+                <CardDescription>
+                  {t("testPay.formDescription")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-6">
+                <FieldGroup className="grid gap-5 md:grid-cols-2">
+                  <Field>
+                    <FieldLabel htmlFor="test_pay_app_id">
+                      {t("testPay.fields.appId")}
+                    </FieldLabel>
+                    <Select
+                      value={form.appId}
+                      onValueChange={(value) => update("appId", value)}
+                      disabled={loadingApps || apps.length === 0}
+                    >
+                      <SelectTrigger id="test_pay_app_id" className="w-full">
+                        <SelectValue placeholder={t("testPay.selectApp")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {apps.map((app) => (
+                            <SelectItem key={app.id} value={app.app_id}>
+                              {app.name} ({app.app_id})
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <FieldDescription>
+                      {selectedApp?.default_return_url
+                        ? t("testPay.appDefaultReturnUrl", {
+                            url: selectedApp.default_return_url,
+                          })
+                        : t("testPay.noAppDefaultReturnUrl")}
+                    </FieldDescription>
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="test_pay_merchant_order_no">
+                      {t("testPay.fields.merchantOrderNo")}
+                    </FieldLabel>
+                    <div className="flex gap-2">
+                      <Input
+                        id="test_pay_merchant_order_no"
+                        value={form.merchantOrderNo}
+                        onChange={(event) =>
+                          update("merchantOrderNo", event.target.value)
+                        }
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label={t("testPay.regenerateOrderNo")}
+                        onClick={resetMerchantOrderNo}
+                      >
+                        <RefreshCw />
+                      </Button>
+                    </div>
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="test_pay_business_type">
+                      {t("testPay.fields.businessType")}
+                    </FieldLabel>
+                    <Input
+                      id="test_pay_business_type"
+                      value={form.businessType}
+                      onChange={(event) =>
+                        update("businessType", event.target.value)
+                      }
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="test_pay_subject">
+                      {t("testPay.fields.subject")}
+                    </FieldLabel>
+                    <Input
+                      id="test_pay_subject"
+                      value={form.subject}
+                      onChange={(event) =>
+                        update("subject", event.target.value)
+                      }
+                      required
+                    />
+                  </Field>
+                </FieldGroup>
+
+                <Separator />
+
+                <Field
+                  orientation="horizontal"
+                  className="justify-between rounded-lg border p-4"
                 >
-                  <SelectTrigger id="test_pay_app_id" className="w-full">
-                    <SelectValue placeholder={t("testPay.selectApp")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {apps.map((app) => (
-                        <SelectItem key={app.id} value={app.app_id}>
-                          {app.name} ({app.app_id})
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <FieldDescription>
-                  {selectedApp?.default_return_url
-                    ? t("testPay.appDefaultReturnUrl", {
-                        url: selectedApp.default_return_url,
-                      })
-                    : t("testPay.noAppDefaultReturnUrl")}
-                </FieldDescription>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="test_pay_merchant_order_no">
-                  {t("testPay.fields.merchantOrderNo")}
-                </FieldLabel>
-                <div className="flex gap-2">
-                  <Input
-                    id="test_pay_merchant_order_no"
-                    value={form.merchantOrderNo}
-                    onChange={(event) =>
-                      update("merchantOrderNo", event.target.value)
+                  <div className="space-y-1">
+                    <FieldLabel htmlFor="test_pay_specify_method">
+                      {t("testPay.fields.specifyMethod")}
+                    </FieldLabel>
+                    <FieldDescription>
+                      {t("testPay.specifyMethodHint")}
+                    </FieldDescription>
+                  </div>
+                  <Switch
+                    id="test_pay_specify_method"
+                    checked={form.specifyMethod}
+                    onCheckedChange={(checked) =>
+                      update("specifyMethod", checked)
                     }
-                    required
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    aria-label={t("testPay.regenerateOrderNo")}
-                    onClick={resetMerchantOrderNo}
-                  >
-                    <RefreshCw />
-                  </Button>
-                </div>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="test_pay_business_type">
-                  {t("testPay.fields.businessType")}
-                </FieldLabel>
-                <Input
-                  id="test_pay_business_type"
-                  value={form.businessType}
-                  onChange={(event) =>
-                    update("businessType", event.target.value)
-                  }
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="test_pay_subject">
-                  {t("testPay.fields.subject")}
-                </FieldLabel>
-                <Input
-                  id="test_pay_subject"
-                  value={form.subject}
-                  onChange={(event) => update("subject", event.target.value)}
-                  required
-                />
-              </Field>
-            </FieldGroup>
+                </Field>
 
-            <Separator />
+                <FieldGroup className="grid gap-5 md:grid-cols-4">
+                  <Field>
+                    <FieldLabel htmlFor="test_pay_channel">
+                      {t("testPay.fields.channel")}
+                    </FieldLabel>
+                    <Select
+                      value={form.channel}
+                      onValueChange={(value) =>
+                        handleChannelChange(value as Channel)
+                      }
+                    >
+                      <SelectTrigger id="test_pay_channel" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {channels.map((channel) => (
+                            <SelectItem key={channel} value={channel}>
+                              {t(`testPay.channels.${channel}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    {form.specifyMethod && !channelCurrencySupported ? (
+                      <FieldError>
+                        {t("testPay.errors.unsupportedCurrency")}
+                      </FieldError>
+                    ) : null}
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="test_pay_pay_method">
+                      {t("testPay.fields.payMethod")}
+                    </FieldLabel>
+                    <Input
+                      id="test_pay_pay_method"
+                      value={form.payMethod}
+                      onChange={(event) =>
+                        update("payMethod", event.target.value)
+                      }
+                      disabled={!form.specifyMethod}
+                      required={form.specifyMethod}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="test_pay_currency">
+                      {t("testPay.fields.currency")}
+                    </FieldLabel>
+                    <Select
+                      value={form.currency}
+                      onValueChange={(value) =>
+                        update("currency", value as Currency)
+                      }
+                    >
+                      <SelectTrigger id="test_pay_currency" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {currencies.map((currency) => (
+                            <SelectItem key={currency} value={currency}>
+                              {currency}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="test_pay_amount">
+                      {t("testPay.fields.amount")}
+                    </FieldLabel>
+                    <Input
+                      id="test_pay_amount"
+                      inputMode="decimal"
+                      value={form.amountMajor}
+                      onChange={(event) =>
+                        update("amountMajor", event.target.value)
+                      }
+                      required
+                    />
+                    <FieldDescription>
+                      {t("testPay.minorAmount", { amount: minorAmountPreview })}
+                    </FieldDescription>
+                  </Field>
+                </FieldGroup>
 
-            <Field
-              orientation="horizontal"
-              className="justify-between rounded-lg border p-4"
-            >
-              <div className="space-y-1">
-                <FieldLabel htmlFor="test_pay_specify_method">
-                  {t("testPay.fields.specifyMethod")}
-                </FieldLabel>
-                <FieldDescription>
-                  {t("testPay.specifyMethodHint")}
-                </FieldDescription>
-              </div>
-              <Switch
-                id="test_pay_specify_method"
-                checked={form.specifyMethod}
-                onCheckedChange={(checked) => update("specifyMethod", checked)}
-              />
-            </Field>
+                <Field>
+                  <FieldLabel htmlFor="test_pay_description">
+                    {t("testPay.fields.description")}
+                  </FieldLabel>
+                  <Textarea
+                    id="test_pay_description"
+                    value={form.description}
+                    onChange={(event) =>
+                      update("description", event.target.value)
+                    }
+                  />
+                </Field>
 
-            <FieldGroup className="grid gap-5 md:grid-cols-4">
-              <Field>
-                <FieldLabel htmlFor="test_pay_channel">
-                  {t("testPay.fields.channel")}
-                </FieldLabel>
-                <Select
-                  value={form.channel}
-                  onValueChange={(value) =>
-                    handleChannelChange(value as Channel)
-                  }
-                >
-                  <SelectTrigger id="test_pay_channel" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {channels.map((channel) => (
-                        <SelectItem key={channel} value={channel}>
-                          {t(`testPay.channels.${channel}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                {form.specifyMethod && !channelCurrencySupported ? (
-                  <FieldError>
-                    {t("testPay.errors.unsupportedCurrency")}
-                  </FieldError>
-                ) : null}
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="test_pay_pay_method">
-                  {t("testPay.fields.payMethod")}
-                </FieldLabel>
-                <Input
-                  id="test_pay_pay_method"
-                  value={form.payMethod}
-                  onChange={(event) => update("payMethod", event.target.value)}
-                  disabled={!form.specifyMethod}
-                  required={form.specifyMethod}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="test_pay_currency">
-                  {t("testPay.fields.currency")}
-                </FieldLabel>
-                <Select
-                  value={form.currency}
-                  onValueChange={(value) =>
-                    update("currency", value as Currency)
-                  }
-                >
-                  <SelectTrigger id="test_pay_currency" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {currencies.map((currency) => (
-                        <SelectItem key={currency} value={currency}>
-                          {currency}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="test_pay_amount">
-                  {t("testPay.fields.amount")}
-                </FieldLabel>
-                <Input
-                  id="test_pay_amount"
-                  inputMode="decimal"
-                  value={form.amountMajor}
-                  onChange={(event) =>
-                    update("amountMajor", event.target.value)
-                  }
-                  required
-                />
-                <FieldDescription>
-                  {t("testPay.minorAmount", { amount: minorAmountPreview })}
-                </FieldDescription>
-              </Field>
-            </FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="test_pay_return_url">
+                    {t("testPay.fields.returnUrl")}
+                  </FieldLabel>
+                  <Input
+                    id="test_pay_return_url"
+                    value={form.returnUrl}
+                    onChange={(event) =>
+                      update("returnUrl", event.target.value)
+                    }
+                    placeholder="https://merchant.example.com/payment/result"
+                  />
+                  <FieldDescription>
+                    {t("testPay.returnUrlHint")}
+                  </FieldDescription>
+                </Field>
 
-            <Field>
-              <FieldLabel htmlFor="test_pay_description">
-                {t("testPay.fields.description")}
-              </FieldLabel>
-              <Textarea
-                id="test_pay_description"
-                value={form.description}
-                onChange={(event) => update("description", event.target.value)}
-              />
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="test_pay_return_url">
-                {t("testPay.fields.returnUrl")}
-              </FieldLabel>
-              <Input
-                id="test_pay_return_url"
-                value={form.returnUrl}
-                onChange={(event) => update("returnUrl", event.target.value)}
-                placeholder="https://merchant.example.com/payment/result"
-              />
-              <FieldDescription>{t("testPay.returnUrlHint")}</FieldDescription>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="test_pay_metadata">
-                {t("testPay.fields.metadata")}
-              </FieldLabel>
-              <Textarea
-                id="test_pay_metadata"
-                className="font-mono"
-                value={form.metadataJson}
-                onChange={(event) => update("metadataJson", event.target.value)}
-              />
-              <FieldDescription>{t("testPay.metadataHint")}</FieldDescription>
-              <FieldError />
-            </Field>
-          </CardContent>
-          <CardFooter className="justify-end gap-2">
-            <Button type="submit" disabled={submitting}>
-              {submitting ? t("testPay.submitting") : t("testPay.submit")}
-              <ArrowRight />
-            </Button>
-          </CardFooter>
-        </Card>
-      </form>
-    </div>
+                <Field>
+                  <FieldLabel htmlFor="test_pay_metadata">
+                    {t("testPay.fields.metadata")}
+                  </FieldLabel>
+                  <Textarea
+                    id="test_pay_metadata"
+                    className="font-mono"
+                    value={form.metadataJson}
+                    onChange={(event) =>
+                      update("metadataJson", event.target.value)
+                    }
+                  />
+                  <FieldDescription>
+                    {t("testPay.metadataHint")}
+                  </FieldDescription>
+                  <FieldError />
+                </Field>
+              </CardContent>
+              <CardFooter className="justify-end gap-2">
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? t("testPay.submitting") : t("testPay.submit")}
+                  <ArrowRight />
+                </Button>
+              </CardFooter>
+            </Card>
+          </form>
+        </div>
+      </Main>
+    </>
   );
 }
 

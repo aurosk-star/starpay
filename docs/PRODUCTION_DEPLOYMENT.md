@@ -161,13 +161,13 @@ curl http://127.0.0.1:8080/v1/ping
 
 ## 6. 前端构建
 
-前端位于 `web/`，使用 Bun。执行生产镜像构建时，Dockerfile 会自动安装锁定依赖、构建 `web/dist`，并把产物内嵌进 Go 二进制，无需在服务器单独安装 Bun 或保留静态文件目录：
+管理后台位于 `web-admin/`，使用 Bun。执行生产镜像构建时，Dockerfile 会自动安装锁定依赖、构建 `web-admin/dist`，并把产物内嵌进 Go 二进制，无需在服务器单独安装 Bun 或保留静态文件目录：
 
 ```bash
 docker build -t payment-gateway:latest .
 ```
 
-本地前端开发仍使用：
+本地管理后台开发使用：
 
 ```bash
 make web-dev

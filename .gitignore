@@ -31,6 +31,9 @@ docker-data/
 backups/
 .claude/
 internal/platform/webui/dist/
+web-admin/node_modules/
+web-admin/dist/
+web-admin/.rsbuild/
 
 # Local Git worktrees
 .worktrees/

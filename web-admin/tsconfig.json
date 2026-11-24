@@ -1,0 +1,49 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": [
+    "src",
+    "rsbuild.config.ts"
+  ],
+  "exclude": [
+    "**/*.test.*",
+    "src/routes/**",
+    "src/features/apps/index.tsx",
+    "src/features/auth/forgot-password/**",
+    "src/features/auth/otp/**",
+    "src/features/auth/sign-in/**",
+    "src/features/auth/sign-up/**",
+    "src/features/chats/**",
+    "src/features/settings/**",
+    "src/features/tasks/**",
+    "src/features/users/components/**",
+    "src/features/users/data/**",
+    "src/features/users/index.tsx",
+    "src/test-utils/**"
+  ]
+}

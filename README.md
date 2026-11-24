@@ -33,7 +33,7 @@
 - Casbin：后台 RBAC
 - Bun 1.3.13 + React + Rsbuild + TanStack Router：管理后台和收银台前端
 - shadcn/ui + Tailwind CSS：前端组件和样式
-- [shadcn-admin](https://github.com/satnaing/shadcn-admin) 风格的管理后台 shell、导航和数据表模式（MIT，归属与许可文本见 [`web/THIRD_PARTY_NOTICES.md`](web/THIRD_PARTY_NOTICES.md)）
+- 基于 [shadcn-admin](https://github.com/satnaing/shadcn-admin) 的独立管理后台（MIT，归属与许可文本见 [`web-admin/THIRD_PARTY_NOTICES.md`](web-admin/THIRD_PARTY_NOTICES.md)）
 - Docker Compose：本地依赖和容器化运行
 
 ## 项目结构
@@ -52,7 +52,8 @@
 - `internal/platform/`：配置、数据库、Redis、HTTP、认证、RBAC 等基础设施
 - `ent/schema/`：Ent schema
 - `ent/`：Ent 生成代码
-- `web/`：React 管理后台和收银台前端
+- `web-admin/`：基于 shadcn-admin 的新 React 管理后台（生产镜像默认使用）
+- `web/`：旧版 React 管理后台和收银台，作为迁移期间的回退版本
 
 每个业务域按 `handler/`、`router/`、`service/`、`repository/`、`test/` 分层组织。
 
@@ -235,7 +236,7 @@ make web-typecheck # TypeScript 类型检查
 
 ## 前端
 
-前端位于 `web/`，包含：
+管理后台位于 `web-admin/`，收银台和旧版回退前端位于 `web/`，包含：
 
 - 管理后台：应用、订单、Webhook、通道、路由、配置、用户
 - 收银台：订单展示、支付方式选择、支付发起、结果页

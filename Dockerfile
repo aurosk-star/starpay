@@ -1,14 +1,14 @@
 FROM --platform=$BUILDPLATFORM oven/bun:1.3.14 AS web-builder
 
-WORKDIR /src/web
+WORKDIR /src/web-admin
 
-COPY web/package.json web/bun.lock ./
+COPY web-admin/package.json web-admin/bun.lock ./
 RUN bun install --frozen-lockfile
 
-COPY web/ ./
+COPY web-admin/ ./
 RUN bun run build
 
-FROM --platform=$BUILDPLATFORM golang:1.26.6-alpine3.23 AS go-builder
+FROM --platform=$BUILDPLATFORM golang:1.26.11-alpine3.23 AS go-builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -19,10 +19,10 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-COPY --from=web-builder /src/web/dist ./internal/platform/webui/dist
+COPY --from=web-builder /src/web-admin/dist ./internal/platform/webui/dist
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -tags webui -trimpath -ldflags="-s -w" -o /out/payment-gateway ./cmd/server
 
-FROM alpine:3.24
+FROM alpine:3.24.4
 
 WORKDIR /app
 COPY --from=go-builder /out/payment-gateway /app/payment-gateway

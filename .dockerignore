@@ -4,6 +4,9 @@
 web/node_modules
 web/dist
 web/.rsbuild
+web-admin/node_modules
+web-admin/dist
+web-admin/.rsbuild
 internal/platform/webui/dist
 .env*
 server
