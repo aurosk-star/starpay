@@ -329,6 +329,11 @@ make web-test
 - `web-admin/src/**/*.test.tsx` 为 shadcn-admin 模板自带的 vitest 浏览器测试，相关依赖尚未引入，默认不执行
 - `web-admin/test/` 使用 `bun:test`：`auth-store.test.mts` 可直接运行，`api.test.mts` 需要浏览器 `window` 环境，待补齐测试环境后再纳入 CI
 
+## 发布
+
+- 推送 `v*.*.*` tag 会触发 `Release` workflow，按 `CHANGELOG.md` 中对应版本段落生成 GitHub Release（缺少该段落时回退为自动生成的说明），同时触发多平台镜像发布
+- 可手动运行 `Release` workflow 并保持 `dry_run=true` 预演发布说明，不会创建 Release
+
 ## 开源协作
 
 - 许可证：[Apache License 2.0](LICENSE)

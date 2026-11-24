@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- 添加 tag 触发的自动发布 workflow，按 `CHANGELOG.md` 生成 GitHub Release。
+
 ## [0.3.0] - 2026-11-24
 
 ### Added
