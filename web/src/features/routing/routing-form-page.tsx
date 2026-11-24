@@ -38,11 +38,7 @@ import type { ChannelAccount } from "@/features/channels/types";
 import { useAuthStore } from "@/features/auth/store";
 import { APIError } from "@/lib/api";
 
-import {
-  createRoutingRule,
-  getRoutingRule,
-  updateRoutingRule,
-} from "./api";
+import { createRoutingRule, getRoutingRule, updateRoutingRule } from "./api";
 import type {
   ManageRoutingRulePayload,
   RoutingAppScope,
@@ -106,8 +102,7 @@ export function RoutingFormPage({ mode }: { mode: "create" | "edit" }) {
   const [saving, setSaving] = useState(false);
 
   const availableAccounts = useMemo(
-    () =>
-      accounts.filter((account) => account.channel === form.payment_method),
+    () => accounts.filter((account) => account.channel === form.payment_method),
     [accounts, form.payment_method],
   );
 
@@ -221,7 +216,9 @@ export function RoutingFormPage({ mode }: { mode: "create" | "edit" }) {
       }
       await navigate({ to: "/routing" });
     } catch (err) {
-      toast.error(err instanceof APIError ? err.message : t("routing.saveFailed"));
+      toast.error(
+        err instanceof APIError ? err.message : t("routing.saveFailed"),
+      );
     } finally {
       setSaving(false);
     }
@@ -365,14 +362,14 @@ export function RoutingFormPage({ mode }: { mode: "create" | "edit" }) {
                         </FieldDescription>
                       </Field>
                     </div>
-                  {form.app_scope === "include" ? (
-                    <TextAreaField
-                      label={t("routing.fields.appIds")}
-                      description={t("routing.hints.appIds")}
-                      value={form.app_ids}
-                      onChange={(value) => setValue("app_ids", value)}
-                    />
-                  ) : null}
+                    {form.app_scope === "include" ? (
+                      <TextAreaField
+                        label={t("routing.fields.appIds")}
+                        description={t("routing.hints.appIds")}
+                        value={form.app_ids}
+                        onChange={(value) => setValue("app_ids", value)}
+                      />
+                    ) : null}
                     <div className="grid gap-4 md:grid-cols-3">
                       <TextField
                         label={t("routing.fields.currency")}
@@ -396,46 +393,46 @@ export function RoutingFormPage({ mode }: { mode: "create" | "edit" }) {
                       />
                     </div>
                     <div className="grid gap-4 md:grid-cols-[240px_minmax(0,1fr)]">
-                    <Field>
-                      <FieldLabel>
-                        {t("routing.fields.paymentMethod")}
-                      </FieldLabel>
-                      <Select
-                        value={form.payment_method}
-                        onValueChange={(value) =>
-                          setValue(
-                            "payment_method",
-                            value as RoutingPaymentMethod,
-                          )
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectItem value="wechat">
-                              {t("channels.wechat")}
-                            </SelectItem>
-                            <SelectItem value="alipay">
-                              {t("channels.alipay")}
-                            </SelectItem>
-                            <SelectItem value="paypal">
-                              {t("channels.paypal")}
-                            </SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                      <FieldDescription>
-                        {t("routing.hints.paymentMethod")}
-                      </FieldDescription>
-                    </Field>
-                    <TextAreaField
-                      label={t("routing.fields.payModes")}
-                      description={t("routing.hints.payModes")}
-                      value={form.pay_modes}
-                      onChange={(value) => setValue("pay_modes", value)}
-                    />
+                      <Field>
+                        <FieldLabel>
+                          {t("routing.fields.paymentMethod")}
+                        </FieldLabel>
+                        <Select
+                          value={form.payment_method}
+                          onValueChange={(value) =>
+                            setValue(
+                              "payment_method",
+                              value as RoutingPaymentMethod,
+                            )
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="wechat">
+                                {t("channels.wechat")}
+                              </SelectItem>
+                              <SelectItem value="alipay">
+                                {t("channels.alipay")}
+                              </SelectItem>
+                              <SelectItem value="paypal">
+                                {t("channels.paypal")}
+                              </SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        <FieldDescription>
+                          {t("routing.hints.paymentMethod")}
+                        </FieldDescription>
+                      </Field>
+                      <TextAreaField
+                        label={t("routing.fields.payModes")}
+                        description={t("routing.hints.payModes")}
+                        value={form.pay_modes}
+                        onChange={(value) => setValue("pay_modes", value)}
+                      />
                     </div>
                   </FieldGroup>
                 </CardContent>
@@ -525,9 +522,7 @@ function TextField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
-      {description ? (
-        <FieldDescription>{description}</FieldDescription>
-      ) : null}
+      {description ? <FieldDescription>{description}</FieldDescription> : null}
     </Field>
   );
 }
@@ -723,9 +718,7 @@ function TextAreaField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
-      {description ? (
-        <FieldDescription>{description}</FieldDescription>
-      ) : null}
+      {description ? <FieldDescription>{description}</FieldDescription> : null}
     </Field>
   );
 }

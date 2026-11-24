@@ -9,6 +9,7 @@ import {
   DataTableRowActions,
   type DataTableColumn,
 } from "@/components/data-table";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -189,7 +190,9 @@ export function OrdersPage() {
       setOrders(result.items);
       setTotal(result.total);
     } catch (err) {
-      toast.error(err instanceof APIError ? err.message : t("orders.loadFailed"));
+      toast.error(
+        err instanceof APIError ? err.message : t("orders.loadFailed"),
+      );
     } finally {
       setLoading(false);
     }
@@ -220,30 +223,24 @@ export function OrdersPage() {
       );
       setCloseTarget(null);
     } catch (err) {
-      toast.error(err instanceof APIError ? err.message : t("orders.closeFailed"));
+      toast.error(
+        err instanceof APIError ? err.message : t("orders.closeFailed"),
+      );
     }
   }
 
   return (
     <div className="flex min-w-0 max-w-full flex-col gap-5">
-      <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("orders.title")}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t("orders.description")}
-          </p>
-        </div>
-        <Button
-          className="w-full md:w-auto"
-          variant="outline"
-          onClick={() => load()}
-        >
-          <RefreshCw />
-          {t("common.refresh")}
-        </Button>
-      </div>
+      <PageHeader
+        title={t("orders.title")}
+        description={t("orders.description")}
+        actions={
+          <Button variant="outline" onClick={() => load()}>
+            <RefreshCw />
+            {t("common.refresh")}
+          </Button>
+        }
+      />
 
       <Card className="min-w-0 max-w-full">
         <CardHeader>
@@ -401,6 +398,7 @@ export function OrdersPage() {
             loadingText={t("orders.loading")}
             emptyText={t("orders.empty")}
             pageSize={20}
+            viewOptions
           />
         </CardContent>
       </Card>

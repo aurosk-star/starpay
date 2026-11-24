@@ -8,6 +8,7 @@ import {
   DataTableRowActions,
   type DataTableColumn,
 } from "@/components/data-table";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -148,20 +149,16 @@ export function ReconciliationsPage() {
   }
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">
-            {t("reconciliations.title")}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t("reconciliations.description")}
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => void load()}>
-          <RefreshCw />
-          {t("common.refresh")}
-        </Button>
-      </div>
+      <PageHeader
+        title={t("reconciliations.title")}
+        description={t("reconciliations.description")}
+        actions={
+          <Button variant="outline" onClick={() => void load()}>
+            <RefreshCw />
+            {t("common.refresh")}
+          </Button>
+        }
+      />
       <Card>
         <CardHeader>
           <CardTitle>{t("reconciliations.filters")}</CardTitle>
@@ -250,6 +247,7 @@ export function ReconciliationsPage() {
             data={items}
             loading={loading}
             pageSize={20}
+            viewOptions
           />
         </CardContent>
       </Card>

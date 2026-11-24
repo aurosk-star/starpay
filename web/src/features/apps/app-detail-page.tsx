@@ -61,7 +61,9 @@ export function AppDetailPage() {
       setSecret(result.app_secret);
       setResetOpen(false);
     } catch (err) {
-      toast.error(err instanceof APIError ? err.message : t("apps.resetFailed"));
+      toast.error(
+        err instanceof APIError ? err.message : t("apps.resetFailed"),
+      );
     }
   }
 
@@ -105,8 +107,14 @@ export function AppDetailPage() {
                 [t("apps.appId"), app.app_id],
                 [t("apps.name"), app.name],
                 [t("apps.status"), app.status],
-                [t("apps.detail.createdAt"), new Date(app.created_at).toLocaleString()],
-                [t("apps.detail.updatedAt"), new Date(app.updated_at).toLocaleString()],
+                [
+                  t("apps.detail.createdAt"),
+                  new Date(app.created_at).toLocaleString(),
+                ],
+                [
+                  t("apps.detail.updatedAt"),
+                  new Date(app.updated_at).toLocaleString(),
+                ],
               ]}
             />
           </DetailCard>
@@ -116,8 +124,12 @@ export function AppDetailPage() {
                 <span className="text-sm text-muted-foreground">
                   {t("apps.status")}
                 </span>
-                <Badge variant={app.status === "enabled" ? "secondary" : "outline"}>
-                  {app.status === "enabled" ? t("apps.enabled") : t("apps.disabled")}
+                <Badge
+                  variant={app.status === "enabled" ? "secondary" : "outline"}
+                >
+                  {app.status === "enabled"
+                    ? t("apps.enabled")
+                    : t("apps.disabled")}
                 </Badge>
               </div>
               <div className="rounded-lg border px-3 py-2">

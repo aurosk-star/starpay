@@ -22,7 +22,64 @@
     "all": "All",
     "loading": "Loading...",
     "view": "View",
-    "retry": "Retry"
+    "retry": "Retry",
+    "admin": "Administrator",
+    "adminEmail": "admin@example.com"
+  },
+  "accessibility": {
+    "skipToMain": "Skip to main content"
+  },
+  "command": {
+    "open": "Open command menu",
+    "search": "Search",
+    "title": "Command menu",
+    "description": "Navigate to a page or change a console preference.",
+    "placeholder": "Type a command or search...",
+    "empty": "No matching command.",
+    "theme": "Theme",
+    "light": "Use light theme",
+    "dark": "Use dark theme",
+    "system": "Use system theme"
+  },
+  "language": {
+    "label": "Change language",
+    "zhCN": "简体中文",
+    "en": "English"
+  },
+  "pageState": {
+    "emptyTitle": "Nothing to show",
+    "emptyDescription": "There are no records for the current filters.",
+    "errorTitle": "Unable to load this page",
+    "errorDescription": "Please try again or contact an administrator."
+  },
+  "dataTable": {
+    "columns": "Columns",
+    "filterPlaceholder": "Filter...",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "errors": {
+    "backHome": "Back to overview",
+    "401": {
+      "title": "Sign-in required",
+      "description": "Sign in to access this page."
+    },
+    "403": {
+      "title": "Access denied",
+      "description": "Your account does not have permission to access this page."
+    },
+    "404": {
+      "title": "Page not found",
+      "description": "The page you requested does not exist."
+    },
+    "500": {
+      "title": "Something went wrong",
+      "description": "The console could not complete this request."
+    },
+    "notFound": {
+      "title": "Page not found",
+      "description": "The page you requested does not exist."
+    }
   },
   "nav": {
     "overview": "Overview",
@@ -669,6 +726,15 @@
       "invalidMetadata": "Metadata must be a JSON object.",
       "missingPayUrl": "The create order response did not include a checkout URL."
     }
+  },
+  "shell": {
+    "environment": "Production gateway",
+    "window": "UTC+8 window: 18:00 to 19:00",
+    "sync": "Sync",
+    "runbook": "Runbook",
+    "runbookDetail": "Channel callbacks, proactive queries, compensation, and retries will be documented here.",
+    "logout": "Sign out",
+    "toggleTheme": "Toggle theme"
   },
   "home": {
     "gatewayOverview": "Gateway overview",

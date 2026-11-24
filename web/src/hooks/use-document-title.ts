@@ -1,6 +1,9 @@
 import { useEffect } from "react";
 
-import { formatDocumentTitle, useSiteName } from "@/features/config/site-config";
+import {
+  formatDocumentTitle,
+  useSiteName,
+} from "@/features/config/site-config";
 
 export function useDocumentTitle(pageTitle?: string) {
   const siteName = useSiteName();

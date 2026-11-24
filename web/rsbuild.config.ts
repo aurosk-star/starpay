@@ -28,6 +28,10 @@ export default defineConfig(() => {
     server: {
       host: "0.0.0.0",
       proxy: {
+        "/v1": {
+          target: serverUrl,
+          changeOrigin: true,
+        },
         "/api": {
           target: serverUrl,
           changeOrigin: true,

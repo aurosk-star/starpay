@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Copy, Save, Settings2 } from "lucide-react";
+import { Copy, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -96,7 +97,10 @@ export function GatewayConfigPage() {
         default_locale: form.defaultLocale,
         request_id_enabled: form.requestIdEnabled,
         maintenance_mode: form.maintenanceMode,
-        order_default_ttl_seconds: positiveInt(form.orderDefaultTtlSeconds, 900),
+        order_default_ttl_seconds: positiveInt(
+          form.orderDefaultTtlSeconds,
+          900,
+        ),
         order_expire_scan_interval_seconds: positiveInt(
           form.orderExpireScanIntervalSeconds,
           30,
@@ -141,15 +145,10 @@ export function GatewayConfigPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <Settings2 />
-          <h1 className="text-2xl font-semibold">{t("config.title")}</h1>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {t("config.description")}
-        </p>
-      </div>
+      <PageHeader
+        title={t("config.title")}
+        description={t("config.description")}
+      />
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
@@ -288,7 +287,9 @@ export function GatewayConfigPage() {
                       />
                       <NumberField
                         id="order_expire_scan_interval_seconds"
-                        label={t("config.fields.orderExpireScanIntervalSeconds")}
+                        label={t(
+                          "config.fields.orderExpireScanIntervalSeconds",
+                        )}
                         value={form.orderExpireScanIntervalSeconds}
                         onChange={(value) =>
                           setForm((current) => ({

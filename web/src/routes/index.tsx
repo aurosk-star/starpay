@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 
 import { createDataTable, type DataTableColumn } from "@/components/data-table";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -386,35 +387,25 @@ function HomePage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
+      <PageHeader
+        title={t("home.gatewayOverview")}
+        actions={
+          <>
+            <Button variant="outline" onClick={load} disabled={loading}>
+              <RefreshCw />
+              {t("common.refresh")}
+            </Button>
+            <Button asChild>
+              <Link to="/test-pay">
+                {t("home.testPayment.button")}
+                <ArrowUpRight />
+              </Link>
+            </Button>
+          </>
+        }
+      />
       <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="min-w-0 overflow-hidden">
-          <CardHeader className="border-b">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div className="min-w-0">
-                <CardTitle className="text-xl tracking-tight sm:text-2xl md:text-3xl">
-                  {t("home.gatewayOverview")}
-                </CardTitle>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                  onClick={load}
-                  disabled={loading}
-                >
-                  <RefreshCw />
-                  {t("common.refresh")}
-                </Button>
-                <Button asChild size="sm" className="w-full sm:w-auto">
-                  <Link to="/test-pay">
-                    {t("home.testPayment.button")}
-                    <ArrowUpRight />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
           <CardContent className="grid gap-0 p-0">
             <div className="grid gap-0 border-b sm:grid-cols-2 xl:grid-cols-4">
               {overviewMetrics.map((metric) => (
@@ -632,6 +623,7 @@ function HomePage() {
               loadingText={t("webhooks.loading")}
               emptyText={t("home.empty.webhooks")}
               pageSize={20}
+              viewOptions
             />
           </CardContent>
         </Card>

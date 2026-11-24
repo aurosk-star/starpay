@@ -13,7 +13,7 @@ make db-up
 make dev
 ```
 
-前端开发使用 `make web-dev`。SDK 位于 `sdk/go`，保留独立 MIT 许可证。
+前端开发使用 `make web-dev`（默认启动 `web-admin/`）。旧版前端可使用 `make web-legacy-dev`。SDK 位于 `sdk/go`，保留独立 MIT 许可证。
 
 ## 架构与实现约束
 
@@ -23,7 +23,7 @@ make dev
 - 所有 API 响应继续使用 `{ code, message, data, error }`，不要在 handler 中手写其他响应结构；
 - 金额只使用整数最小货币单位存储和传输；
 - 前端以仓库配置的 shadcn/ui 和 Tailwind 语义 token 为主，新增文本必须进入 i18n 资源；
-- 业务数据列表必须复用 `web/src/components/data-table/`，不得手写重复表格；
+- 业务数据列表必须复用 `web-admin/src/components/data-table/`，不得手写重复表格；
 - 不得提交支付密钥、应用密钥、证书、私钥、签名密钥或真实凭据。
 
 行为变化必须包含测试。后端测试放在对应 domain 的 `test/` 目录，并优先从外部测试包验证导出行为。

@@ -1,21 +1,14 @@
 import {
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import type * as React from "react";
+import * as React from "react";
 
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
@@ -25,7 +18,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+import { DataTablePagination } from "./pagination";
+import { DataTableViewOptions } from "./view-options";
+import type { Table as ReactTable } from "@tanstack/react-table";
 
 type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
@@ -34,7 +29,15 @@ type DataTableProps<TData, TValue> = {
   loadingText?: string;
   loading?: boolean;
   pageSize?: number;
+  toolbar?: DataTableSlot<TData>;
+  pagination?: DataTableSlot<TData> | false;
+  viewOptions?: DataTableSlot<TData> | boolean;
+  emptyState?:
+    React.ReactNode | ((table: ReactTable<TData>) => React.ReactNode);
 };
+
+export type DataTableSlot<TData> =
+  React.ReactNode | React.ComponentType<{ table: ReactTable<TData> }>;
 
 export function DataTable<TData, TValue>({
   columns,
@@ -43,36 +46,35 @@ export function DataTable<TData, TValue>({
   loadingText = "加载中...",
   loading = false,
   pageSize = 10,
+  toolbar,
+  pagination,
+  viewOptions,
+  emptyState,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     initialState: {
       pagination: {
         pageSize,
       },
     },
   });
-  const currentPage = table.getState().pagination.pageIndex + 1;
-  const pageCount = table.getPageCount();
-  const canPreviousPage = table.getCanPreviousPage();
-  const canNextPage = table.getCanNextPage();
-  const paginationItems = getPaginationItems(currentPage, pageCount);
 
-  function goToPreviousPage(event: React.MouseEvent<HTMLAnchorElement>) {
-    event.preventDefault();
-    if (canPreviousPage) table.previousPage();
-  }
-
-  function goToNextPage(event: React.MouseEvent<HTMLAnchorElement>) {
-    event.preventDefault();
-    if (canNextPage) table.nextPage();
-  }
+  const renderSlot = (
+    slot: DataTableSlot<TData> | undefined,
+  ): React.ReactNode =>
+    typeof slot === "function" ? React.createElement(slot, { table }) : slot;
+  const renderedEmptyState =
+    typeof emptyState === "function" ? emptyState(table) : emptyState;
 
   return (
     <div className="flex min-w-0 max-w-full flex-col gap-3">
+      {toolbar ? renderSlot(toolbar) : null}
       <ScrollArea className="h-[min(72vh,44rem)] max-w-full rounded-md border">
         <Table containerClassName="overflow-visible">
           <TableHeader className="sticky top-0 z-20 bg-background">
@@ -120,100 +122,27 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-20 px-4 text-muted-foreground"
                 >
-                  {emptyText}
+                  {renderedEmptyState ?? emptyText}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </ScrollArea>
-      {data.length > pageSize ? (
-        <Pagination className="w-full justify-start overflow-x-auto pb-1 sm:justify-end">
-          <PaginationContent className="min-w-max">
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                aria-disabled={!canPreviousPage}
-                tabIndex={canPreviousPage ? undefined : -1}
-                className={cn(
-                  !canPreviousPage && "pointer-events-none opacity-50",
-                )}
-                onClick={goToPreviousPage}
-              >
-                上一页
-              </PaginationPrevious>
-            </PaginationItem>
-            {paginationItems.map((item, index) =>
-              item === "ellipsis" ? (
-                <PaginationItem key={`ellipsis-${index}`}>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              ) : (
-                <PaginationItem key={item}>
-                  <PaginationLink
-                    href="#"
-                    isActive={item === currentPage}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      table.setPageIndex(item - 1);
-                    }}
-                  >
-                    {item}
-                  </PaginationLink>
-                </PaginationItem>
-              ),
-            )}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                aria-disabled={!canNextPage}
-                tabIndex={canNextPage ? undefined : -1}
-                className={cn(!canNextPage && "pointer-events-none opacity-50")}
-                onClick={goToNextPage}
-              >
-                下一页
-              </PaginationNext>
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+      {viewOptions === true ? (
+        <DataTableViewOptions table={table} />
+      ) : viewOptions ? (
+        renderSlot(viewOptions)
+      ) : null}
+      {pagination !== false ? (
+        pagination ? (
+          renderSlot(pagination)
+        ) : (
+          <DataTablePagination table={table} pageSize={pageSize} />
+        )
       ) : null}
     </div>
   );
 }
 
 export type DataTableColumn<TData, TValue = unknown> = ColumnDef<TData, TValue>;
-
-function getPaginationItems(
-  currentPage: number,
-  pageCount: number,
-): Array<number | "ellipsis"> {
-  if (pageCount <= 7) {
-    return Array.from({ length: pageCount }, (_, index) => index + 1);
-  }
-
-  if (currentPage <= 4) {
-    return [1, 2, 3, 4, 5, "ellipsis", pageCount];
-  }
-
-  if (currentPage >= pageCount - 3) {
-    return [
-      1,
-      "ellipsis",
-      pageCount - 4,
-      pageCount - 3,
-      pageCount - 2,
-      pageCount - 1,
-      pageCount,
-    ];
-  }
-
-  return [
-    1,
-    "ellipsis",
-    currentPage - 1,
-    currentPage,
-    currentPage + 1,
-    "ellipsis",
-    pageCount,
-  ];
-}

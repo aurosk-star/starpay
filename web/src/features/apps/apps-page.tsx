@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Eye, KeyRound, Pencil, Plus, RefreshCw, ToggleLeft } from "lucide-react";
+import {
+  Eye,
+  KeyRound,
+  Pencil,
+  Plus,
+  RefreshCw,
+  ToggleLeft,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -9,6 +16,7 @@ import {
   DataTableRowActions,
   type DataTableColumn,
 } from "@/components/data-table";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -283,7 +291,9 @@ export function AppsPage() {
         current.map((item) => (item.id === result.app.id ? result.app : item)),
       );
     } catch (err) {
-      toast.error(err instanceof APIError ? err.message : t("apps.statusFailed"));
+      toast.error(
+        err instanceof APIError ? err.message : t("apps.statusFailed"),
+      );
     }
   }
 
@@ -297,32 +307,30 @@ export function AppsPage() {
       setSecret(result.app_secret);
       setResetTarget(null);
     } catch (err) {
-      toast.error(err instanceof APIError ? err.message : t("apps.resetFailed"));
+      toast.error(
+        err instanceof APIError ? err.message : t("apps.resetFailed"),
+      );
     }
   }
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("apps.title")}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t("apps.description")}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={load}>
-            <RefreshCw />
-            {t("common.refresh")}
-          </Button>
-          <Button onClick={openCreate}>
-            <Plus />
-            {t("apps.create")}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={t("apps.title")}
+        description={t("apps.description")}
+        actions={
+          <>
+            <Button variant="outline" onClick={load}>
+              <RefreshCw />
+              {t("common.refresh")}
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus />
+              {t("apps.create")}
+            </Button>
+          </>
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -333,7 +341,7 @@ export function AppsPage() {
           {loading ? (
             <p className="text-sm text-muted-foreground">{t("apps.loading")}</p>
           ) : apps.length > 0 ? (
-            <AppsDataTable columns={columns} data={apps} />
+            <AppsDataTable columns={columns} data={apps} viewOptions />
           ) : (
             <p className="text-sm text-muted-foreground">{t("apps.empty")}</p>
           )}
