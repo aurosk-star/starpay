@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to release (for example v0.3.0)
+        required: true
+      dry_run:
+        description: Only print the release notes without creating a release
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Prepare release notes
+        id: notes
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          notes_file="release-notes.md"
+          awk -v ver="$version" '
+            index($0, "## [" ver "]") == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > "$notes_file"
+
+          if grep -q '[^[:space:]]' "$notes_file"; then
+            source=changelog
+          else
+            source=generated
+          fi
+
+          {
+            echo "tag=$TAG"
+            echo "version=$version"
+            echo "source=$source"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Release notes source: $source"
+          cat "$notes_file"
+
+      - name: Create or update GitHub release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.notes.outputs.tag }}
+          SOURCE: ${{ steps.notes.outputs.source }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; updating its notes."
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "Starpay $TAG" \
+              --notes-file release-notes.md
+          elif [ "$SOURCE" = "generated" ]; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "Starpay $TAG" \
+              --generate-notes \
+              --verify-tag
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "Starpay $TAG" \
+              --notes-file release-notes.md \
+              --verify-tag
+          fi
+
+      - name: Skip release creation (dry run)
+        if: ${{ inputs.dry_run }}
+        env:
+          TAG: ${{ steps.notes.outputs.tag }}
+        run: |
+          echo "Dry run: release for $TAG was not created."
